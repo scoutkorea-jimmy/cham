@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>관리자 · 한국참전통발효식품협동조합</title>
+<link rel="stylesheet" href="assets/site.css">
+<style id="admin-style">
+  body { background: var(--surface-2); }
+  .admin { display: flex; min-height: 100vh; }
+  .admin-side { width: 250px; flex-shrink: 0; background: var(--main-deeper); color: #fff; display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; }
+  .admin-side .as-brand { display: flex; align-items: center; gap: 11px; padding: 22px 22px 18px; border-bottom: 1px solid rgba(255,255,255,.12); }
+  .admin-side .as-brand img { width: 38px; height: 38px; background: var(--bg); border-radius: 9px; padding: 4px; }
+  .admin-side .as-brand b { font-family: var(--font-head); font-weight: 800; font-size: 15px; line-height: 1.2; }
+  .admin-side .as-brand span { font-size: 10.5px; color: var(--sub); letter-spacing: .08em; }
+  .admin-nav { padding: 14px 12px; display: flex; flex-direction: column; gap: 3px; flex: 1; overflow-y: auto; }
+  .admin-nav button { display: flex; align-items: center; gap: 11px; width: 100%; text-align: left; padding: 11px 14px; border: none; background: transparent; color: rgba(255,255,255,.75); font: inherit; font-size: 14px; font-weight: 600; border-radius: 10px; cursor: pointer; transition: all var(--dur-fast) var(--ease); }
+  .admin-nav button:hover { background: rgba(255,255,255,.08); color: #fff; }
+  .admin-nav button.on { background: var(--point); color: #fff; }
+  .admin-nav button i[data-lucide] { width: 18px; height: 18px; }
+  .admin-nav .badge { margin-left: auto; background: rgba(255,255,255,.18); border-radius: 999px; font-size: 11px; font-weight: 700; padding: 1px 8px; }
+  .admin-nav button.on .badge { background: rgba(255,255,255,.25); }
+  .as-foot { padding: 14px; border-top: 1px solid rgba(255,255,255,.12); display: flex; flex-direction: column; gap: 8px; }
+  .as-foot a, .as-foot button { display: flex; align-items: center; gap: 9px; padding: 9px 12px; border-radius: 9px; font-size: 13px; font-weight: 600; color: rgba(255,255,255,.7); background: transparent; border: none; cursor: pointer; font-family: inherit; }
+  .as-foot a:hover, .as-foot button:hover { background: rgba(255,255,255,.08); color: #fff; }
+  .as-foot i[data-lucide]{ width: 16px; height: 16px; }
+
+  .admin-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .admin-top { background: rgba(252,250,243,.86); backdrop-filter: blur(14px); border-bottom: 1px solid var(--line-soft); padding: 0 32px; height: 70px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .admin-top h1 { font-size: 22px; }
+  .admin-top .at-meta { font-size: 13px; color: var(--ink-mute); }
+  .admin-view { padding: 32px; max-width: 1080px; }
+
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+  @media (max-width: 900px){ .stat-grid { grid-template-columns: repeat(2,1fr); } }
+  .stat { background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--r-lg); padding: 20px 22px; box-shadow: var(--sh-xs); }
+  .stat .si { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; background: var(--main-tint); color: var(--main); margin-bottom: 14px; }
+  .stat .si i[data-lucide]{ width: 21px; height: 21px; }
+  .stat .sv { font-family: var(--font-head); font-weight: 800; font-size: 30px; line-height: 1; }
+  .stat .sl { font-size: 13px; color: var(--ink-mute); margin-top: 6px; }
+
+  .panel { background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--sh-xs); }
+  .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 22px; border-bottom: 1px solid var(--line-soft); }
+  .panel-head h3 { font-size: 17px; }
+  .panel-head .ph-sub { font-size: 13px; color: var(--ink-mute); }
+  .admin-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .admin-table th, .admin-table td { text-align: left; padding: 13px 16px; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
+  .admin-table th { background: var(--surface-2); font-size: 12px; color: var(--ink-soft); font-weight: 700; letter-spacing: .02em; }
+  .admin-table tr:last-child td { border-bottom: none; }
+  .admin-table tbody tr:hover { background: var(--surface-2); }
+  .admin-table .dt { color: var(--ink-mute); font-size: 12.5px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .admin-empty { padding: 48px 24px; text-align: center; color: var(--ink-mute); }
+  .admin-empty i[data-lucide]{ width: 34px; height: 34px; opacity: .4; margin-bottom: 10px; }
+
+  .st-sel { font: inherit; font-size: 12.5px; font-weight: 600; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+  .st-신규, .st-신규 { color: var(--point); }
+  .icon-btn { background: transparent; border: 1px solid var(--line); border-radius: 8px; width: 32px; height: 32px; display: inline-grid; place-items: center; cursor: pointer; color: var(--ink-mute); }
+  .icon-btn:hover { border-color: var(--danger); color: var(--danger); background: #fff; }
+  .icon-btn i[data-lucide]{ width: 15px; height: 15px; }
+
+  .admin-form { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; padding: 22px; }
+  .admin-form .full { grid-column: 1 / -1; }
+  .toggle { position: relative; width: 44px; height: 25px; border-radius: 999px; background: var(--line); border: none; cursor: pointer; transition: background var(--dur-fast); flex-shrink: 0; }
+  .toggle.on { background: var(--main); }
+  .toggle i { position: absolute; top: 3px; left: 3px; width: 19px; height: 19px; border-radius: 50%; background: #fff; transition: transform var(--dur-fast); box-shadow: var(--sh-xs); }
+  .toggle.on i { transform: translateX(19px); }
+
+  .card-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; padding: 22px; }
+  .pcard { border: 1px solid var(--line-soft); border-radius: var(--r-md); padding: 16px; background: var(--bg); display: flex; flex-direction: column; gap: 10px; }
+  .pcard .pc-logo { height: 60px; display: grid; place-items: center; background: var(--main-tint); color: var(--main-deep); border-radius: 8px; font-family: var(--font-head); font-weight: 800; overflow: hidden; }
+  .pcard .pc-logo img { max-height: 56px; max-width: 90%; object-fit: contain; }
+  .pcard .pc-name { font-weight: 700; font-size: 14px; }
+  .pcard .pc-sub { font-size: 12px; color: var(--ink-mute); }
+  .pcard .pc-row { display: flex; justify-content: space-between; align-items: center; margin-top: auto; }
+
+  .login-gate { position: fixed; inset: 0; z-index: 2000; background: var(--main-deeper); display: grid; place-items: center; background-image: var(--pat-light); background-size: var(--pat-size); }
+  .login-card { background: var(--surface); border-radius: var(--r-xl); box-shadow: var(--sh-lg); padding: 38px 36px; width: min(380px, 92vw); text-align: center; }
+  .login-card img { width: 56px; height: 56px; mix-blend-mode: multiply; margin: 0 auto 14px; }
+  .login-card h2 { font-size: 22px; }
+  .login-card p { color: var(--ink-mute); font-size: 14px; margin: 8px 0 22px; }
+  .login-card input { width: 100%; padding: 13px 15px; border: 1.5px solid var(--line); border-radius: var(--r-sm); font: inherit; font-size: 16px; text-align: center; }
+  .login-card input:focus { outline: none; border-color: var(--main); box-shadow: 0 0 0 3px var(--main-tint); }
+  .login-hint { font-size: 12px; color: var(--ink-faint); margin-top: 14px; }
+  .login-err { color: var(--danger); font-size: 13px; margin-top: 10px; min-height: 18px; }
+  @media (max-width: 760px){ .admin-side { position: fixed; left: -260px; transition: left .2s; z-index: 50; } .admin-view{ padding: 20px; } }
+</style>
+</head>
+<body data-page="admin">
+
+<div class="login-gate" id="loginGate" style="display:none">
+  <div class="login-card">
+    <img src="assets/logo.png" alt="로고">
+    <h2>관리자 로그인</h2>
+    <p>한국참전통발효식품협동조합 관리자 페이지</p>
+    <form id="loginForm">
+      <input type="password" id="loginPw" placeholder="비밀번호" autocomplete="current-password">
+      <div class="login-err" id="loginErr"></div>
+      <button class="btn btn-point btn-lg" type="submit" style="width:100%;margin-top:6px">로그인</button>
+    </form>
+    <div class="login-hint">데모 비밀번호 : <b>manjangdae</b></div>
+  </div>
+</div>
+
+<div class="admin" id="adminApp" style="display:none">
+  <aside class="admin-side">
+    <div class="as-brand">
+      <img src="assets/logo.png" alt="로고">
+      <div><b>한국참전통발효식품</b><br><span>ADMIN CONSOLE</span></div>
+    </div>
+    <nav class="admin-nav" id="adminNav"></nav>
+    <div class="as-foot">
+      <a href="index.html"><i data-lucide="external-link"></i>홈페이지 보기</a>
+      <button id="logoutBtn"><i data-lucide="log-out"></i>로그아웃</button>
+    </div>
+  </aside>
+  <main class="admin-main">
+    <div class="admin-top">
+      <h1 id="adminTitle">대시보드</h1>
+      <span class="at-meta" id="adminMeta">관리자님 환영합니다</span>
+    </div>
+    <div class="admin-view" id="adminView"></div>
+  </main>
+</div>
+
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="assets/site.js"></script>
+<script src="assets/admin.js"></script>
+</body>
+</html>

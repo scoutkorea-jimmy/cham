@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>전통발효식품 · 한국참전통발효식품협동조합</title>
+<meta name="description" content="전통 발효의 원리와 씨장 이야기, 발효식품의 종류와 전통발효 5단계 과정을 소개합니다.">
+<link rel="stylesheet" href="assets/site.css">
+<style id="page-style">
+  .steps { display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin-top:44px; align-items:start; }
+  .steps .step { text-align:center; }
+  .steps .step .dot { width:64px; height:64px; border-radius:50%; margin:0 auto 14px; display:grid; place-items:center; background:var(--main-tint); color:var(--main); position:relative; }
+  .steps .step .dot i[data-lucide]{ width:28px; height:28px; }
+  .steps .step .dot::after { content:attr(data-n); position:absolute; top:-6px; right:-6px; width:24px; height:24px; border-radius:50%; background:var(--point); color:#fff; font-size:12px; font-weight:800; display:grid; place-items:center; font-family:var(--font-head); }
+  .steps .step h5 { font-size:15px; }
+  .steps .step p { font-size:13px; color:var(--ink-mute); margin:6px 0 0; }
+  @media (max-width:820px){ .steps{grid-template-columns:repeat(2,1fr); gap:24px;} }
+</style>
+</head>
+<body data-page="ferments">
+<header id="site-nav"></header>
+
+<section class="page-hero deep">
+  <div class="wrap">
+    <div class="crumb reveal"><a href="index.html">홈</a><i data-lucide="chevron-right"></i><span>전통발효식품</span></div>
+    <span class="eyebrow reveal">Traditional ferments</span>
+    <h1 class="reveal" style="margin-top:14px">시간이 빚어낸 깊은 맛</h1>
+    <p class="lede reveal">한국의 발효문화는 미생물과 시간, 그리고 정성이 함께 만든 지혜입니다.</p>
+  </div>
+</section>
+
+<!-- 전통 발효란 -->
+<section class="section" id="about">
+  <div class="wrap" style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:64px;align-items:center">
+    <div class="reveal">
+      <span class="eyebrow">전통 발효란?</span>
+      <h2 style="margin-top:14px">자연이 만드는<br>느린 발효</h2>
+      <p class="lede" style="margin-top:18px">발효는 곰팡이·효모·세균 같은 미생물이 콩과 곡물을 분해하며 새로운 맛과 영양을 만들어내는 과정입니다. 한국의 장류는 이 자연의 힘을 오랜 시간 정성으로 다스려 완성합니다.</p>
+      <div class="grid g-3" style="gap:14px;margin-top:24px">
+        <div><b style="color:var(--main)">미생물</b><p class="muted" style="margin:4px 0 0;font-size:14px">메주의 이로운 균이 발효를 이끕니다.</p></div>
+        <div><b style="color:var(--main)">효소</b><p class="muted" style="margin:4px 0 0;font-size:14px">단백질을 감칠맛 성분으로 분해합니다.</p></div>
+        <div><b style="color:var(--main)">시간</b><p class="muted" style="margin:4px 0 0;font-size:14px">3년 이상 숙성으로 깊은 맛이 완성됩니다.</p></div>
+      </div>
+    </div>
+    <div class="reveal ph tone-oat ratio-43" data-label="발효의 과학 — 메주와 미생물"><i data-lucide="flask-conical"></i></div>
+  </div>
+</section>
+
+<!-- 씨장 이야기 -->
+<section class="section band-oat" id="seedjang">
+  <div class="wrap" style="display:grid;grid-template-columns:0.9fr 1.1fr;gap:64px;align-items:center">
+    <div class="reveal ph tone-deep ratio-43" data-label="씨장 — 대를 잇는 종자 장"><i data-lucide="archive"></i></div>
+    <div class="reveal">
+      <span class="eyebrow">씨장 이야기</span>
+      <h2 style="margin-top:14px">대를 잇는 한 항아리, 씨장</h2>
+      <p class="lede" style="margin-top:18px">씨장(씨醬)은 오래 묵힌 장을 새 장에 더해 맛과 균을 이어가는, 집안 대대로 전해지는 종자 장입니다. 정선만장대는 이 씨장을 중심으로 전통 발효의 정통을 지켜왔습니다.</p>
+      <p class="muted">사라져가는 씨장을 지키고 전통의 맛을 나누기 위해, 우리는 <b style="color:var(--ink)">전국민 씨장 갖기 운동</b>을 함께 실천하고 있습니다.</p>
+      <a class="btn btn-point" href="products.html#seedjang" style="margin-top:20px"><i data-lucide="sprout"></i>씨장 분양 알아보기</a>
+    </div>
+  </div>
+</section>
+
+<!-- 발효식품의 종류 -->
+<section class="section" id="types">
+  <div class="wrap">
+    <div class="section-head reveal"><span class="eyebrow">발효식품의 종류</span><h2>한국의 대표 발효식품</h2></div>
+    <div class="grid g-3" style="margin-top:40px">
+      <div class="card card-pad card-hover reveal"><div class="icon-badge oat"><i data-lucide="bean"></i></div><h4 style="margin:16px 0 8px">된장</h4><p class="muted" style="margin:0">메주를 소금물에 띄워 만든 기본 장. 구수하고 깊은 감칠맛으로 국·찌개의 바탕이 됩니다.</p></div>
+      <div class="card card-pad card-hover reveal"><div class="icon-badge oat"><i data-lucide="droplet"></i></div><h4 style="margin:16px 0 8px">간장</h4><p class="muted" style="margin:0">메주를 우려낸 맑은 장. 음식의 간을 맞추고 감칠맛을 더하는 발효 조미료입니다.</p></div>
+      <div class="card card-pad card-hover reveal"><div class="icon-badge point"><i data-lucide="flame"></i></div><h4 style="margin:16px 0 8px">고추장</h4><p class="muted" style="margin:0">고춧가루·찹쌀·메주를 발효시킨 매콤달큰한 장. 한국 음식의 매운맛을 책임집니다.</p></div>
+      <div class="card card-pad card-hover reveal"><div class="icon-badge oat"><i data-lucide="soup"></i></div><h4 style="margin:16px 0 8px">청국장</h4><p class="muted" style="margin:0">콩을 짧게 띄워 만든 진한 발효식품. 풍부한 영양과 구수한 향이 특징입니다.</p></div>
+      <div class="card card-pad card-hover reveal"><div class="icon-badge oat"><i data-lucide="wheat"></i></div><h4 style="margin:16px 0 8px">막장</h4><p class="muted" style="margin:0">된장보다 부드럽고 감칠맛이 강한 별미 장. 쌈장·찌개에 두루 쓰입니다.</p></div>
+      <div class="card card-pad card-hover reveal"><div class="icon-badge oat"><i data-lucide="salad"></i></div><h4 style="margin:16px 0 8px">장아찌</h4><p class="muted" style="margin:0">제철 채소를 장에 담가 숙성한 밑반찬. 짭조름하고 깊은 풍미를 냅니다.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 전통발효 과정 -->
+<section class="section band-tint" id="process">
+  <div class="wrap">
+    <div class="section-head center reveal"><span class="eyebrow center">전통발효 과정</span><h2>정성으로 익히는 다섯 단계</h2><p class="lede">정선만장대 전통 발효 과정을 따릅니다.</p></div>
+    <div class="steps reveal">
+      <div class="step"><div class="dot" data-n="1"><i data-lucide="sprout"></i></div><h5>좋은 재료 선별</h5><p>국산 콩·고추·천일염을 엄선합니다.</p></div>
+      <div class="step"><div class="dot" data-n="2"><i data-lucide="microscope"></i></div><h5>전통 씨장 배양</h5><p>대를 이은 씨장으로 균을 배양합니다.</p></div>
+      <div class="step"><div class="dot" data-n="3"><i data-lucide="archive"></i></div><h5>장 담그기</h5><p>전통 방식 그대로 장을 담급니다.</p></div>
+      <div class="step"><div class="dot" data-n="4"><i data-lucide="clock"></i></div><h5>장독 숙성</h5><p>장독대에서 최소 3년 이상 숙성합니다.</p></div>
+      <div class="step"><div class="dot" data-n="5"><i data-lucide="check-check"></i></div><h5>정성스러운 완성</h5><p>깊고 구수한 전통의 맛을 완성합니다.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 전통 장문화 -->
+<section class="section" id="culture">
+  <div class="wrap">
+    <div class="section-head reveal"><span class="eyebrow">전통 장(醬)문화</span><h2>장독대에 담긴 이야기</h2></div>
+    <div class="grid g-2" style="margin-top:40px">
+      <div class="card card-pad card-hover reveal" style="display:flex;gap:20px;align-items:flex-start"><div class="icon-badge"><i data-lucide="home"></i></div><div><h4>한국의 장독 문화</h4><p class="muted" style="margin:8px 0 0">집집마다 장독대를 두고 햇볕과 바람으로 장을 익혀온 한국 고유의 발효 문화입니다. 장독은 숨 쉬는 그릇으로, 발효에 가장 알맞은 환경을 만들어줍니다.</p></div></div>
+      <div class="card card-pad card-hover reveal" style="display:flex;gap:20px;align-items:flex-start"><div class="icon-badge oat"><i data-lucide="map"></i></div><div><h4>지역별 장문화</h4><p class="muted" style="margin:8px 0 0">기후와 물, 재료에 따라 지역마다 장맛이 다릅니다. 강원 정선의 큰 일교차와 맑은 물은 깊고 구수한 장맛을 빚어내는 최적의 조건입니다.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<footer id="site-footer"></footer>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="assets/site.js"></script>
+</body>
+</html>
