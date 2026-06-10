@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /admin.html
+
+# 도메인 확정 시 아래 주소를 실제 도메인으로 교체하세요.
+Sitemap: https://scoutkorea-jimmy.github.io/cham/sitemap.xml

@@ -3,9 +3,31 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>한국참전통발효식품협동조합</title>
-<meta name="description" content="전통 발효식품의 보급과 교육을 통해 건강한 식문화를 만들어갑니다. 전통발효식품체험지도사 과정, 전통 장류 제품 판매.">
+<title>한국참전통발효식품협동조합 — 전통 발효식품 교육 · 판매</title>
+<meta name="description" content="전통 발효식품의 보급과 교육을 통해 건강한 식문화를 만들어갑니다. 전통발효식품체험지도사 과정, 전통 된장·고추장·막장 판매, 씨장 분양.">
+<meta name="robots" content="index,follow">
+<meta name="keywords" content="전통발효식품, 협동조합, 된장, 고추장, 막장, 씨장, 체험지도사, 정선만장대">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="한국참전통발효식품협동조합">
+<meta property="og:title" content="한국참전통발효식품협동조합 — 전통 발효식품 교육 · 판매">
+<meta property="og:description" content="전통의 깊이, 발효의 가치를 이어갑니다. 체험지도사 과정 · 전통 장류 판매 · 씨장 분양.">
+<meta property="og:image" content="assets/logo.png">
+<meta property="og:locale" content="ko_KR">
 <link rel="stylesheet" href="assets/site.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Organization",
+ "name":"한국참전통발효식품협동조합",
+ "description":"전통 발효식품의 보급과 교육을 통해 건강한 식문화를 만들어가는 협동조합. 전통발효식품체험지도사 양성, 전통 장류 판매, 씨장 분양.",
+ "logo":"assets/logo.png",
+ "telephone":"+82-2-855-8806",
+ "email":"kach5501@hanmail.net",
+ "address":{"@type":"PostalAddress","addressCountry":"KR","addressLocality":"서울특별시 구로구","streetAddress":"구로동 240, 세일빌딩 701호"}}
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebSite",
+ "name":"한국참전통발효식품협동조합",
+ "inLanguage":"ko"}
+</script>
 </head>
 <body data-page="index">
 <header id="site-nav"></header>
@@ -41,7 +63,7 @@
       <h2 style="margin-top:14px;font-size:var(--fs-h3)">우리와 함께하는 파트너</h2>
       <p>3대를 이은 전통발효명가 정선만장대를 비롯한 지역 파트너와 함께 건강한 식문화를 만들어갑니다.</p>
     </div>
-    <div class="partners-track reveal" id="partners-track"></div>
+    <div class="partners-marquee reveal"><div class="partners-track" id="partners-track"></div></div>
   </div>
 </section>
 
@@ -178,26 +200,7 @@
       </div>
       <a class="btn-text reveal" href="news.html" style="padding-bottom:8px">전체 보기 <i data-lucide="arrow-right"></i></a>
     </div>
-    <div class="card reveal" style="margin-top:36px;overflow:hidden">
-      <a class="news-row" href="news.html">
-        <span class="tag sample">샘플</span>
-        <span class="tag point">공지</span>
-        <span class="nr-title">2026년 봄학기 전통발효식품체험지도사 과정 모집 안내</span>
-        <span class="nr-date">2026.03.04</span>
-      </a>
-      <a class="news-row" href="news.html">
-        <span class="tag sample">샘플</span>
-        <span class="tag">교육</span>
-        <span class="nr-title">된장·간장 담그기 원데이 체험 클래스 일정 공개</span>
-        <span class="nr-date">2026.02.20</span>
-      </a>
-      <a class="news-row" href="news.html">
-        <span class="tag sample">샘플</span>
-        <span class="tag">행사</span>
-        <span class="nr-title">정월 장 담그기 행사 — 조합원 참여 후기</span>
-        <span class="nr-date">2026.02.11</span>
-      </a>
-    </div>
+    <div class="card reveal" id="news-rows" style="margin-top:36px;overflow:hidden"></div>
   </div>
 </section>
 

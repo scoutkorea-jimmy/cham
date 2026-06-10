@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>관리자 · 한국참전통발효식품협동조합</title>
+<meta name="robots" content="noindex,nofollow">
 <link rel="stylesheet" href="assets/site.css">
 <style id="admin-style">
   body { background: var(--surface-2); }
@@ -29,7 +30,33 @@
   .admin-top { background: rgba(252,250,243,.86); backdrop-filter: blur(14px); border-bottom: 1px solid var(--line-soft); padding: 0 32px; height: 70px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
   .admin-top h1 { font-size: 22px; }
   .admin-top .at-meta { font-size: 13px; color: var(--ink-mute); }
-  .admin-view { padding: 32px; max-width: 1080px; }
+  .admin-view { padding: 32px; max-width: 1240px; }
+
+  /* 주문 관리 — 상태 탭 · 일괄 처리 바 */
+  .otabs { display: flex; gap: 2px; border-bottom: 2px solid var(--line-soft); flex-wrap: wrap; }
+  .otabs button { padding: 11px 14px; border: none; background: none; font: inherit; font-size: 14px; font-weight: 600; color: var(--ink-mute); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+  .otabs button:hover { color: var(--ink); }
+  .otabs button.on { color: var(--point); border-color: var(--point); }
+  .otabs .cnt { color: var(--point); font-weight: 800; margin-left: 5px; font-size: 13px; }
+  .obar { display: flex; gap: 8px; flex-wrap: wrap; padding: 14px 0; }
+  .obar .btn-sm { padding: 9px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; border: 1px solid var(--line); background: var(--surface); cursor: pointer; font-family: inherit; color: var(--ink); }
+  .obar .btn-sm:hover { border-color: var(--main); color: var(--main); }
+  .obar .btn-sm.primary { background: var(--info); color: #fff; border-color: var(--info); }
+  .obar .btn-sm.primary:hover { opacity: .92; color: #fff; }
+  .odrop { position: relative; }
+  .odrop-menu { position: absolute; top: calc(100% + 4px); left: 0; background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--sh-md); padding: 6px; display: none; z-index: 40; min-width: 190px; }
+  .odrop-menu.open { display: block; }
+  .odrop-menu button { display: block; width: 100%; text-align: left; padding: 9px 12px; border: none; background: none; font: inherit; font-size: 13px; border-radius: 7px; cursor: pointer; }
+  .odrop-menu button:hover { background: var(--surface-2); }
+  .odrop-menu hr { border: none; border-top: 1px solid var(--line-soft); margin: 5px 0; }
+
+  /* 대시보드 방문 차트 */
+  .stat .ss { font-size: 12px; color: var(--ink-faint); margin-top: 3px; }
+  .vchart { display: flex; align-items: flex-end; gap: 14px; height: 150px; padding: 0 6px; }
+  .vc-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 6px; height: 100%; }
+  .vc-bar { width: 100%; max-width: 46px; background: linear-gradient(to top, var(--main), var(--main-deep)); border-radius: 7px 7px 3px 3px; min-height: 4px; }
+  .vc-val { font-size: 12px; font-weight: 700; color: var(--main-deep); }
+  .vc-day { font-size: 11px; color: var(--ink-mute); }
 
   .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
   @media (max-width: 900px){ .stat-grid { grid-template-columns: repeat(2,1fr); } }
@@ -93,11 +120,11 @@
     <h2>관리자 로그인</h2>
     <p>한국참전통발효식품협동조합 관리자 페이지</p>
     <form id="loginForm">
+      <input type="text" id="loginId" placeholder="아이디" autocomplete="username" style="margin-bottom:10px">
       <input type="password" id="loginPw" placeholder="비밀번호" autocomplete="current-password">
       <div class="login-err" id="loginErr"></div>
       <button class="btn btn-point btn-lg" type="submit" style="width:100%;margin-top:6px">로그인</button>
     </form>
-    <div class="login-hint">데모 비밀번호 : <b>manjangdae</b></div>
   </div>
 </div>
 

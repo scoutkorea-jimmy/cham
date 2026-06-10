@@ -4,21 +4,27 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>제품 · 한국참전통발효식품협동조합</title>
-<meta name="description" content="정성으로 익힌 전통 된장·고추장·막장과 씨장 분양, 명절 선물세트.">
+<meta name="description" content="정성으로 익힌 전통 된장·고추장·막장과 씨장 분양, 명절 선물세트. 회원가입 없이 비회원 주문이 가능합니다.">
+<meta name="robots" content="index,follow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="한국참전통발효식품협동조합">
+<meta property="og:title" content="제품 · 한국참전통발효식품협동조합">
+<meta property="og:description" content="전통 장류·발효식품·선물세트 — 비회원 주문 가능, 무통장입금.">
+<meta property="og:image" content="assets/logo.png">
 <link rel="stylesheet" href="assets/site.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[
+ {"@type":"ListItem","position":1,"name":"홈","item":"index.html"},
+ {"@type":"ListItem","position":2,"name":"제품","item":"products.html"}]}
+</script>
 <style id="page-style">
   .cat-bar { display:flex; gap:10px; flex-wrap:wrap; margin-top:28px; }
-  .cat-bar a { padding:9px 18px; border-radius:var(--r-pill); background:var(--surface); border:1px solid var(--line-soft); font-size:var(--fs-sm); font-weight:600; color:var(--ink-soft); }
-  .cat-bar a:hover { border-color:var(--main); color:var(--main); background:var(--main-tint); }
+  .cat-bar a, .cat-bar button { padding:9px 18px; border-radius:var(--r-pill); background:var(--surface); border:1px solid var(--line-soft); font-size:var(--fs-sm); font-weight:600; color:var(--ink-soft); cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:6px; }
+  .cat-bar a:hover, .cat-bar button:hover { border-color:var(--main); color:var(--main); background:var(--main-tint); }
+  .cat-bar i[data-lucide]{ width:15px; height:15px; }
   .prod-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; }
   @media (max-width:900px){ .prod-grid{grid-template-columns:repeat(2,1fr);} }
   @media (max-width:600px){ .prod-grid{grid-template-columns:1fr;} }
-  .prod { overflow:hidden; display:flex; flex-direction:column; }
-  .prod .body { padding:22px; display:flex; flex-direction:column; flex:1; }
-  .prod .specs { display:flex; flex-direction:column; gap:6px; margin:14px 0 16px; }
-  .prod .specs span { display:flex; gap:7px; align-items:center; font-size:var(--fs-caption); color:var(--ink-mute); }
-  .prod .specs i[data-lucide]{ width:14px; height:14px; color:var(--main); }
-  .prod .foot { margin-top:auto; display:flex; justify-content:space-between; align-items:center; gap:10px; }
   .price { font-family:var(--font-head); font-weight:800; font-size:21px; color:var(--ink); }
   .price small { font-size:13px; font-weight:600; color:var(--ink-mute); margin-left:2px; }
 </style>
@@ -31,9 +37,10 @@
     <div class="crumb reveal"><a href="index.html">홈</a><i data-lucide="chevron-right"></i><span>제품</span></div>
     <span class="eyebrow reveal">제품</span>
     <h1 class="reveal" style="margin-top:14px">정성으로 익힌 전통의 맛</h1>
-    <p class="lede reveal">청정 정선에서 국산 재료로 빚어 3년 이상 숙성한 장류와, 씨장 분양·명절 선물세트를 소개합니다.</p>
-    <div class="cat-bar reveal">
+    <p class="lede reveal">청정 정선에서 국산 재료로 빚어 3년 이상 숙성한 장류와, 씨장 분양·명절 선물세트를 소개합니다. 회원가입 없이 <b>비회원 주문</b>이 가능합니다.</p>
+    <div class="cat-bar reveal" id="lookup">
       <a href="#jang">장류</a><a href="#ferment">발효식품</a><a href="#seedjang">씨장 분양</a><a href="#gift">선물세트</a>
+      <button type="button" data-modal="orderlookup"><i data-lucide="package-search"></i>비회원 주문 조회</button>
     </div>
   </div>
 </section>
@@ -42,50 +49,7 @@
 <section class="section" id="jang">
   <div class="wrap">
     <div class="section-head reveal"><span class="eyebrow">장류</span><h2>정선만장대 전통 장(醬)</h2></div>
-    <div class="prod-grid" style="margin-top:40px">
-      <div class="card card-hover prod reveal">
-        <div class="ph tone-oat ratio-43" data-label="제품 사진 — 전통 된장"><i data-lucide="bean"></i></div>
-        <div class="body">
-          <span class="tag" style="align-self:flex-start">장류</span>
-          <h4 style="margin:12px 0 6px">전통 된장</h4>
-          <p class="muted" style="margin:0;font-size:14px">깊고 구수한 전통의 맛.</p>
-          <div class="specs">
-            <span><i data-lucide="wheat"></i>원재료 : 국산 콩 100%, 천일염</span>
-            <span><i data-lucide="archive"></i>제조 : 전통 씨장 방식, 3년 숙성</span>
-            <span><i data-lucide="snowflake"></i>보관 : 냉장 보관 권장</span>
-          </div>
-          <div class="foot"><span class="price">25,000<small>원/1kg</small></span><button class="btn btn-point" data-modal="order" data-product="전통 된장 (1kg)">구매하기</button></div>
-        </div>
-      </div>
-      <div class="card card-hover prod reveal">
-        <div class="ph tone-point ratio-43" data-label="제품 사진 — 태양초 고추장"><i data-lucide="flame"></i></div>
-        <div class="body">
-          <span class="tag" style="align-self:flex-start">장류</span>
-          <h4 style="margin:12px 0 6px">태양초 고추장</h4>
-          <p class="muted" style="margin:0;font-size:14px">매콤하고 감칠맛 가득.</p>
-          <div class="specs">
-            <span><i data-lucide="wheat"></i>원재료 : 국산 고춧가루·찹쌀, 메주</span>
-            <span><i data-lucide="archive"></i>제조 : 전통 발효방식, 장기 숙성</span>
-            <span><i data-lucide="snowflake"></i>보관 : 냉장 보관 권장</span>
-          </div>
-          <div class="foot"><span class="price">28,000<small>원/1kg</small></span><button class="btn btn-point" data-modal="order" data-product="태양초 고추장 (1kg)">구매하기</button></div>
-        </div>
-      </div>
-      <div class="card card-hover prod reveal">
-        <div class="ph tone-main ratio-43" data-label="제품 사진 — 정선 막장"><i data-lucide="wheat"></i></div>
-        <div class="body">
-          <span class="tag" style="align-self:flex-start">장류</span>
-          <h4 style="margin:12px 0 6px">정선 막장</h4>
-          <p class="muted" style="margin:0;font-size:14px">구수하고 깊은 감칠맛.</p>
-          <div class="specs">
-            <span><i data-lucide="wheat"></i>원재료 : 국산 콩·보리, 고춧가루</span>
-            <span><i data-lucide="archive"></i>제조 : 전통 방식, 숙성</span>
-            <span><i data-lucide="snowflake"></i>보관 : 냉장 보관 권장</span>
-          </div>
-          <div class="foot"><span class="price">22,000<small>원/1kg</small></span><button class="btn btn-point" data-modal="order" data-product="정선 막장 (1kg)">구매하기</button></div>
-        </div>
-      </div>
-    </div>
+    <div class="prod-grid" id="grid-jang" style="margin-top:40px"></div>
   </div>
 </section>
 
@@ -93,38 +57,7 @@
 <section class="section band-oat" id="ferment">
   <div class="wrap">
     <div class="section-head reveal"><span class="eyebrow">발효식품</span><h2>밥상을 채우는 발효의 맛</h2></div>
-    <div class="prod-grid" style="margin-top:40px">
-      <div class="card card-hover prod reveal">
-        <div class="ph tone-deep ratio-43" data-label="제품 사진 — 청국장"><i data-lucide="soup"></i></div>
-        <div class="body">
-          <span class="tag" style="align-self:flex-start">발효식품</span>
-          <h4 style="margin:12px 0 6px">전통 청국장</h4>
-          <p class="muted" style="margin:0;font-size:14px">진하고 구수한 자연 발효.</p>
-          <div class="specs"><span><i data-lucide="wheat"></i>원재료 : 국산 콩 100%</span><span><i data-lucide="snowflake"></i>보관 : 냉동 보관</span></div>
-          <div class="foot"><span class="price">12,000<small>원/500g</small></span><button class="btn btn-point" data-modal="order" data-product="전통 청국장 (500g)">구매하기</button></div>
-        </div>
-      </div>
-      <div class="card card-hover prod reveal">
-        <div class="ph tone-oat ratio-43" data-label="제품 사진 — 장아찌"><i data-lucide="salad"></i></div>
-        <div class="body">
-          <span class="tag" style="align-self:flex-start">발효식품</span>
-          <h4 style="margin:12px 0 6px">제철 장아찌</h4>
-          <p class="muted" style="margin:0;font-size:14px">장으로 담근 짭조름한 밑반찬.</p>
-          <div class="specs"><span><i data-lucide="wheat"></i>원재료 : 제철 채소, 전통 장</span><span><i data-lucide="snowflake"></i>보관 : 냉장 보관</span></div>
-          <div class="foot"><span class="price">15,000<small>원/500g</small></span><button class="btn btn-point" data-modal="order" data-product="제철 장아찌 (500g)">구매하기</button></div>
-        </div>
-      </div>
-      <div class="card card-hover prod reveal">
-        <div class="ph tone-main ratio-43" data-label="제품 사진 — 메주"><i data-lucide="package"></i></div>
-        <div class="body">
-          <span class="tag" style="align-self:flex-start">발효식품</span>
-          <h4 style="margin:12px 0 6px">전통 메주</h4>
-          <p class="muted" style="margin:0;font-size:14px">직접 장을 담그실 분들을 위한.</p>
-          <div class="specs"><span><i data-lucide="wheat"></i>원재료 : 국산 콩 100%</span><span><i data-lucide="sun"></i>제조 : 자연 건조·띄움</span></div>
-          <div class="foot"><span class="price">18,000<small>원/개</small></span><button class="btn btn-point" data-modal="order" data-product="전통 메주 (1개)">구매하기</button></div>
-        </div>
-      </div>
-    </div>
+    <div class="prod-grid" id="grid-ferment" style="margin-top:40px"></div>
   </div>
 </section>
 
@@ -150,33 +83,11 @@
 <section class="section" id="gift">
   <div class="wrap">
     <div class="section-head reveal"><span class="eyebrow">선물세트</span><h2>명절 선물세트</h2></div>
-    <div class="prod-grid" style="margin-top:40px">
-      <div class="card card-hover prod reveal">
-        <div class="ph tone-point ratio-43" data-label="제품 사진 — 장 3종 선물세트"><i data-lucide="gift"></i></div>
-        <div class="body">
-          <span class="tag point" style="align-self:flex-start">선물세트</span>
-          <h4 style="margin:12px 0 6px">명절 장(醬) 3종 세트</h4>
-          <p class="muted" style="margin:0;font-size:14px">된장·고추장·막장 정성 구성.</p>
-          <div class="specs"><span><i data-lucide="box"></i>구성 : 된장·고추장·막장 각 500g</span><span><i data-lucide="gift"></i>전통 보자기 포장</span></div>
-          <div class="foot"><span class="price">45,000<small>원/세트</small></span><button class="btn btn-point" data-modal="order" data-product="명절 장 3종 선물세트">구매하기</button></div>
-        </div>
-      </div>
-      <div class="card card-hover prod reveal">
-        <div class="ph tone-deep ratio-43" data-label="제품 사진 — 프리미엄 선물세트"><i data-lucide="gift"></i></div>
-        <div class="body">
-          <span class="tag point" style="align-self:flex-start">선물세트</span>
-          <h4 style="margin:12px 0 6px">프리미엄 발효 선물세트</h4>
-          <p class="muted" style="margin:0;font-size:14px">장류와 청국장을 한 상자에.</p>
-          <div class="specs"><span><i data-lucide="box"></i>구성 : 장 3종 + 청국장</span><span><i data-lucide="gift"></i>고급 한지 포장</span></div>
-          <div class="foot"><span class="price">59,000<small>원/세트</small></span><button class="btn btn-point" data-modal="order" data-product="프리미엄 발효 선물세트">구매하기</button></div>
-        </div>
-      </div>
-      <div class="card card-hover prod reveal" style="background:var(--main-tint);border:none;justify-content:center;align-items:center;text-align:center;padding:32px">
-        <div class="icon-badge" style="background:var(--surface)"><i data-lucide="phone"></i></div>
-        <h4 style="margin:18px 0 8px">대량·기업 주문</h4>
-        <p class="muted" style="margin:0 0 18px;font-size:14px">명절 단체 선물, 답례품 문의</p>
-        <button class="btn btn-ghost" data-modal="inquiry"><i data-lucide="message-circle"></i>주문 문의</button>
-      </div>
+    <div class="prod-grid" id="grid-gift" style="margin-top:40px"></div>
+    <div class="card reveal" style="margin-top:24px;background:var(--main-tint);border:none;text-align:center;padding:32px">
+      <h4 style="margin:0 0 8px">대량 · 기업 주문</h4>
+      <p class="muted" style="margin:0 0 18px;font-size:14px">명절 단체 선물, 답례품은 별도 견적으로 안내드립니다.</p>
+      <button class="btn btn-ghost" data-modal="inquiry" data-type="제품 문의"><i data-lucide="message-circle"></i>주문 문의</button>
     </div>
   </div>
 </section>
@@ -184,5 +95,6 @@
 <footer id="site-footer"></footer>
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="assets/site.js"></script>
+<script src="assets/shop.js"></script>
 </body>
 </html>

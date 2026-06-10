@@ -1,106 +1,582 @@
 /* ============================================================
-   admin.js — 관리자 콘솔
-   주문/신청/문의/회원/파트너/팝업 관리 (localStorage 기반 데모)
+   admin.js — 관리자 콘솔 (localStorage + IndexedDB 데모)
+   대시보드(방문·주문 통계) · 상품 관리(등록/수정/옵션/고시)
+   주문 관리(상태 탭 · 일괄 발송/입금확인/반품/교환/되돌리기)
+   지도사 신청 · 문의 · 게시글 · 파트너 · 팝업(이미지) · 동의문 · KMS
+   ※ 회원 정보는 수집·관리하지 않음 (비회원 구조)
    ============================================================ */
 (function () {
   'use strict';
   var S = window.Site || {};
   function gj(k, d){ try { var s = localStorage.getItem(k); return s ? JSON.parse(s) : d; } catch (e) { return d; } }
   function sj(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
-  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  var esc = S.esc, fmtWon = S.fmtWon, stTag = S.stTag, uid = S.uid;
   function icons(){ if (window.lucide) window.lucide.createIcons(); }
   function fmtDate(iso){ if(!iso) return '-'; var d = new Date(iso); if(isNaN(d)) return esc(iso); return d.getFullYear()+'.'+('0'+(d.getMonth()+1)).slice(-2)+'.'+('0'+d.getDate()).slice(-2)+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2); }
-  function uid(){ return 'r' + Date.now().toString(36) + Math.floor(Math.random()*1000); }
 
-  var K = { orders: 'kach_orders', apps: 'kach_applications', inq: 'kach_inquiries', members: 'kach_members', popups: (S.POPUP_KEY || 'kach_popups_v1') };
+  var K = {
+    orders: 'kach_orders', apps: 'kach_applications', inq: 'kach_inquiries',
+    popups: (S.POPUP_KEY || 'kach_popups_v1'), posts: (S.POSTS_KEY || 'kach_posts_v1'),
+    consents: (S.CONSENT_KEY || 'kach_consents_v1'), kms: 'kach_kms_v1',
+  };
+  var OSTAT = S.OSTAT; // ['주문접수','결제완료','배송준비중','배송중','배송완료']
+  var CRX = ['취소', '반품요청', '반품완료', '교환요청', '교환완료'];
+  var TRACKED = ['택배', '소포', '등기'];
+  var COURIERS = ['CJ대한통운', '우체국택배', '롯데택배', '한진택배', '로젠택배', '기타'];
 
-  /* ---------- seed demo data (first run) ---------- */
+  /* ---------- 구버전 데이터 마이그레이션 ---------- */
+  function migrate() {
+    var map = { '신규': '주문접수', '입금대기': '주문접수', '확인': '결제완료', '완료': '배송완료' };
+    var a = gj(K.orders, []), dirty = false;
+    a.forEach(function (r) {
+      if (map[r.status]) { r.status = map[r.status]; dirty = true; }
+      if (!r.orderNo) { r.orderNo = (r.at || '').slice(0, 10).replace(/-/g, '') + ('0000' + Math.floor(Math.random() * 100000)).slice(-5); dirty = true; }
+      if (!r.payMethod) { r.payMethod = '무통장입금'; dirty = true; }
+    });
+    if (dirty) sj(K.orders, a);
+    try { localStorage.removeItem('kach_members'); } catch (e) {}
+  }
+
+  /* ---------- 데모 시드 ---------- */
   function seed() {
-    if (!localStorage.getItem(K.members)) sj(K.members, [
-      { id: uid(), name: '김참살', phone: '010-2241-7780', email: 'kimcs@email.com', joined: '2025-11-04', grade: '정회원' },
-      { id: uid(), name: '이정선', phone: '010-9930-1187', email: 'leejs@email.com', joined: '2025-12-12', grade: '정회원' },
-      { id: uid(), name: '박발효', phone: '010-4456-2093', email: 'park@email.com', joined: '2026-01-20', grade: '준회원' },
-      { id: uid(), name: '최씨장', phone: '010-7788-5521', email: 'choi@email.com', joined: '2026-02-09', grade: '정회원' },
-    ]);
     if (!localStorage.getItem(K.popups)) sj(K.popups, [
-      { id: uid(), title: '[샘플] 2026 봄학기 지도사 과정 모집', body: '전통발효식품체험지도사 2026년 1기를 모집합니다.\n4월 4일 개강 · 선착순 마감.', link: 'instructor.html', linkLabel: '과정 보러가기', active: true, startsAt: '', endsAt: '' },
+      { id: uid(), title: '[샘플] 2026 봄학기 지도사 과정 모집', body: '전통발효식품체험지도사 2026년 1기를 모집합니다.\n4월 4일 개강 · 선착순 마감.', link: 'instructor.html', linkLabel: '과정 보러가기', active: true, startsAt: '', endsAt: '', img: '' },
     ]);
-    // demo records if entirely empty, so tables aren't bare
     if (!localStorage.getItem(K.orders)) sj(K.orders, [
-      { id: uid(), kind: 'order', product: '전통 된장 (1kg)', qty: '2', name: '김참살', phone: '010-2241-7780', address: '서울 구로구', memo: '', status: '신규', at: '2026-03-02T10:12:00' },
-      { id: uid(), kind: 'seedjang', amount: '씨장 30kg 분양', name: '이정선', phone: '010-9930-1187', region: '강원 정선', memo: '펜션 무료사용 문의', status: '확인', at: '2026-02-27T15:40:00' },
+      { id: uid(), kind: 'order', orderNo: '2026030912341', product: '전통 된장 (1kg)', productId: 'p_doenjang', qty: '2', unitPrice: 25000, total: 50000, depositor: '김참살', name: '김참살', phone: '010-2241-7780', address: '서울 구로구 구로동 123', payMethod: '무통장입금', status: '주문접수', at: '2026-03-09T10:12:00' },
+      { id: uid(), kind: 'order', orderNo: '2026030787720', product: '태양초 고추장 (1kg)', productId: 'p_gochujang', qty: '1', unitPrice: 28000, total: 28000, depositor: '이정선', name: '이정선', phone: '010-9930-1187', address: '강원 정선군 정선읍 45', payMethod: '무통장입금', status: '결제완료', at: '2026-03-07T15:40:00' },
+      { id: uid(), kind: 'order', orderNo: '2026030554102', product: '명절 장 3종 세트 (세트)', productId: 'p_set3', optionLabel: '포장: 전통 보자기 포장', qty: '3', unitPrice: 42000, total: 126000, depositor: '박발효', name: '박발효', phone: '010-4456-2093', address: '경기 성남시 분당구 67', payMethod: '무통장입금', status: '배송준비중', at: '2026-03-05T09:05:00' },
+      { id: uid(), kind: 'order', orderNo: '2026030248873', product: '전통 청국장 (500g)', productId: 'p_cheongguk', qty: '4', unitPrice: 12000, total: 48000, depositor: '최씨장', name: '최씨장', phone: '010-7788-5521', address: '서울 강서구 화곡동 89', payMethod: '무통장입금', status: '배송중', shipMethod: '택배', courier: 'CJ대한통운', tracking: '688123456789', at: '2026-03-02T11:20:00' },
+      { id: uid(), kind: 'order', orderNo: '2026022633019', product: '정선 막장 (1kg)', productId: 'p_makjang', qty: '1', unitPrice: 22000, total: 22000, depositor: '정장맛', name: '정장맛', phone: '010-3322-1100', address: '인천 남동구 구월동 12', payMethod: '무통장입금', status: '배송완료', shipMethod: '택배', courier: '우체국택배', tracking: '612398745601', at: '2026-02-26T14:00:00' },
+      { id: uid(), kind: 'seedjang', orderNo: '2026030411208', amount: '씨장 30kg 분양', name: '이정선', phone: '010-9930-1187', region: '강원 정선', memo: '펜션 무료사용 문의', payMethod: '무통장입금', status: '주문접수', at: '2026-03-04T15:40:00' },
     ]);
     if (!localStorage.getItem(K.apps)) sj(K.apps, [
-      { id: uid(), name: '박발효', phone: '010-4456-2093', email: 'park@email.com', region: '경기 성남', course: '정규 지도사 과정', memo: '주말반 희망', status: '신규', at: '2026-03-01T09:05:00' },
+      { id: uid(), name: '박발효', phone: '010-4456-2093', region: '경기 성남', course: '정규 지도사 과정', memo: '주말반 희망', status: '신규', at: '2026-03-01T09:05:00' },
     ]);
     if (!localStorage.getItem(K.inq)) sj(K.inq, [
-      { id: uid(), name: '정문의', phone: '010-3322-1100', email: '', type: '제휴 문의', memo: '지역 장터 입점 제안드립니다.', status: '신규', at: '2026-02-29T11:20:00' },
+      { id: uid(), name: '정문의', phone: '010-3322-1100', type: '제휴 문의', memo: '지역 장터 입점 제안드립니다.', status: '신규', at: '2026-02-28T11:20:00' },
     ]);
   }
 
-  /* ---------- status options ---------- */
-  var STATUS = {
-    orders: ['신규', '확인', '배송중', '완료', '취소'],
-    apps: ['신규', '상담', '확정', '수료', '취소'],
-    inq: ['신규', '답변완료', '보류'],
+  /* ---------- KMS 기본 문서 ---------- */
+  var KMS_DEFAULTS = {
+    standard: [
+      '■ 표준 KMS — 개발 관련 규칙 및 원칙',
+      '한국참전통발효식품협동조합 홈페이지 · 지식관리 문서',
+      '',
+      '[1. 기술 스택]',
+      '- 순수 HTML + CSS + 바닐라 JavaScript (빌드 도구 없음)',
+      '- 정적 호스팅(GitHub Pages/Netlify/Nginx)에 그대로 배포',
+      '- 외부 의존: Lucide 아이콘, Pretendard·페이북 글꼴, Tiptap v2(esm.sh, 게시판 에디터)',
+      '',
+      '[2. 파일 구조 원칙]',
+      '- 페이지 1개 = HTML 1개. 공통 헤더/푸터는 site.js가 #site-nav / #site-footer에 주입',
+      '- assets/site.js 공통 셸·스토어·모달 / shop.js 제품 / board.js 게시판 / admin.js 관리자',
+      '- 페이지 전용 스타일은 해당 HTML의 <style id="page-style"> 안에만 작성',
+      '',
+      '[3. 데이터 계층 (데모 → 운영 전환 지점)]',
+      '- 텍스트 데이터: localStorage (kach_* 키) / 파일·이미지: IndexedDB kach_db(files·gallery·pimg)',
+      '- 운영 전환 시 site.js submitModal(), admin.js 각 저장 호출을 서버 API(fetch)로 교체',
+      '- 키: kach_orders, kach_applications, kach_inquiries, kach_posts_v1, kach_partners_v1,',
+      '      kach_popups_v1, kach_consents_v1, kach_products_v2, kach_visits_v1, kach_kms_v1',
+      '',
+      '[4. 개인정보 원칙]',
+      '- 회원 계정·아이디·이메일을 수집/관리하지 않음 (비회원 구조, 이메일은 주문 조회용 선택 입력만)',
+      '- 모든 수집 양식은 개인정보 동의 체크 후에만 제출 버튼 활성화',
+      '- 동의문 전문은 관리자 > 동의문 관리에서 수정',
+      '- 비밀번호·계정 정보를 화면/문서/README에 노출하지 않음',
+      '',
+      '[5. 주문 상태 표준]',
+      '- 정상 흐름: 주문접수 → 결제완료 → 배송준비중 → 배송중 → 배송완료',
+      '- 예외 상태: 취소 / 반품요청 / 반품완료 / 교환요청 / 교환완료',
+      '- 되돌리기는 이전 단계로만 허용. 입금확인 처리는 무통장입금 주문(주문접수)에만 적용',
+      '- 운송장 필수: 택배·소포·등기 / 추적불가 수단(직접배송·방문수령·퀵)은 발송 10일 후 자동 배송완료(데모는 수동)',
+      '- 반품·교환 처리는 배송중·배송완료 상태에서만 시작',
+      '',
+      '[6. SEO / AI 검색 최적화 원칙]',
+      '- 전 페이지: title·description·og 메타 + JSON-LD(Organization·BreadcrumbList·Product)',
+      '- robots.txt / sitemap.xml / llms.txt 유지 — 도메인 확정 시 절대 URL로 교체',
+      '- 시맨틱 마크업(section·main·figure·details), 이미지 alt 필수, lang="ko" 명시',
+      '- admin.html은 noindex',
+      '',
+      '[7. 코드 컨벤션]',
+      '- 공통 스크립트는 ES5 호환 스타일, IIFE로 전역 오염 방지, window.Site 단일 공개 API',
+      '- 색상·간격·글꼴은 디자인 룰북의 CSS 변수 토큰만 사용 — 하드코딩 금지',
+      '- 사용자 입력은 esc()로 이스케이프 후 렌더 (게시글 본문은 관리자 작성 HTML만 허용)',
+    ].join('\n'),
+    design: [
+      '■ 디자인 룰북 — 디자인 표준 관리 · 기록',
+      '모든 디자인 항목은 본 룰북 기준으로 관리한다. 변경 시 assets/site.css :root 토큰과 본 문서를 함께 갱신한다.',
+      '',
+      '[1. 컬러 팔레트]',
+      '- 배경 --bg #FCFAF3(웜 페이퍼) / 표면 --surface #FFFEF9 / 인셋 --surface-2 #F3F0E2',
+      '- 메인 --main #6E8252(햇살 들녘 올리브그린) · deep #56683E · deeper #3D4A2C · tint #EAEDDF',
+      '- 서브 --sub #E2D9BE(오트밀) · soft #F0EBD7 · deep #CFC49E',
+      '- 포인트 --point #B0473A(대추) · deep #8F3329 · tint #F0DDD8',
+      '- 텍스트 --ink #2A2723 / soft #5C564C / mute #8C8576 / faint #B4AD9E',
+      '- 시맨틱 ok #3E7D4F · warn #C9912F · danger #C0492E · info #4A6E86',
+      '- 규칙: 포인트(대추)는 CTA·강조 한정, 대면적 사용 금지. 라인은 ink 기반 투명도(12%/7%)만 사용',
+      '',
+      '[2. 타이포그래피]',
+      '- 제목·본문: PayboocFont(페이북) → Pretendard Variable 폴백 / 보조 손글씨: Gaegu',
+      '- 스케일: display 40~76 · h1 32~48 · h2 26~36 · h3 26 · h4 21 · h5 18 · 본문 16 · sm 14 · caption 13 · micro 11 (px)',
+      '- 행간: 제목 1.12~1.3 / 본문 1.6 / 여유 본문 1.8 — 키커는 자간 0.22em + 대문자',
+      '',
+      '[3. 간격 · 리듬]',
+      '- 4px 그리드: --s1(4) ~ --s32(128) / 섹션 상하 여백 --sec-pad 80px',
+      '- 콘텐츠 폭: 기본 1200px(--maxw), 좁은 본문 880px(--maxw-narrow), 내비 높이 76px',
+      '',
+      '[4. 모서리 · 그림자]',
+      '- 라운드: xs4 / sm8 / md12 / lg18(카드 기본) / xl26 / pill 999',
+      '- 그림자: y축 오프셋만(sh-xs~sh-lg), CTA 호버 시 sh-point(대추 글로우)',
+      '',
+      '[5. 모션]',
+      '- 기본 240ms / fast 150ms / slow 420ms · cubic-bezier(0.22, 0.61, 0.36, 1)',
+      '- reveal: 진입 시 20px 상승 페이드 (IntersectionObserver) · prefers-reduced-motion 존중',
+      '',
+      '[6. 전통 문양]',
+      '- 단색 배경면에 칠보문(七寶紋) 겹원 패턴을 은은하게 적용 (--pat-dark / --pat-light, 54px 타일)',
+      '- 강도: html.pat-off(끔) / 기본(은은) / html.pat-strong(강조)',
+      '',
+      '[7. 컴포넌트 표준]',
+      '- 버튼: pill형. btn-point(대추)=핵심 CTA / btn-primary(메인) / btn-ghost(보조) / btn-on-dark(짙은 배경)',
+      '- 카드: surface + 1px line-soft + r-lg + sh-sm, 호버 시 3px 상승 + sh-md',
+      '- 태그: sub-soft pill 기본 / point(강조) / sample(점선=예시 데이터) / solid(메인)',
+      '- 모달: 중앙 dialog(r-xl) + dim rgba(42,39,35,.5) blur 3px. 폼은 form-grid 2열(모바일 1열)',
+      '- 플레이스홀더(.ph): 톤 색면 + 좌하단 라벨 — 실제 사진 교체 전 임시 표기',
+      '- 동의 박스(.consent-box): 체크 시에만 제출 버튼 활성화 / 결제 안내(.pay-box): 오트밀 배경',
+      '- 주문 상태 색: 주문접수 warn / 결제완료 info / 배송준비중 main / 배송중 point / 배송완료 ok / 취소·반품 mute·danger',
+      '',
+      '[8. 아이콘]',
+      '- Lucide 단일 패밀리만 사용. 본문 17px · 배지 26px · 캡션 14~16px, stroke 기본값',
+      '',
+      '[9. 반응형 기준점]',
+      '- 1080px: 내비 햄버거 전환 / 960·900px: 4열→2열 / 880px: 상품 상세 1열+하단 구매바 / 640px: 그리드 1열·폼 1열',
+    ].join('\n'),
   };
+  function getKMS() {
+    var k = gj(K.kms, {}) || {};
+    return { standard: k.standard || KMS_DEFAULTS.standard, design: k.design || KMS_DEFAULTS.design };
+  }
 
-  /* ---------- generic row ops ---------- */
+  /* ---------- 공통 행 조작 ---------- */
+  var STATUS = { apps: ['신규', '상담', '확정', '수료', '취소'], inq: ['신규', '답변완료', '보류'] };
   function updateField(key, id, field, val) { var a = gj(key, []); a.forEach(function(r){ if(r.id===id) r[field]=val; }); sj(key, a); }
   function removeRow(key, id) { sj(key, gj(key, []).filter(function(r){ return r.id !== id; })); }
-
   function statusSelect(key, sk, r) {
     return '<select class="st-sel" data-act="status" data-key="' + key + '" data-id="' + r.id + '">' +
       STATUS[sk].map(function(o){ return '<option' + (o === r.status ? ' selected' : '') + '>' + o + '</option>'; }).join('') + '</select>';
   }
   function delBtn(key, id) { return '<button class="icon-btn" data-act="del" data-key="' + key + '" data-id="' + id + '" title="삭제"><i data-lucide="trash-2"></i></button>'; }
-
   function emptyRow(cols, msg) { return '<tr><td colspan="' + cols + '"><div class="admin-empty"><i data-lucide="inbox"></i><div>' + msg + '</div></div></td></tr>'; }
 
-  /* ---------- views ---------- */
+  /* ============================================================
+     대시보드 — 방문자 · 오늘 주문 · 신규 접수
+     ============================================================ */
   function viewDashboard() {
-    var orders = gj(K.orders, []), apps = gj(K.apps, []), inq = gj(K.inq, []), members = gj(K.members, []);
-    var newCount = function(a){ return a.filter(function(r){ return r.status === '신규'; }).length; };
+    var orders = gj(K.orders, []), apps = gj(K.apps, []), inq = gj(K.inq, []);
+    var visits = gj(S.VISITS_KEY, {});
+    var today = S.todayStr();
+    var tv = visits[today] || { pv: 0, uv: 0 };
+    var totalUV = 0; Object.keys(visits).forEach(function (d) { totalUV += (visits[d].uv || 0); });
+    var todayOrders = orders.filter(function (o) { return (o.at || '').slice(0, 10) === today; });
+    var todayRevenue = todayOrders.reduce(function (s, o) { return s + (Number(o.total) || 0); }, 0);
+    var newOrders = orders.filter(function (o) { return o.status === '주문접수'; }).length;
+    var newEtc = apps.filter(function (r) { return r.status === '신규'; }).length + inq.filter(function (r) { return r.status === '신규'; }).length;
+
     var stats = [
-      { i: 'shopping-cart', v: orders.length, l: '전체 주문 · 분양', n: newCount(orders) },
-      { i: 'user-plus', v: apps.length, l: '체험지도사 신청', n: newCount(apps) },
-      { i: 'message-square', v: inq.length, l: '문의 내역', n: newCount(inq) },
-      { i: 'users', v: members.length, l: '회원 수', n: 0 },
+      { i: 'users', v: tv.uv, l: '오늘 방문자', sub: '페이지뷰 ' + tv.pv + ' · 누적 방문 ' + totalUV },
+      { i: 'shopping-cart', v: todayOrders.length, l: '오늘 주문', sub: todayRevenue ? fmtWon(todayRevenue) + '원' : '결제금액 0원' },
+      { i: 'banknote', v: newOrders, l: '입금 확인 대기 (주문접수)', sub: '전체 주문 ' + orders.length + '건' },
+      { i: 'bell-ring', v: newEtc, l: '신규 신청 · 문의', sub: '지도사 신청 ' + apps.length + ' · 문의 ' + inq.length },
     ];
     var cards = stats.map(function(s){
-      return '<div class="stat"><div class="si"><i data-lucide="' + s.i + '"></i></div><div class="sv">' + s.v +
-        (s.n ? '<span style="font-size:13px;color:var(--point);font-weight:700;margin-left:8px">신규 ' + s.n + '</span>' : '') +
-        '</div><div class="sl">' + s.l + '</div></div>';
+      return '<div class="stat"><div class="si"><i data-lucide="' + s.i + '"></i></div><div class="sv">' + s.v + '</div><div class="sl">' + s.l + '</div><div class="ss">' + s.sub + '</div></div>';
     }).join('');
-    var recent = orders.concat(apps).concat(inq).sort(function(a,b){ return (b.at||'').localeCompare(a.at||''); }).slice(0, 6);
+
+    // 최근 7일 방문 그래프
+    var days = [];
+    for (var i = 6; i >= 0; i--) {
+      var d = new Date(); d.setDate(d.getDate() - i);
+      var key = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+      days.push({ label: (d.getMonth() + 1) + '.' + d.getDate(), uv: (visits[key] || {}).uv || 0, pv: (visits[key] || {}).pv || 0 });
+    }
+    var maxUv = Math.max(1, Math.max.apply(null, days.map(function (d) { return d.uv; })));
+    var chart = '<div class="vchart">' + days.map(function (d) {
+      var h = Math.max(4, Math.round(d.uv / maxUv * 100));
+      return '<div class="vc-col" title="' + d.label + ' · 방문 ' + d.uv + ' · 뷰 ' + d.pv + '"><span class="vc-val">' + d.uv + '</span><div class="vc-bar" style="height:' + h + 'px"></div><span class="vc-day">' + d.label + '</span></div>';
+    }).join('') + '</div>';
+
+    var recent = orders.concat(apps).concat(inq).sort(function(a,b){ return (b.at||'').localeCompare(a.at||''); }).slice(0, 7);
     var rows = recent.length ? recent.map(function(r){
       var label = r.kind === 'order' ? '주문' : r.kind === 'seedjang' ? '씨장분양' : r.course ? '지도사신청' : r.type ? '문의' : '신청';
       var detail = r.product || r.amount || r.course || r.type || '-';
-      return '<tr><td class="dt">' + fmtDate(r.at) + '</td><td><span class="tag">' + label + '</span></td><td>' + esc(r.name || '-') + '</td><td>' + esc(detail) + '</td><td><span class="tag point">' + esc(r.status || '신규') + '</span></td></tr>';
+      return '<tr><td class="dt">' + fmtDate(r.at) + '</td><td><span class="tag">' + label + '</span></td><td>' + esc(r.name || '-') + '</td><td>' + esc(detail) + '</td><td>' + stTag(r.status || '신규') + '</td></tr>';
     }).join('') : emptyRow(5, '아직 접수된 내역이 없습니다.');
+
     return '<div class="stat-grid">' + cards + '</div>' +
-      '<div class="panel" style="margin-top:24px"><div class="panel-head"><h3>최근 접수 내역</h3><span class="ph-sub">주문·신청·문의 통합</span></div>' +
+      '<div class="panel" style="margin-top:24px"><div class="panel-head"><h3>최근 7일 방문 추이</h3><span class="ph-sub">브라우저 기준 데모 집계 — 운영 시 서버/애널리틱스로 교체</span></div><div style="padding:22px">' + chart + '</div></div>' +
+      '<div class="panel" style="margin-top:24px"><div class="panel-head"><h3>최근 접수 내역</h3><span class="ph-sub">주문 · 신청 · 문의 통합</span></div>' +
       '<table class="admin-table"><thead><tr><th>일시</th><th>구분</th><th>이름</th><th>내용</th><th>상태</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
   }
 
-  function viewOrders() {
-    var a = gj(K.orders, []);
-    var rows = a.length ? a.map(function(r){
-      var item = r.kind === 'seedjang' ? (r.amount || '씨장 분양') : (r.product || '-');
-      var kind = r.kind === 'seedjang' ? '<span class="tag point">씨장분양</span>' : '<span class="tag">제품</span>';
-      return '<tr><td class="dt">' + fmtDate(r.at) + '</td><td>' + kind + '</td><td>' + esc(item) + '</td><td>' + esc(r.qty || '-') + '</td><td>' + esc(r.name||'-') + '</td><td>' + esc(r.phone||'-') + '</td><td>' + esc(r.address||r.region||'-') + '</td><td>' + statusSelect(K.orders,'orders',r) + '</td><td>' + delBtn(K.orders, r.id) + '</td></tr>';
-    }).join('') : emptyRow(9, '주문·분양 내역이 없습니다.');
-    return '<div class="panel"><div class="panel-head"><h3>상품 주문 · 씨장 분양 관리</h3><span class="ph-sub">총 ' + a.length + '건</span></div>' +
-      '<div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>일시</th><th>구분</th><th>상품/용량</th><th>수량</th><th>주문자</th><th>연락처</th><th>배송지/지역</th><th>상태</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
+  /* ============================================================
+     상품 관리 — 목록 · 등록/수정 (옵션 · 이미지 · 상품정보고시)
+     ============================================================ */
+  var prodEditing = null; // null=목록, 'new'=신규, id=수정
+  var pImgState = { main: null, extra: [], detail: [], removed: [] };
+
+  function viewProducts() {
+    if (prodEditing !== null) return productFormHTML(prodEditing === 'new' ? null : S.getProduct(prodEditing));
+    var a = S.getProducts();
+    var rows = a.length ? a.map(function (p) {
+      var stock = p.option && p.option.values ? p.option.values.reduce(function (s, v) { return s + (Number(v.stock) || 0); }, 0) : (Number(p.stock) || 0);
+      var priceTxt = p.salePrice != null && p.salePrice !== ''
+        ? '<span style="text-decoration:line-through;color:var(--ink-faint);font-size:12px">' + fmtWon(p.price) + '</span> <b>' + fmtWon(p.salePrice) + '원</b>'
+        : '<b>' + fmtWon(p.price) + '원</b>';
+      return '<tr><td><b>' + esc(p.name) + '</b><div class="pc-sub">' + esc(p.unit || '') + (p.option ? ' · 옵션 ' + p.option.values.length + '종' : '') + '</div></td>' +
+        '<td><span class="tag">' + esc(p.cat) + '</span></td><td>' + priceTxt + '</td><td>' + stock + '</td>' +
+        '<td><select class="st-sel" data-act="pstatus" data-id="' + p.id + '">' + ['판매중', '품절', '숨김'].map(function (s) { return '<option' + (p.status === s ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select></td>' +
+        '<td style="white-space:nowrap"><a class="icon-btn" href="product.html?id=' + p.id + '" target="_blank" title="상세페이지 보기" style="margin-right:4px;text-decoration:none"><i data-lucide="external-link"></i></a>' +
+        '<button class="icon-btn" data-act="pedit" data-id="' + p.id + '" title="수정" style="margin-right:4px"><i data-lucide="pen-line"></i></button>' +
+        '<button class="icon-btn" data-act="pdel" data-id="' + p.id + '" title="삭제"><i data-lucide="trash-2"></i></button></td></tr>';
+    }).join('') : emptyRow(6, '등록된 상품이 없습니다.');
+    return '<div class="panel"><div class="panel-head"><h3>상품 목록</h3><button class="btn btn-point" data-act="pnew" style="padding:10px 18px"><i data-lucide="plus"></i>상품 등록</button></div>' +
+      '<div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>상품명</th><th>분류</th><th>판매가</th><th>재고</th><th>판매 상태</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
   }
 
+  function gosiField(name, label, val, req) {
+    return '<div class="field"><label>' + label + (req ? '<span style="color:var(--point)"> *</span>' : '') + '</label><input name="gosi_' + name + '" value="' + esc(val || '') + '"' + (req ? ' required' : '') + '></div>';
+  }
+
+  function productFormHTML(p) {
+    var isEdit = !!p;
+    var g = (p && p.gosi) || S.gosiBase({});
+    var opt = p && p.option;
+    var optRows = opt ? opt.values.map(function (v) { return optRowHTML(v); }).join('') : '';
+    var relList = S.getProducts().filter(function (x) { return !p || x.id !== p.id; }).map(function (x) {
+      var on = p && (p.related || []).indexOf(x.id) > -1;
+      return '<label style="display:inline-flex;gap:7px;align-items:center;font-size:13.5px;border:1px solid var(--line-soft);border-radius:999px;padding:7px 13px;cursor:pointer;background:' + (on ? 'var(--main-tint)' : 'var(--surface)') + '"><input type="checkbox" name="rel" value="' + x.id + '"' + (on ? ' checked' : '') + ' style="accent-color:var(--main)">' + esc(x.name) + '</label>';
+    }).join('');
+    setTimeout(loadProductImages, 30);
+    return '<div class="panel"><div class="panel-head"><h3>' + (isEdit ? '상품 수정 — ' + esc(p.name) : '새 상품 등록') + '</h3>' +
+      '<button class="btn btn-ghost" data-act="pback" style="padding:9px 16px"><i data-lucide="arrow-left"></i>목록으로</button></div>' +
+      '<form class="admin-form" id="productForm" data-pid="' + (isEdit ? p.id : '') + '">' +
+        '<div class="field"><label>상품명 <span style="color:var(--point)">*</span></label><input name="name" required value="' + esc(p ? p.name : '') + '"></div>' +
+        '<div class="field"><label>분류</label><select name="cat">' + ['장류', '발효식품', '선물세트'].map(function (c) { return '<option' + (p && p.cat === c ? ' selected' : '') + '>' + c + '</option>'; }).join('') + '</select></div>' +
+        '<div class="field"><label>판매가 (원) <span style="color:var(--point)">*</span></label><input name="price" type="number" min="0" required value="' + (p ? p.price : '') + '"></div>' +
+        '<div class="field"><label>할인가 (원 · 비우면 할인 없음)</label><input name="salePrice" type="number" min="0" value="' + (p && p.salePrice != null ? p.salePrice : '') + '"></div>' +
+        '<div class="field"><label>단위 (예: 1kg, 세트)</label><input name="unit" value="' + esc(p ? p.unit : '') + '"></div>' +
+        '<div class="field"><label>기본 재고 (옵션 없을 때)</label><input name="stock" type="number" min="0" value="' + (p ? p.stock : 30) + '"></div>' +
+        '<div class="field"><label>판매 상태</label><select name="status">' + ['판매중', '품절', '숨김'].map(function (s) { return '<option' + (p && p.status === s ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select></div>' +
+        '<div class="field"><label>간단 설명</label><input name="summary" value="' + esc(p ? p.summary : '') + '"></div>' +
+        '<div class="field full"><label>상세 설명 (HTML 허용 — 판매자 직접 관리 영역)</label><textarea name="descHtml" rows="6" style="font-family:ui-monospace,monospace;font-size:13px">' + esc(p ? p.descHtml : '') + '</textarea></div>' +
+
+        '<div class="full" style="border-top:1px solid var(--line-soft);padding-top:18px"><b>이미지</b><div class="pc-sub" style="margin-top:2px">대표 1장 · 추가 갤러리 여러 장 · 상세 설명 하단 이미지 여러 장 (IndexedDB 저장)</div></div>' +
+        '<div class="field"><label>대표 이미지</label><input type="file" accept="image/*" id="pImgMain"></div>' +
+        '<div class="field"><label>추가 이미지 (여러 장)</label><input type="file" accept="image/*" multiple id="pImgExtra"></div>' +
+        '<div class="field"><label>상세 이미지 (여러 장)</label><input type="file" accept="image/*" multiple id="pImgDetail"></div>' +
+        '<div class="full" id="pImgList" style="display:flex;gap:10px;flex-wrap:wrap"></div>' +
+
+        '<div class="full" style="border-top:1px solid var(--line-soft);padding-top:18px;display:flex;align-items:center;gap:12px"><b>옵션</b>' +
+          '<label style="display:inline-flex;gap:7px;align-items:center;font-size:13.5px;cursor:pointer"><input type="checkbox" id="optUse"' + (opt ? ' checked' : '') + ' style="accent-color:var(--main)">옵션 사용</label></div>' +
+        '<div class="full" id="optWrap" style="' + (opt ? '' : 'display:none') + '">' +
+          '<div class="field" style="max-width:280px;margin-bottom:10px"><label>옵션명 (예: 포장, 용량)</label><input id="optName" value="' + esc(opt ? opt.name : '') + '"></div>' +
+          '<div id="optRows">' + optRows + '</div>' +
+          '<button type="button" class="btn btn-ghost" data-act="optadd" style="padding:8px 14px;margin-top:8px"><i data-lucide="plus"></i>옵션값 추가</button>' +
+        '</div>' +
+
+        '<div class="full" style="border-top:1px solid var(--line-soft);padding-top:18px"><b>상품정보고시</b><div class="pc-sub" style="margin-top:2px">식품 필수 항목: 원재료 · 소비기한 · 보관방법</div></div>' +
+        gosiField('pname', '품명 및 모델명', g.pname) + gosiField('maker', '제조사', g.maker) +
+        gosiField('country', '제조국', g.country) + gosiField('origin', '원산지', g.origin) +
+        gosiField('volume', '용량 · 중량', g.volume) + gosiField('ingredients', '원재료명 및 함량', g.ingredients, true) +
+        gosiField('expiry', '소비기한', g.expiry, true) + gosiField('storage', '보관방법', g.storage, true) +
+        gosiField('phone', '소비자상담 전화번호', g.phone) + gosiField('warranty', '품질보증 기준', g.warranty) +
+
+        '<div class="full" style="border-top:1px solid var(--line-soft);padding-top:18px"><b>배송 / 교환·반품·환불 안내</b></div>' +
+        '<div class="field full"><label>배송안내 <button type="button" class="btn-text" data-act="tpl-ship" style="font-size:12px;margin-left:8px">기본 템플릿 불러오기</button></label><textarea name="ship" rows="4">' + esc(p ? p.ship : S.SHIP_TPL) + '</textarea></div>' +
+        '<div class="field full"><label>교환·반품·환불 안내 <button type="button" class="btn-text" data-act="tpl-refund" style="font-size:12px;margin-left:8px">기본 템플릿 불러오기</button></label><textarea name="refund" rows="4">' + esc(p ? p.refund : S.REFUND_TPL) + '</textarea></div>' +
+
+        '<div class="full" style="border-top:1px solid var(--line-soft);padding-top:18px"><b>관련 상품</b><div class="pc-sub" style="margin-top:2px">상세페이지 하단에 노출됩니다</div></div>' +
+        '<div class="full" style="display:flex;gap:8px;flex-wrap:wrap">' + (relList || '<span class="pc-sub">다른 상품이 없습니다.</span>') + '</div>' +
+
+        '<div class="full" style="display:flex;gap:10px;border-top:1px solid var(--line-soft);padding-top:18px">' +
+          '<button class="btn btn-point" type="submit"><i data-lucide="check"></i>' + (isEdit ? '수정 저장' : '상품 등록') + '</button>' +
+          '<button class="btn btn-ghost" type="button" data-act="pback">취소</button>' +
+        '</div>' +
+      '</form></div>';
+  }
+  function optRowHTML(v) {
+    return '<div class="opt-row" style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap">' +
+      '<input placeholder="옵션값 (예: 전통 보자기 포장)" class="ov-label" value="' + esc(v ? v.label : '') + '" style="flex:2;min-width:160px">' +
+      '<input placeholder="추가금액" type="number" class="ov-add" value="' + (v ? v.add : 0) + '" style="flex:1;min-width:90px">' +
+      '<input placeholder="재고" type="number" class="ov-stock" value="' + (v ? v.stock : 10) + '" style="flex:1;min-width:70px">' +
+      '<button type="button" class="icon-btn" data-act="optdel"><i data-lucide="x"></i></button></div>';
+  }
+  function loadProductImages() {
+    var box = document.getElementById('pImgList');
+    var form = document.getElementById('productForm');
+    if (!box || !form || !form.dataset.pid) return;
+    S.idb.byIndex('pimg', 'productId', form.dataset.pid).then(function (imgs) {
+      imgs.sort(function (a, b) { return (a.ord || 0) - (b.ord || 0); });
+      box.innerHTML = imgs.map(function (im) {
+        if (pImgState.removed.indexOf(im.id) > -1) return '';
+        var u = URL.createObjectURL(im.blob);
+        return '<div style="position:relative"><img src="' + u + '" style="width:74px;height:74px;object-fit:cover;border-radius:9px;border:1px solid var(--line-soft)">' +
+          '<span style="position:absolute;left:3px;bottom:3px;background:rgba(42,39,35,.65);color:#fff;font-size:10px;padding:1px 6px;border-radius:99px">' + (im.role === 'main' ? '대표' : im.role === 'detail' ? '상세' : '추가') + '</span>' +
+          '<button type="button" class="gal-del" data-act="pimgdel" data-id="' + im.id + '" style="top:3px;right:3px;width:20px;height:20px"><i data-lucide="x"></i></button></div>';
+      }).join('');
+      icons();
+    });
+  }
+  function bindProductForm() {
+    var form = document.getElementById('productForm');
+    if (!form) return;
+    pImgState = { main: null, extra: [], detail: [], removed: pImgState.removed || [] };
+    var mi = document.getElementById('pImgMain');
+    if (mi) mi.addEventListener('change', function(){ pImgState.main = mi.files[0] || null; });
+    var ei = document.getElementById('pImgExtra');
+    if (ei) ei.addEventListener('change', function(){ pImgState.extra = Array.prototype.slice.call(ei.files || []); });
+    var di = document.getElementById('pImgDetail');
+    if (di) di.addEventListener('change', function(){ pImgState.detail = Array.prototype.slice.call(di.files || []); });
+    var ou = document.getElementById('optUse');
+    if (ou) ou.addEventListener('change', function(){ document.getElementById('optWrap').style.display = ou.checked ? '' : 'none'; });
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var fd = new FormData(form);
+      var products = S.getProducts();
+      var pid = form.dataset.pid;
+      var rec = pid ? products.filter(function (x) { return x.id === pid; })[0] : null;
+      if (!rec) { rec = { id: 'p_' + uid(), icon: 'package', tone: 'tone-oat', related: [] }; products.push(rec); }
+      rec.name = fd.get('name'); rec.cat = fd.get('cat');
+      rec.price = Number(fd.get('price')) || 0;
+      rec.salePrice = fd.get('salePrice') === '' ? null : Number(fd.get('salePrice'));
+      rec.unit = fd.get('unit'); rec.stock = Number(fd.get('stock')) || 0;
+      rec.status = fd.get('status'); rec.summary = fd.get('summary');
+      rec.descHtml = fd.get('descHtml');
+      rec.ship = fd.get('ship'); rec.refund = fd.get('refund');
+      rec.gosi = {
+        pname: fd.get('gosi_pname'), maker: fd.get('gosi_maker'), country: fd.get('gosi_country'), origin: fd.get('gosi_origin'),
+        volume: fd.get('gosi_volume'), ingredients: fd.get('gosi_ingredients'), expiry: fd.get('gosi_expiry'), storage: fd.get('gosi_storage'),
+        phone: fd.get('gosi_phone'), warranty: fd.get('gosi_warranty'),
+      };
+      if (!rec.gosi.ingredients || !rec.gosi.expiry || !rec.gosi.storage) { alert('상품정보고시의 원재료·소비기한·보관방법은 필수 입력입니다.'); return; }
+      // 옵션
+      if (document.getElementById('optUse').checked) {
+        var vals = [];
+        document.querySelectorAll('#optRows .opt-row').forEach(function (row) {
+          var label = row.querySelector('.ov-label').value.trim();
+          if (!label) return;
+          vals.push({ label: label, add: Number(row.querySelector('.ov-add').value) || 0, stock: Number(row.querySelector('.ov-stock').value) || 0 });
+        });
+        rec.option = vals.length ? { name: document.getElementById('optName').value.trim() || '옵션', values: vals } : null;
+      } else rec.option = null;
+      // 관련 상품
+      rec.related = Array.prototype.slice.call(form.querySelectorAll('input[name=rel]:checked')).map(function (c) { return c.value; });
+      S.setProducts(products);
+      // 이미지 저장
+      var jobs = [];
+      pImgState.removed.forEach(function (iid) { jobs.push(S.idb.del('pimg', iid)); });
+      if (pImgState.main) {
+        jobs.push(S.idb.byIndex('pimg', 'productId', rec.id).then(function (imgs) {
+          return Promise.all(imgs.filter(function (i) { return i.role === 'main'; }).map(function (i) { return S.idb.del('pimg', i.id); }));
+        }).then(function () { return S.idb.put('pimg', { id: uid(), productId: rec.id, role: 'main', ord: 0, blob: pImgState.main }); }));
+      }
+      pImgState.extra.forEach(function (f, i) { jobs.push(S.idb.put('pimg', { id: uid(), productId: rec.id, role: 'extra', ord: i + 1, blob: f })); });
+      pImgState.detail.forEach(function (f, i) { jobs.push(S.idb.put('pimg', { id: uid(), productId: rec.id, role: 'detail', ord: i, blob: f })); });
+      Promise.all(jobs).then(function () {
+        prodEditing = null;
+        pImgState = { main: null, extra: [], detail: [], removed: [] };
+        render();
+        toast('상품이 저장되었습니다.');
+      });
+    });
+  }
+
+  /* ============================================================
+     주문 관리 — 상태 탭 + 일괄 처리 (아임웹 프로세스 준용)
+     ============================================================ */
+  var orderTab = 'all';
+  var OACT = {
+    ship:    { label: '발송처리', from: ['결제완료', '배송준비중'], kind: 'ship' },
+    prep:    { label: '배송준비 처리', from: ['결제완료'], kind: 'simple', to: '배송준비중', note: '배송준비중 상태에서는 구매자가 임의로 주문을 취소할 수 없습니다.' },
+    paid:    { label: '입금확인 처리', from: ['주문접수'], kind: 'simple', to: '결제완료', note: '입금자명과 입금액을 확인한 후 처리해 주세요. (무통장입금 주문 전용)' },
+    cancel:  { label: '판매취소', from: ['주문접수', '결제완료', '배송준비중'], kind: 'reason', to: '취소' },
+    ret:     { label: '반품처리', from: ['배송중', '배송완료'], kind: 'rma', to: '반품요청' },
+    exch:    { label: '교환처리', from: ['배송중', '배송완료'], kind: 'rma', to: '교환요청' },
+    force:   { label: '강제 배송완료 처리', from: ['배송중'], kind: 'simple', to: '배송완료', note: '배송 추적이 불가한 수단(기타택배·직접배송·방문수령·퀵서비스)의 배송 완료에 사용합니다.' },
+    retdone: { label: '반품완료 처리', from: ['반품요청'], kind: 'simple', to: '반품완료', note: '반품 상품 수거·검수 후 환불까지 마친 주문에 사용합니다.' },
+    exchdone:{ label: '교환완료 처리', from: ['교환요청'], kind: 'simple', to: '교환완료' },
+  };
+  function revertAct(target) {
+    return { label: target + '로 되돌리기', kind: 'simple', to: target, revert: true,
+      from: OSTAT.slice(OSTAT.indexOf(target) + 1), note: '주문 상태를 이전 단계(' + target + ')로 되돌립니다. 이후 단계로의 처리는 각 처리 버튼을 사용하세요.' };
+  }
+
+  function ordersOf(tab) {
+    var a = gj(K.orders, []);
+    if (tab === 'all') return a;
+    if (tab === 'crx') return a.filter(function (o) { return CRX.indexOf(o.status) > -1; });
+    return a.filter(function (o) { return o.status === tab; });
+  }
+
+  function viewOrders() {
+    var all = gj(K.orders, []);
+    var tabs = [{ id: 'all', label: '전체', n: all.length }]
+      .concat(OSTAT.map(function (s) { return { id: s, label: s, n: all.filter(function (o) { return o.status === s; }).length }; }))
+      .concat([{ id: 'crx', label: '취소 · 반품 · 교환', n: all.filter(function (o) { return CRX.indexOf(o.status) > -1; }).length }]);
+    var tabHtml = '<div class="otabs">' + tabs.map(function (t) {
+      return '<button data-otab="' + t.id + '" class="' + (orderTab === t.id ? 'on' : '') + '">' + t.label + (t.n ? '<span class="cnt">' + t.n + '</span>' : '') + '</button>';
+    }).join('') + '</div>';
+
+    var revertMenu = OSTAT.slice(0, 4).map(function (s) { return '<button data-oact="rv:' + s + '">' + s + '로 되돌리기</button>'; }).join('');
+    var bar = '<div class="obar">' +
+      '<button class="btn-sm primary" data-oact="ship">발송처리</button>' +
+      '<button class="btn-sm" data-oact="prep">배송준비 처리</button>' +
+      '<button class="btn-sm" data-oact="paid">입금확인 처리</button>' +
+      '<div class="odrop"><button class="btn-sm" id="odropBtn">기타주문 처리 ▾</button><div class="odrop-menu" id="odropMenu">' +
+        revertMenu + '<hr>' +
+        '<button data-oact="force">강제 배송완료 처리</button>' +
+        '<button data-oact="retdone">반품완료 처리</button>' +
+        '<button data-oact="exchdone">교환완료 처리</button>' +
+      '</div></div>' +
+      '<button class="btn-sm" data-oact="cancel">판매취소</button>' +
+      '<button class="btn-sm" data-oact="ret">반품처리</button>' +
+      '<button class="btn-sm" data-oact="exch">교환처리</button>' +
+    '</div>';
+
+    var list = ordersOf(orderTab);
+    var rows = list.length ? list.map(function (o) {
+      var item = o.kind === 'seedjang' ? (o.amount || '씨장 분양') : (o.product || '-');
+      var shipInfo = o.tracking ? '<div class="pc-sub" style="margin-top:3px">' + esc(o.courier || '') + ' ' + esc(o.tracking) + '</div>'
+        : (o.shipMethod ? '<div class="pc-sub" style="margin-top:3px">' + esc(o.shipMethod) + '</div>' : '');
+      var reason = o.cancelReason || o.rmaReason ? '<div class="pc-sub" style="margin-top:3px">사유: ' + esc(o.cancelReason || o.rmaReason) + '</div>' : '';
+      return '<tr><td><input type="checkbox" class="osel" data-id="' + o.id + '" style="width:16px;height:16px;accent-color:var(--main)"></td>' +
+        '<td><b style="font-variant-numeric:tabular-nums">' + esc(o.orderNo || '-') + '</b><div class="dt">' + fmtDate(o.at) + '</div></td>' +
+        '<td>' + (o.kind === 'seedjang' ? '<span class="tag point">씨장분양</span>' : '<span class="tag">제품</span>') + '</td>' +
+        '<td><b>' + esc(item) + '</b>' + (o.optionLabel ? '<div class="pc-sub">' + esc(o.optionLabel) + '</div>' : '') + '</td>' +
+        '<td>' + esc(o.qty || '-') + '</td>' +
+        '<td style="white-space:nowrap">' + (o.total ? fmtWon(o.total) + '원' : '-') + '</td>' +
+        '<td>' + esc(o.name || '-') + '<div class="pc-sub">' + esc(o.phone || '') + '</div></td>' +
+        '<td>' + esc(o.depositor || '-') + '<div class="pc-sub">' + esc(o.payMethod || '') + '</div></td>' +
+        '<td style="max-width:170px">' + esc(o.address || o.region || '-') + '</td>' +
+        '<td>' + stTag(o.status) + shipInfo + reason + '</td>' +
+        '<td>' + delBtn(K.orders, o.id) + '</td></tr>';
+    }).join('') : emptyRow(11, '해당 상태의 주문이 없습니다.');
+
+    return '<div class="panel" style="max-width:none"><div class="panel-head"><h3>주문 관리</h3><span class="ph-sub">주문 선택 후 상단 버튼으로 일괄 처리 · 자동 알림(메일/SMS)은 운영 연동 시 발송</span></div>' +
+      '<div style="padding:6px 22px 0">' + tabHtml + bar + '</div>' +
+      '<div style="overflow-x:auto"><table class="admin-table" style="font-size:13px"><thead><tr>' +
+        '<th><input type="checkbox" id="oselAll" style="width:16px;height:16px;accent-color:var(--main)"></th>' +
+        '<th>주문번호 / 시각</th><th>구분</th><th>주문상품</th><th>수량</th><th>금액</th><th>주문자</th><th>입금자명</th><th>배송지</th><th>상태</th><th></th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table></div></div>';
+  }
+
+  function selectedOrderIds() {
+    return Array.prototype.slice.call(document.querySelectorAll('.osel:checked')).map(function (c) { return c.dataset.id; });
+  }
+
+  function procOrders(actKey) {
+    var def = actKey.indexOf('rv:') === 0 ? revertAct(actKey.slice(3)) : OACT[actKey];
+    if (!def) return;
+    var ids = selectedOrderIds();
+    if (!ids.length) { alert('처리할 주문을 먼저 선택해 주세요.'); return; }
+    var all = gj(K.orders, []);
+    var sel = all.filter(function (o) { return ids.indexOf(o.id) > -1; });
+    var elig = sel.filter(function (o) { return def.from.indexOf(o.status) > -1; });
+    if (!elig.length) {
+      alert('선택하신 ' + sel.length + '개의 주문 중 처리 가능한 주문이 없습니다.\n· ' + def.label + ' 가능 상태: ' + def.from.join(', '));
+      return;
+    }
+    var info = '<div style="border-left:3px solid var(--info);background:var(--surface-2);padding:10px 14px;font-size:13.5px;border-radius:0 8px 8px 0;margin-bottom:14px">' +
+      '선택하신 <b>' + sel.length + '개</b>의 주문 중 처리 가능한 주문은 <b style="color:var(--point)">' + elig.length + '건</b>입니다.</div>';
+    var table = '<div style="overflow-x:auto;border:1px solid var(--line-soft);border-radius:10px"><table class="admin-table" style="font-size:13px"><thead><tr><th>주문번호</th><th>주문상태</th><th>상품명</th>' +
+      (def.kind === 'ship' ? '<th>운송장번호</th>' : '') + '</tr></thead><tbody>' +
+      elig.map(function (o) {
+        return '<tr><td style="font-variant-numeric:tabular-nums">' + esc(o.orderNo) + '</td><td>' + stTag(o.status) + '</td><td>' + esc(o.product || o.amount || '-') + '</td>' +
+          (def.kind === 'ship' ? '<td><input class="otrk" data-id="' + o.id + '" placeholder="운송장번호" style="width:150px;padding:7px 10px;border:1px solid var(--line);border-radius:7px;font:inherit;font-size:12.5px"></td>' : '') + '</tr>';
+      }).join('') + '</tbody></table></div>';
+
+    var extra = '';
+    if (def.kind === 'ship') {
+      extra = '<div class="form-grid" style="margin-top:14px">' +
+        '<div class="field"><label>배송수단</label><select id="procMethod">' +
+          ['택배', '소포', '등기', '기타택배', '직접배송(화물)', '방문수령', '퀵서비스', '배송없음'].map(function (m) { return '<option>' + m + '</option>'; }).join('') + '</select></div>' +
+        '<div class="field"><label>택배사</label><select id="procCourier">' + COURIERS.map(function (c) { return '<option>' + c + '</option>'; }).join('') + '</select></div>' +
+      '</div>' +
+      '<div class="modal-note" style="margin-top:12px"><i data-lucide="info"></i><span>택배·소포·등기는 운송장번호 입력이 필수이며, 택배사 추적으로 배송이 끝나면 자동 배송완료 처리됩니다. 추적이 불가한 수단은 발송 후 10일이 지나면 자동 배송완료 처리되며, 그 전에는 ‘강제 배송완료 처리’를 사용할 수 있습니다. ‘배송없음’ 상품은 즉시 배송완료 처리됩니다.</span></div>';
+    } else if (def.kind === 'reason') {
+      extra = '<div class="form-grid" style="margin-top:14px">' +
+        '<div class="field"><label>판매취소 사유</label><select id="procReason"><option>구매자 요청</option><option>재고 없음</option><option>주문 오류</option><option>기타</option></select></div>' +
+        '<div class="field"><label>상세 메모 (선택)</label><input id="procMemo" placeholder="구매자 안내 메모"></div></div>' +
+        '<div class="modal-note" style="margin-top:12px"><i data-lucide="info"></i><span>판매자가 강제로 판매를 취소·환불할 때 사용합니다. 무통장입금 주문은 입금 여부 확인 후 환불 계좌를 구매자와 협의해 주세요.</span></div>';
+    } else if (def.kind === 'rma') {
+      extra = '<div class="form-grid" style="margin-top:14px">' +
+        '<div class="field"><label>' + (def.to === '반품요청' ? '반품' : '교환') + ' 사유</label><select id="procReason"><option>단순 변심</option><option>상품 하자</option><option>오배송</option><option>기타</option></select></div>' +
+        '<div class="field"><label>수거 주소</label><input id="procPickup" placeholder="기본: 주문 배송지" value="' + esc(elig.length === 1 ? (elig[0].address || '') : '') + '"></div></div>' +
+        '<div class="modal-note" style="margin-top:12px"><i data-lucide="info"></i><span>배송중 또는 배송완료 상태의 주문만 처리할 수 있습니다. 수거 완료 후 ‘' + (def.to === '반품요청' ? '반품완료' : '교환완료') + ' 처리’로 마감하세요.</span></div>';
+    } else if (def.note) {
+      extra = '<div class="modal-note" style="margin-top:12px"><i data-lucide="info"></i><span>' + def.note + '</span></div>';
+    }
+
+    S.rawModal(
+      '<div class="modal-head"><div><div class="eyebrow">주문 관리</div><h3>' + def.label + '</h3></div>' +
+        '<button class="modal-close" data-modal-close aria-label="닫기"><i data-lucide="x"></i></button></div>' +
+      '<div class="modal-body">' + info + table + extra +
+        '<div class="modal-foot"><button type="button" class="btn btn-ghost" data-modal-close>취소</button>' +
+        '<button type="button" class="btn btn-point" id="procConfirm">확인</button></div>' +
+      '</div>', 660);
+
+    document.getElementById('procConfirm').addEventListener('click', function () {
+      var orders = gj(K.orders, []);
+      var eligIds = elig.map(function (o) { return o.id; });
+      if (def.kind === 'ship') {
+        var method = document.getElementById('procMethod').value;
+        var courier = document.getElementById('procCourier').value;
+        var tracked = TRACKED.indexOf(method) > -1;
+        var trks = {};
+        var missing = false;
+        document.querySelectorAll('.otrk').forEach(function (i) { trks[i.dataset.id] = i.value.trim(); if (tracked && !i.value.trim()) missing = true; });
+        if (missing) { alert('택배·소포·등기 발송은 모든 주문의 운송장번호 입력이 필수입니다.'); return; }
+        orders.forEach(function (o) {
+          if (eligIds.indexOf(o.id) === -1) return;
+          o.shipMethod = method;
+          if (tracked) { o.courier = courier; o.tracking = trks[o.id]; }
+          o.status = method === '배송없음' ? '배송완료' : '배송중';
+        });
+      } else if (def.kind === 'reason') {
+        var r = document.getElementById('procReason').value;
+        var m = document.getElementById('procMemo').value.trim();
+        orders.forEach(function (o) { if (eligIds.indexOf(o.id) > -1) { o.status = def.to; o.cancelReason = r + (m ? ' — ' + m : ''); } });
+      } else if (def.kind === 'rma') {
+        var rr = document.getElementById('procReason').value;
+        var pk = document.getElementById('procPickup').value.trim();
+        orders.forEach(function (o) { if (eligIds.indexOf(o.id) > -1) { o.status = def.to; o.rmaReason = rr; o.pickupAddr = pk || o.address || ''; } });
+      } else {
+        orders.forEach(function (o) {
+          if (eligIds.indexOf(o.id) === -1) return;
+          o.status = def.to;
+          if (def.revert && OSTAT.indexOf(def.to) < OSTAT.indexOf('배송중')) { delete o.tracking; delete o.courier; delete o.shipMethod; }
+        });
+      }
+      sj(K.orders, orders);
+      S.closeModal();
+      render();
+      toast(elig.length + '건의 주문이 「' + def.label + '」 처리되었습니다.');
+    });
+  }
+
+  /* ============================================================
+     지도사 신청 · 문의
+     ============================================================ */
   function viewApps() {
     var a = gj(K.apps, []);
     var rows = a.length ? a.map(function(r){
-      return '<tr><td class="dt">' + fmtDate(r.at) + '</td><td>' + esc(r.name||'-') + '</td><td>' + esc(r.phone||'-') + '</td><td>' + esc(r.email||'-') + '</td><td>' + esc(r.region||'-') + '</td><td>' + esc(r.course||'-') + '</td><td>' + statusSelect(K.apps,'apps',r) + '</td><td>' + delBtn(K.apps, r.id) + '</td></tr>';
+      return '<tr><td class="dt">' + fmtDate(r.at) + '</td><td>' + esc(r.name||'-') + '</td><td>' + esc(r.phone||'-') + '</td><td>' + esc(r.region||'-') + '</td><td>' + esc(r.course||'-') + '</td><td style="max-width:200px">' + esc(r.memo||'-') + '</td><td>' + statusSelect(K.apps,'apps',r) + '</td><td>' + delBtn(K.apps, r.id) + '</td></tr>';
     }).join('') : emptyRow(8, '신청 내역이 없습니다.');
     return '<div class="panel"><div class="panel-head"><h3>전통발효식품체험지도사 신청 관리</h3><span class="ph-sub">총 ' + a.length + '명</span></div>' +
-      '<div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>일시</th><th>이름</th><th>연락처</th><th>이메일</th><th>지역</th><th>희망 과정</th><th>상태</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
+      '<div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>일시</th><th>이름</th><th>연락처</th><th>지역</th><th>희망 과정</th><th>비고</th><th>상태</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
   }
 
   function viewInq() {
@@ -112,55 +588,60 @@
       '<div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>일시</th><th>이름</th><th>연락처</th><th>유형</th><th>내용</th><th>상태</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
   }
 
-  function viewMembers() {
-    var a = gj(K.members, []);
-    var rows = a.length ? a.map(function(r){
-      return '<tr><td>' + esc(r.name||'-') + '</td><td>' + esc(r.phone||'-') + '</td><td>' + esc(r.email||'-') + '</td><td class="dt">' + esc(r.joined||'-') + '</td><td><span class="tag' + (r.grade==='정회원'?' solid':'') + '">' + esc(r.grade||'준회원') + '</span></td><td>' + delBtn(K.members, r.id) + '</td></tr>';
-    }).join('') : emptyRow(6, '등록된 회원이 없습니다.');
-    return '<div class="panel"><div class="panel-head"><h3>회원 정보 관리</h3><span class="ph-sub">총 ' + a.length + '명</span></div>' +
-      '<div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>이름</th><th>연락처</th><th>이메일</th><th>가입일</th><th>등급</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
-      '<form class="admin-form" id="memberForm" style="border-top:1px solid var(--line-soft)">' +
-        '<div class="field"><label>이름</label><input name="name" required placeholder="홍길동"></div>' +
-        '<div class="field"><label>연락처</label><input name="phone" placeholder="010-0000-0000"></div>' +
-        '<div class="field"><label>이메일</label><input name="email" type="email" placeholder="name@email.com"></div>' +
-        '<div class="field"><label>등급</label><select name="grade"><option>정회원</option><option>준회원</option></select></div>' +
-        '<div class="full"><button class="btn btn-point" type="submit"><i data-lucide="user-plus"></i>회원 추가</button></div>' +
-      '</form></div>';
+  /* ============================================================
+     게시글 관리
+     ============================================================ */
+  function viewPosts() {
+    var a = gj(K.posts, []).slice().sort(function (x, y) { return (y.at || '').localeCompare(x.at || ''); });
+    var rows = a.length ? a.map(function (p) {
+      return '<tr><td><b>' + esc(p.title) + '</b>' + (p.sample ? ' <span class="tag sample" style="font-size:10px">샘플</span>' : '') + '</td>' +
+        '<td><span class="tag' + (p.important ? ' point' : '') + '">' + esc(p.cat) + '</span></td>' +
+        '<td class="dt">' + fmtDate(p.at) + '</td><td>' + delBtn(K.posts, p.id) + '</td></tr>';
+    }).join('') : emptyRow(4, '등록된 게시글이 없습니다.');
+    return '<div class="panel"><div class="panel-head"><h3>게시글 관리</h3><a class="btn btn-point" href="news.html" target="_blank" style="padding:10px 18px"><i data-lucide="pen-line"></i>소식마당에서 글쓰기</a></div>' +
+      '<div class="modal-note" style="margin:16px 22px 0"><i data-lucide="info"></i><span>글 작성·수정(Tiptap 에디터, 첨부파일)은 소식마당 페이지의 ‘글쓰기’ 버튼에서 진행합니다. 관리자 로그인 상태가 유지됩니다.</span></div>' +
+      '<div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>제목</th><th>분류</th><th>등록일</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
   }
 
+  /* ============================================================
+     파트너 (가로형 로고)
+     ============================================================ */
   function viewPartners() {
     var a = S.getPartners ? S.getPartners() : gj('kach_partners_v1', []);
     var cards = a.length ? a.map(function(p){
       var logo = p.logo ? '<img src="' + esc(p.logo) + '" alt="">' : esc(p.name);
       return '<div class="pcard"><div class="pc-logo">' + logo + '</div>' +
-        '<div><div class="pc-name">' + esc(p.name) + (p.featured?' <span class="tag point" style="font-size:10px">주요</span>':'') + '</div><div class="pc-sub">' + esc(p.sub||'') + '</div></div>' +
-        '<div class="pc-row"><button class="btn-text" data-act="pfeature" data-id="' + p.id + '" style="font-size:12px">' + (p.featured?'주요 해제':'주요 지정') + '</button>' + delBtn('PARTNER', p.id) + '</div></div>';
+        '<div><div class="pc-name">' + esc(p.name) + '</div><div class="pc-sub">' + esc(p.url || '') + '</div></div>' +
+        '<div class="pc-row"><span class="pc-sub">' + (p.logo ? '로고 등록됨' : '로고 없음 (텍스트 표시)') + '</span>' + delBtn('PARTNER', p.id) + '</div></div>';
     }).join('') : '<div class="admin-empty" style="grid-column:1/-1"><i data-lucide="handshake"></i><div>등록된 파트너가 없습니다.</div></div>';
-    return '<div class="panel"><div class="panel-head"><h3>파트너 관리</h3><span class="ph-sub">홈 파트너 스트립에 노출 · 총 ' + a.length + '곳</span></div>' +
+    return '<div class="panel"><div class="panel-head"><h3>파트너 관리</h3><span class="ph-sub">홈 화면에서 좌측으로 무한 슬라이드 · 총 ' + a.length + '곳</span></div>' +
       '<div class="card-list">' + cards + '</div>' +
       '<form class="admin-form" id="partnerForm" style="border-top:1px solid var(--line-soft)">' +
-        '<div class="field"><label>파트너명</label><input name="name" required placeholder="예) 정선만장대"></div>' +
-        '<div class="field"><label>한 줄 설명</label><input name="sub" placeholder="예) 전통발효명가 · 강원 정선"></div>' +
+        '<div class="field"><label>파트너명 (로고 없을 때 표시)</label><input name="name" required placeholder="예) 정선만장대"></div>' +
         '<div class="field"><label>링크 (선택)</label><input name="url" placeholder="https://"></div>' +
-        '<div class="field"><label>로고 이미지 (선택)</label><input name="logo" type="file" accept="image/*"></div>' +
-        '<div class="field full" style="flex-direction:row;align-items:center;gap:12px"><button type="button" class="toggle" id="pFeat"><i></i></button><label style="margin:0">주요 파트너로 지정</label></div>' +
+        '<div class="field full"><label>가로형 로고 이미지 <b style="color:var(--point)">권장</b> — 가로로 긴 워드마크/로고 (PNG 투명배경 권장, 세로 54px 기준 자동 맞춤)</label><input name="logo" type="file" accept="image/*"></div>' +
         '<div class="full" style="display:flex;gap:10px"><button class="btn btn-point" type="submit"><i data-lucide="plus"></i>파트너 추가</button><button class="btn btn-ghost" type="button" id="partnerReset"><i data-lucide="rotate-ccw"></i>기본값 복원</button></div>' +
       '</form></div>';
   }
 
+  /* ============================================================
+     팝업 (이미지 업로드 지원)
+     ============================================================ */
   function viewPopups() {
     var a = gj(K.popups, []);
     var rows = a.length ? a.map(function(p){
-      return '<tr><td><b>' + esc(p.title) + '</b><div class="pc-sub" style="margin-top:3px">' + esc((p.body||'').replace(/\n/g,' ')).slice(0,50) + '</div></td>' +
+      return '<tr><td style="width:74px">' + (p.img ? '<img src="' + esc(p.img) + '" style="width:64px;height:44px;object-fit:cover;border-radius:7px">' : '<span class="pc-sub">없음</span>') + '</td>' +
+        '<td><b>' + esc(p.title) + '</b><div class="pc-sub" style="margin-top:3px">' + esc((p.body||'').replace(/\n/g,' ')).slice(0,50) + '</div></td>' +
         '<td class="dt">' + (p.startsAt||'상시') + (p.endsAt?(' ~ '+p.endsAt):'') + '</td>' +
         '<td><button class="toggle ' + (p.active?'on':'') + '" data-act="poptoggle" data-id="' + p.id + '"><i></i></button></td>' +
         '<td>' + delBtn(K.popups, p.id) + '</td></tr>';
-    }).join('') : emptyRow(4, '등록된 팝업이 없습니다.');
+    }).join('') : emptyRow(5, '등록된 팝업이 없습니다.');
     return '<div class="panel"><div class="panel-head"><h3>팝업 관리</h3><span class="ph-sub">활성 팝업은 홈 첫 화면에 노출됩니다</span></div>' +
-      '<div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>제목 · 내용</th><th>노출 기간</th><th>활성</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      '<div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>이미지</th><th>제목 · 내용</th><th>노출 기간</th><th>활성</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
       '<form class="admin-form" id="popupForm" style="border-top:1px solid var(--line-soft)">' +
         '<div class="field full"><label>제목</label><input name="title" required placeholder="예) 2026 봄학기 지도사 과정 모집"></div>' +
         '<div class="field full"><label>내용</label><textarea name="body" placeholder="팝업에 표시할 안내 문구"></textarea></div>' +
+        '<div class="field full"><label>팝업 이미지 (선택 — 상단에 표시, 자동으로 가로 900px 이하 최적화)</label><input name="img" type="file" accept="image/*" id="popImgInput"></div>' +
         '<div class="field"><label>링크 (선택)</label><input name="link" placeholder="instructor.html"></div>' +
         '<div class="field"><label>버튼 문구</label><input name="linkLabel" placeholder="자세히 보기"></div>' +
         '<div class="field"><label>시작일 (선택)</label><input name="startsAt" type="date"></div>' +
@@ -169,15 +650,49 @@
       '</form></div>';
   }
 
+  /* ============================================================
+     동의문 관리
+     ============================================================ */
+  function viewConsents() {
+    var c = S.getConsents();
+    function block(key, label, hint) {
+      return '<div class="panel" style="margin-bottom:24px"><div class="panel-head"><h3>' + label + '</h3><span class="ph-sub">' + hint + '</span></div>' +
+        '<div style="padding:22px"><textarea data-consent="' + key + '" rows="12" style="width:100%;font:inherit;font-size:13.5px;line-height:1.7;padding:14px 16px;border:1.5px solid var(--line);border-radius:10px;resize:vertical">' + esc(c[key].body) + '</textarea></div></div>';
+    }
+    return block('privacy', '개인정보 수집·이용 동의문', '체험지도사 신청 · 제품 주문 · 문의 양식에 표시') +
+      block('third', '개인정보 제3자 제공 동의문', '제품 주문 · 씨장 분양 양식에 표시') +
+      '<div style="display:flex;gap:10px"><button class="btn btn-point" data-act="consentsave"><i data-lucide="check"></i>동의문 저장</button>' +
+      '<button class="btn btn-ghost" data-act="consentreset"><i data-lucide="rotate-ccw"></i>표준안으로 복원</button></div>';
+  }
+
+  /* ============================================================
+     KMS — 표준 KMS · 디자인 룰북
+     ============================================================ */
+  function viewKMS() {
+    var k = getKMS();
+    function block(key, label, hint) {
+      return '<div class="panel" style="margin-bottom:24px"><div class="panel-head"><h3>' + label + '</h3><span class="ph-sub">' + hint + '</span></div>' +
+        '<div style="padding:22px"><textarea data-kms="' + key + '" rows="20" style="width:100%;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;line-height:1.7;padding:16px 18px;border:1.5px solid var(--line);border-radius:10px;resize:vertical;background:#FFFEF9">' + esc(k[key]) + '</textarea></div></div>';
+    }
+    return '<div class="modal-note" style="margin-bottom:20px"><i data-lucide="book-open"></i><span><b>KMS(지식관리시스템)</b> — 표준 KMS는 개발 규칙·원칙을, 디자인 룰북은 홈페이지의 모든 디자인 항목 표준을 기록·관리합니다. 디자인 변경 시 site.css 토큰과 룰북을 함께 갱신하세요.</span></div>' +
+      block('standard', '표준 KMS — 개발 규칙 및 원칙', '기술 스택 · 데이터 계층 · 개인정보 · 주문 상태 · SEO 원칙') +
+      block('design', '디자인 룰북 — 디자인 표준 기록', '컬러 · 타이포 · 간격 · 모서리 · 모션 · 문양 · 컴포넌트 표준') +
+      '<div style="display:flex;gap:10px"><button class="btn btn-point" data-act="kmssave"><i data-lucide="check"></i>KMS 저장</button>' +
+      '<button class="btn btn-ghost" data-act="kmsreset"><i data-lucide="rotate-ccw"></i>기본 문서로 복원</button></div>';
+  }
+
   /* ---------- nav ---------- */
   var NAV = [
     { id: 'dashboard', label: '대시보드', icon: 'layout-dashboard', view: viewDashboard, title: '대시보드' },
-    { id: 'orders', label: '상품 주문', icon: 'shopping-cart', view: viewOrders, title: '상품 주문 관리', countKey: K.orders },
+    { id: 'products', label: '상품 관리', icon: 'package', view: viewProducts, title: '상품 관리' },
+    { id: 'orders', label: '주문 관리', icon: 'shopping-cart', view: viewOrders, title: '주문 관리', countKey: K.orders },
     { id: 'apps', label: '지도사 신청', icon: 'user-plus', view: viewApps, title: '참가자 신청 관리', countKey: K.apps },
     { id: 'inq', label: '문의 내역', icon: 'message-square', view: viewInq, title: '문의 내역 관리', countKey: K.inq },
-    { id: 'members', label: '회원 정보', icon: 'users', view: viewMembers, title: '회원 정보 관리', countKey: K.members },
+    { id: 'posts', label: '게시글 관리', icon: 'file-text', view: viewPosts, title: '게시글 관리', countKey: K.posts },
     { id: 'partners', label: '파트너 관리', icon: 'handshake', view: viewPartners, title: '파트너 관리' },
     { id: 'popups', label: '팝업 관리', icon: 'bell', view: viewPopups, title: '팝업 관리', countKey: K.popups },
+    { id: 'consents', label: '동의문 관리', icon: 'shield-check', view: viewConsents, title: '개인정보 동의문 관리' },
+    { id: 'kms', label: 'KMS', icon: 'book-open', view: viewKMS, title: 'KMS — 표준 KMS · 디자인 룰북' },
   ];
   var current = 'dashboard';
 
@@ -197,36 +712,89 @@
     icons();
     bindForms();
   }
+  function toast(msg){ if (S.toast) S.toast(msg); }
+
+  /* ---------- 이미지 리사이즈 (팝업용) ---------- */
+  function resizeToDataURL(file, maxW, cb) {
+    var img = new Image();
+    var url = URL.createObjectURL(file);
+    img.onload = function () {
+      var sc = Math.min(1, maxW / img.width);
+      var c = document.createElement('canvas');
+      c.width = Math.round(img.width * sc); c.height = Math.round(img.height * sc);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      cb(c.toDataURL('image/jpeg', 0.82));
+    };
+    img.onerror = function(){ URL.revokeObjectURL(url); cb(''); };
+    img.src = url;
+  }
 
   /* ---------- form bindings ---------- */
-  var pendingFeatured = false, pendingLogo = '';
+  var pendingLogo = '', pendingPopImg = '';
   function bindForms() {
-    var mf = document.getElementById('memberForm');
-    if (mf) mf.addEventListener('submit', function(e){ e.preventDefault(); var d = formData(mf); d.id = uid(); d.joined = new Date().toISOString().slice(0,10); var a = gj(K.members, []); a.unshift(d); sj(K.members, a); render(); });
-
     var pf = document.getElementById('partnerForm');
     if (pf) {
-      pendingFeatured = false; pendingLogo = '';
-      var ft = document.getElementById('pFeat');
-      if (ft) ft.addEventListener('click', function(){ pendingFeatured = !pendingFeatured; ft.classList.toggle('on', pendingFeatured); });
+      pendingLogo = '';
       var fileIn = pf.querySelector('input[name=logo]');
       if (fileIn) fileIn.addEventListener('change', function(){ var f = fileIn.files[0]; if(!f) return; var rd = new FileReader(); rd.onload = function(){ pendingLogo = rd.result; }; rd.readAsDataURL(f); });
-      pf.addEventListener('submit', function(e){ e.preventDefault(); var d = formData(pf); var p = { id: uid(), name: d.name, sub: d.sub, url: d.url, logo: pendingLogo, featured: pendingFeatured }; var a = S.getPartners(); a.push(p); S.setPartners(a); render(); });
+      pf.addEventListener('submit', function(e){
+        e.preventDefault();
+        var fd = new FormData(pf);
+        var p = { id: uid(), name: fd.get('name'), url: fd.get('url'), logo: pendingLogo };
+        var a = S.getPartners(); a.push(p); S.setPartners(a); render();
+        toast('파트너가 추가되었습니다.');
+      });
       var rs = document.getElementById('partnerReset');
       if (rs) rs.addEventListener('click', function(){ if(confirm('파트너 목록을 기본값으로 되돌릴까요?')){ S.setPartners(S.partnerDefaults.slice()); render(); } });
     }
 
     var pop = document.getElementById('popupForm');
-    if (pop) pop.addEventListener('submit', function(e){ e.preventDefault(); var d = formData(pop); d.id = uid(); d.active = true; var a = gj(K.popups, []); a.unshift(d); sj(K.popups, a); render(); });
+    if (pop) {
+      pendingPopImg = '';
+      var pin = document.getElementById('popImgInput');
+      if (pin) pin.addEventListener('change', function(){
+        var f = pin.files[0]; if (!f) return;
+        resizeToDataURL(f, 900, function (durl) { pendingPopImg = durl; });
+      });
+      pop.addEventListener('submit', function(e){
+        e.preventDefault();
+        var d = {}; new FormData(pop).forEach(function(v,k){ if(k!=='img') d[k]=v; });
+        d.id = uid(); d.active = true; d.img = pendingPopImg;
+        var a = gj(K.popups, []); a.unshift(d); sj(K.popups, a); render();
+        toast('팝업이 추가되었습니다.');
+      });
+    }
+
+    bindProductForm();
   }
-  function formData(form){ var o = {}; new FormData(form).forEach(function(v,k){ if(k!=='logo') o[k]=v; }); return o; }
 
   /* ---------- delegation ---------- */
   document.addEventListener('change', function(e){
     var t = e.target;
-    if (t.dataset && t.dataset.act === 'status') { updateField(t.dataset.key, t.dataset.id, 'status', t.value); }
+    if (t.dataset && t.dataset.act === 'status') { updateField(t.dataset.key, t.dataset.id, 'status', t.value); renderNav(); }
+    if (t.dataset && t.dataset.act === 'pstatus') {
+      var a = S.getProducts(); a.forEach(function (p) { if (p.id === t.dataset.id) p.status = t.value; }); S.setProducts(a);
+      toast('판매 상태가 변경되었습니다.');
+    }
+    if (t.id === 'oselAll') {
+      document.querySelectorAll('.osel').forEach(function (c) { c.checked = t.checked; });
+    }
   });
+
   document.addEventListener('click', function(e){
+    // 드롭다운
+    var dbtn = e.target.closest('#odropBtn');
+    var menu = document.getElementById('odropMenu');
+    if (dbtn && menu) { menu.classList.toggle('open'); return; }
+    if (menu && !e.target.closest('.odrop')) menu.classList.remove('open');
+
+    var oact = e.target.closest('[data-oact]');
+    if (oact) { if (menu) menu.classList.remove('open'); procOrders(oact.dataset.oact); return; }
+
+    var otab = e.target.closest('[data-otab]');
+    if (otab) { orderTab = otab.dataset.otab; render(); return; }
+
     var b = e.target.closest('[data-act]'); if (!b) return;
     var act = b.dataset.act;
     if (act === 'del') {
@@ -236,36 +804,71 @@
       render();
     } else if (act === 'poptoggle') {
       var a = gj(K.popups, []); a.forEach(function(p){ if(p.id===b.dataset.id) p.active = !p.active; }); sj(K.popups, a); render();
-    } else if (act === 'pfeature') {
-      var ps = S.getPartners(); ps.forEach(function(p){ if(p.id===b.dataset.id) p.featured = !p.featured; }); S.setPartners(ps); render();
+    } else if (act === 'pnew') { prodEditing = 'new'; render();
+    } else if (act === 'pedit') { prodEditing = b.dataset.id; pImgState.removed = []; render();
+    } else if (act === 'pback') { prodEditing = null; pImgState = { main: null, extra: [], detail: [], removed: [] }; render();
+    } else if (act === 'pdel') {
+      if (!confirm('이 상품을 삭제할까요? 상품 이미지도 함께 삭제됩니다.')) return;
+      S.setProducts(S.getProducts().filter(function (p) { return p.id !== b.dataset.id; }));
+      S.idb.byIndex('pimg', 'productId', b.dataset.id).then(function (imgs) { imgs.forEach(function (i) { S.idb.del('pimg', i.id); }); });
+      render();
+    } else if (act === 'pimgdel') {
+      pImgState.removed.push(b.dataset.id);
+      b.closest('div').remove();
+    } else if (act === 'optadd') {
+      document.getElementById('optRows').insertAdjacentHTML('beforeend', optRowHTML(null)); icons();
+    } else if (act === 'optdel') {
+      b.closest('.opt-row').remove();
+    } else if (act === 'tpl-ship') {
+      document.querySelector('#productForm textarea[name=ship]').value = S.SHIP_TPL;
+    } else if (act === 'tpl-refund') {
+      document.querySelector('#productForm textarea[name=refund]').value = S.REFUND_TPL;
+    } else if (act === 'consentsave') {
+      var c = {};
+      document.querySelectorAll('[data-consent]').forEach(function (t) { c[t.dataset.consent] = { body: t.value }; });
+      sj(K.consents, c);
+      toast('동의문이 저장되었습니다. 신청·주문·문의 양식에 즉시 반영됩니다.');
+    } else if (act === 'consentreset') {
+      if (!confirm('동의문을 표준안으로 복원할까요?')) return;
+      localStorage.removeItem(K.consents); render();
+    } else if (act === 'kmssave') {
+      var k = {};
+      document.querySelectorAll('[data-kms]').forEach(function (t) { k[t.dataset.kms] = t.value; });
+      sj(K.kms, k);
+      toast('KMS 문서가 저장되었습니다.');
+    } else if (act === 'kmsreset') {
+      if (!confirm('KMS 문서를 기본 문서로 복원할까요?')) return;
+      localStorage.removeItem(K.kms); render();
     }
   });
   document.addEventListener('click', function(e){
     var nav = e.target.closest('[data-nav]'); if (!nav) return;
-    current = nav.dataset.nav; render();
-    document.querySelector('.admin-main').scrollTo(0,0);
+    current = nav.dataset.nav;
+    prodEditing = null;
+    render();
+    window.scrollTo(0, 0);
   });
 
-  /* ---------- auth ---------- */
-  var PW = 'manjangdae';
+  /* ---------- auth (아이디 + 비밀번호) ---------- */
   function unlock(){ document.getElementById('loginGate').style.display = 'none'; document.getElementById('adminApp').style.display = 'flex'; render(); icons(); }
   function initAuth() {
-    var ok = sessionStorage.getItem('kach_admin') === '1';
+    var ok = sessionStorage.getItem(S.ADMIN_SESSION || 'kach_admin') === '1';
     if (ok) { unlock(); }
     else {
       document.getElementById('loginGate').style.display = 'grid';
       icons();
-      setTimeout(function(){ var i = document.getElementById('loginPw'); if(i) i.focus(); }, 100);
+      setTimeout(function(){ var i = document.getElementById('loginId'); if(i) i.focus(); }, 100);
     }
     document.getElementById('loginForm').addEventListener('submit', function(e){
       e.preventDefault();
-      var v = document.getElementById('loginPw').value;
-      if (v === PW) { sessionStorage.setItem('kach_admin','1'); unlock(); }
-      else { document.getElementById('loginErr').textContent = '비밀번호가 올바르지 않습니다.'; }
+      var idv = document.getElementById('loginId').value;
+      var pwv = document.getElementById('loginPw').value;
+      if (S.checkLogin(idv, pwv)) { sessionStorage.setItem(S.ADMIN_SESSION || 'kach_admin','1'); unlock(); }
+      else { document.getElementById('loginErr').textContent = '아이디 또는 비밀번호가 올바르지 않습니다.'; }
     });
-    document.getElementById('logoutBtn').addEventListener('click', function(){ sessionStorage.removeItem('kach_admin'); location.reload(); });
+    document.getElementById('logoutBtn').addEventListener('click', function(){ sessionStorage.removeItem(S.ADMIN_SESSION || 'kach_admin'); location.reload(); });
   }
 
   function ready(fn){ if (document.readyState !== 'loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }
-  ready(function(){ seed(); initAuth(); });
+  ready(function(){ migrate(); seed(); initAuth(); });
 })();
