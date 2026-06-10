@@ -1,7 +1,7 @@
 /* ============================================================
-   board.js — 소식마당 게시판 · Tiptap 에디터 · 현장 갤러리
-   - 글쓰기: 관리자 로그인 후 활성화 (Site.requireAdmin)
-   - 에디터: Tiptap v2 (무료 확장 전체) — esm.sh 동적 로드
+   board.js — 소식마당 게시판 · 현장 갤러리
+   - 글쓰기/수정/삭제·사진 업로드/삭제: 클릭할 때마다 관리자 인증(상태 미저장)
+   - 에디터: 공용 RichEditor(editor.js, Tiptap v2 무료 확장 전체)
    - 첨부파일: 최대 10개 × 개당 10MB, 형식 제한 없음 (IndexedDB)
    - 첨부 이미지: 게시글 하단 슬라이드 미리보기
    - 갤러리: 페이지당 최대 10장 페이지네이션
@@ -70,10 +70,10 @@
             : '') +
         '</div>';
       }
-      var adminBtns = S.isAdmin()
-        ? '<button type="button" class="btn btn-ghost" id="postEdit"><i data-lucide="pen-line"></i>수정</button>' +
-          '<button type="button" class="btn btn-ghost" id="postDel" style="color:var(--danger)"><i data-lucide="trash-2"></i>삭제</button>'
-        : '';
+      // 관리자 수정/삭제 버튼은 항상 노출하되, 클릭 시 새로 인증
+      var adminBtns =
+        '<button type="button" class="btn btn-ghost" id="postEdit"><i data-lucide="pen-line"></i>수정</button>' +
+        '<button type="button" class="btn btn-ghost" id="postDel" style="color:var(--danger)"><i data-lucide="trash-2"></i>삭제</button>';
 
       S.rawModal(
         '<div class="modal-head"><div>' +
@@ -122,104 +122,28 @@
           setTimeout(function () { URL.revokeObjectURL(u); }, 4000);
         });
       });
-      // 관리자 수정/삭제
-      var ed = document.getElementById('postEdit');
-      if (ed) ed.addEventListener('click', function () { openEditor(p, files); });
-      var del = document.getElementById('postDel');
-      if (del) del.addEventListener('click', function () {
-        if (!confirm('이 게시글을 삭제할까요? 첨부파일도 함께 삭제됩니다.')) return;
-        S.setPosts(S.getPosts().filter(function (x) { return x.id !== p.id; }));
-        files.forEach(function (f) { S.idb.del('files', f.id); });
-        S.closeModal(); renderBoards(); S.toast('게시글이 삭제되었습니다.');
+      // 관리자 수정/삭제 — 클릭할 때마다 인증
+      document.getElementById('postEdit').addEventListener('click', function () {
+        S.requireAdmin(function () { openEditor(p, files); });
+      });
+      document.getElementById('postDel').addEventListener('click', function () {
+        S.requireAdmin(function () {
+          if (!confirm('이 게시글을 삭제할까요? 첨부파일도 함께 삭제됩니다.')) return;
+          S.setPosts(S.getPosts().filter(function (x) { return x.id !== p.id; }));
+          files.forEach(function (f) { S.idb.del('files', f.id); });
+          S.closeModal(); renderBoards(); S.toast('게시글이 삭제되었습니다.');
+        });
       });
     });
   }
 
-  /* ================= Tiptap 로드 ================= */
-  var ttPromise = null;
-  function loadTiptap() {
-    if (ttPromise) return ttPromise;
-    var u = function (p) { return 'https://esm.sh/@tiptap/' + p + '@2'; };
-    ttPromise = Promise.all([
-      import(u('core')), import(u('starter-kit')), import(u('extension-underline')),
-      import(u('extension-link')), import(u('extension-image')), import(u('extension-text-align')),
-      import(u('extension-highlight')), import(u('extension-subscript')), import(u('extension-superscript')),
-      import(u('extension-task-list')), import(u('extension-task-item')),
-      import(u('extension-table')), import(u('extension-table-row')), import(u('extension-table-header')), import(u('extension-table-cell')),
-      import(u('extension-text-style')), import(u('extension-color')),
-      import(u('extension-placeholder')), import(u('extension-character-count')), import(u('extension-youtube')),
-    ]).then(function (m) {
-      return {
-        Editor: m[0].Editor, StarterKit: m[1].default, Underline: m[2].default,
-        Link: m[3].default, Image: m[4].default, TextAlign: m[5].default,
-        Highlight: m[6].default, Subscript: m[7].default, Superscript: m[8].default,
-        TaskList: m[9].default, TaskItem: m[10].default,
-        Table: m[11].default, TableRow: m[12].default, TableHeader: m[13].default, TableCell: m[14].default,
-        TextStyle: m[15].default, Color: m[16].default,
-        Placeholder: m[17].default, CharacterCount: m[18].default, Youtube: m[19].default,
-      };
-    });
-    return ttPromise;
-  }
-
   /* ================= 글쓰기 / 수정 ================= */
-  var TOOLBAR = [
-    { act: 'undo', icon: 'undo-2', tip: '실행 취소' },
-    { act: 'redo', icon: 'redo-2', tip: '다시 실행' },
-    { sep: true },
-    { act: 'h1', text: 'H1', tip: '제목 1', on: ['heading', { level: 1 }] },
-    { act: 'h2', text: 'H2', tip: '제목 2', on: ['heading', { level: 2 }] },
-    { act: 'h3', text: 'H3', tip: '제목 3', on: ['heading', { level: 3 }] },
-    { sep: true },
-    { act: 'bold', icon: 'bold', tip: '굵게', on: ['bold'] },
-    { act: 'italic', icon: 'italic', tip: '기울임', on: ['italic'] },
-    { act: 'underline', icon: 'underline', tip: '밑줄', on: ['underline'] },
-    { act: 'strike', icon: 'strikethrough', tip: '취소선', on: ['strike'] },
-    { act: 'code', icon: 'code', tip: '인라인 코드', on: ['code'] },
-    { act: 'highlight', icon: 'highlighter', tip: '형광펜', on: ['highlight'] },
-    { act: 'sub', icon: 'subscript', tip: '아래 첨자', on: ['subscript'] },
-    { act: 'sup', icon: 'superscript', tip: '위 첨자', on: ['superscript'] },
-    { color: true },
-    { sep: true },
-    { act: 'al', icon: 'align-left', tip: '왼쪽 정렬', on: [{ textAlign: 'left' }] },
-    { act: 'ac', icon: 'align-center', tip: '가운데 정렬', on: [{ textAlign: 'center' }] },
-    { act: 'ar', icon: 'align-right', tip: '오른쪽 정렬', on: [{ textAlign: 'right' }] },
-    { act: 'aj', icon: 'align-justify', tip: '양쪽 정렬', on: [{ textAlign: 'justify' }] },
-    { sep: true },
-    { act: 'ul', icon: 'list', tip: '글머리 목록', on: ['bulletList'] },
-    { act: 'ol', icon: 'list-ordered', tip: '번호 목록', on: ['orderedList'] },
-    { act: 'task', icon: 'list-checks', tip: '체크 목록', on: ['taskList'] },
-    { sep: true },
-    { act: 'quote', icon: 'text-quote', tip: '인용', on: ['blockquote'] },
-    { act: 'codeblock', icon: 'square-code', tip: '코드 블록', on: ['codeBlock'] },
-    { act: 'hr', icon: 'minus', tip: '구분선' },
-    { sep: true },
-    { act: 'link', icon: 'link', tip: '링크', on: ['link'] },
-    { act: 'img', icon: 'image', tip: '이미지 삽입' },
-    { act: 'yt', icon: 'youtube', tip: '유튜브 영상' },
-    { sep: true },
-    { act: 'table', icon: 'table', tip: '표 삽입' },
-    { act: 'rowAdd', text: '행+', tip: '행 추가' },
-    { act: 'colAdd', text: '열+', tip: '열 추가' },
-    { act: 'tableDel', text: '표×', tip: '표 삭제' },
-    { sep: true },
-    { act: 'clear', icon: 'eraser', tip: '서식 지우기' },
-  ];
-
-  function toolbarHTML() {
-    return TOOLBAR.map(function (b) {
-      if (b.sep) return '<span class="tt-sep"></span>';
-      if (b.color) return '<input type="color" class="tt-color" id="ttColor" title="글자색" value="#2A2723">';
-      var inner = b.icon ? '<i data-lucide="' + b.icon + '"></i>' : b.text;
-      return '<button type="button" class="tt-btn" data-tt="' + b.act + '" title="' + b.tip + '">' + inner + '</button>';
-    }).join('');
-  }
-
   function openEditor(post, existingFiles, defCat) {
     var isEdit = !!post;
     var selCat = post ? post.cat : (defCat || '공지');
     var atts = (existingFiles || []).map(function (f) { return { id: f.id, name: f.name, size: f.size, type: f.type, existing: true }; });
     var removedIds = [];
+    var editor = null;
 
     S.rawModal(
       '<div class="modal-head"><div><div class="eyebrow">소식마당</div><h3>' + (isEdit ? '글 수정' : '글쓰기') + '</h3></div>' +
@@ -232,8 +156,8 @@
           '<label style="display:inline-flex;gap:7px;align-items:center;font-size:14px;font-weight:600;cursor:pointer"><input type="checkbox" id="edImp" style="width:16px;height:16px;accent-color:var(--point)"' + (post && post.important ? ' checked' : '') + '>중요 표시</label>' +
           '<input id="edTitle" placeholder="제목을 입력하세요" value="' + esc(post ? post.title : '') + '" style="flex:1;min-width:220px;padding:11px 13px;border:1.5px solid var(--line);border-radius:var(--r-sm);font:inherit;font-weight:700">' +
         '</div>' +
-        '<div class="tt-toolbar" id="ttBar">' + toolbarHTML() + '</div>' +
-        '<div class="tt-body"><div id="ttEditor" style="opacity:.5;padding:16px 18px;color:var(--ink-mute)">에디터를 불러오는 중…</div></div>' +
+        '<div class="tt-toolbar" id="ttBar"></div>' +
+        '<div class="tt-body"><div id="ttEditor"></div></div>' +
         '<div class="tt-meta"><span id="ttCount"></span><span>첨부: 최대 ' + MAX_FILES + '개 · 개당 10MB · 형식 제한 없음</span></div>' +
         '<div style="margin-top:12px">' +
           '<button type="button" class="btn btn-ghost" id="edAttBtn" style="padding:10px 16px"><i data-lucide="paperclip"></i>파일 첨부</button>' +
@@ -275,107 +199,16 @@
       renderAtts();
     });
 
-    loadTiptap().then(function (T) {
-      var holder = document.getElementById('ttEditor');
-      if (!holder) return; // 모달이 이미 닫힘
-      holder.removeAttribute('style');
-      holder.textContent = '';
-      var editor = new T.Editor({
-        element: holder,
-        extensions: [
-          T.StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
-          T.Underline,
-          T.Link.configure({ openOnClick: false }),
-          T.Image,
-          T.TextAlign.configure({ types: ['heading', 'paragraph'] }),
-          T.Highlight,
-          T.Subscript, T.Superscript,
-          T.TaskList, T.TaskItem.configure({ nested: true }),
-          T.Table.configure({ resizable: false }), T.TableRow, T.TableHeader, T.TableCell,
-          T.TextStyle, T.Color,
-          T.Placeholder.configure({ placeholder: '내용을 입력하세요…' }),
-          T.CharacterCount,
-          T.Youtube.configure({ width: 640, height: 360 }),
-        ],
-        content: post ? post.html : '',
-        editorProps: { attributes: { class: 'rich' } },
-        onTransaction: function () { updateBar(); },
-      });
-
-      function updateBar() {
-        TOOLBAR.forEach(function (b) {
-          if (!b.on) return;
-          var btn = document.querySelector('[data-tt="' + b.act + '"]');
-          if (btn) btn.classList.toggle('on', editor.isActive.apply(editor, b.on));
-        });
-        var cnt = document.getElementById('ttCount');
-        if (cnt) cnt.textContent = editor.storage.characterCount.characters() + '자';
-      }
-      updateBar();
-
-      document.getElementById('ttBar').addEventListener('click', function (e) {
-        var b = e.target.closest('[data-tt]');
-        if (!b) return;
-        var ch = editor.chain().focus();
-        switch (b.dataset.tt) {
-          case 'undo': ch.undo().run(); break;
-          case 'redo': ch.redo().run(); break;
-          case 'h1': ch.toggleHeading({ level: 1 }).run(); break;
-          case 'h2': ch.toggleHeading({ level: 2 }).run(); break;
-          case 'h3': ch.toggleHeading({ level: 3 }).run(); break;
-          case 'bold': ch.toggleBold().run(); break;
-          case 'italic': ch.toggleItalic().run(); break;
-          case 'underline': ch.toggleUnderline().run(); break;
-          case 'strike': ch.toggleStrike().run(); break;
-          case 'code': ch.toggleCode().run(); break;
-          case 'highlight': ch.toggleHighlight().run(); break;
-          case 'sub': ch.toggleSubscript().run(); break;
-          case 'sup': ch.toggleSuperscript().run(); break;
-          case 'al': ch.setTextAlign('left').run(); break;
-          case 'ac': ch.setTextAlign('center').run(); break;
-          case 'ar': ch.setTextAlign('right').run(); break;
-          case 'aj': ch.setTextAlign('justify').run(); break;
-          case 'ul': ch.toggleBulletList().run(); break;
-          case 'ol': ch.toggleOrderedList().run(); break;
-          case 'task': ch.toggleTaskList().run(); break;
-          case 'quote': ch.toggleBlockquote().run(); break;
-          case 'codeblock': ch.toggleCodeBlock().run(); break;
-          case 'hr': ch.setHorizontalRule().run(); break;
-          case 'link': (function () {
-            var prev = editor.getAttributes('link').href || '';
-            var url = prompt('링크 URL을 입력하세요 (비우면 링크 해제)', prev || 'https://');
-            if (url === null) return;
-            if (!url || url === 'https://') ch.unsetLink().run();
-            else ch.extendMarkRange('link').setLink({ href: url }).run();
-          })(); break;
-          case 'img': (function () {
-            var inp = document.createElement('input');
-            inp.type = 'file'; inp.accept = 'image/*';
-            inp.onchange = function () {
-              var f = inp.files[0]; if (!f) return;
-              if (f.size > MAX_SIZE) { alert('이미지는 10MB 이하만 삽입할 수 있습니다.'); return; }
-              var rd = new FileReader();
-              rd.onload = function () { editor.chain().focus().setImage({ src: rd.result }).run(); };
-              rd.readAsDataURL(f);
-            };
-            inp.click();
-          })(); break;
-          case 'yt': (function () {
-            var url = prompt('유튜브 영상 URL을 입력하세요');
-            if (url) ch.setYoutubeVideo({ src: url }).run();
-          })(); break;
-          case 'table': ch.insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(); break;
-          case 'rowAdd': ch.addRowAfter().run(); break;
-          case 'colAdd': ch.addColumnAfter().run(); break;
-          case 'tableDel': ch.deleteTable().run(); break;
-          case 'clear': ch.unsetAllMarks().clearNodes().run(); break;
-        }
-        updateBar();
-      });
-      var colorIn = document.getElementById('ttColor');
-      if (colorIn) colorIn.addEventListener('input', function () { editor.chain().focus().setColor(colorIn.value).run(); });
-
+    window.RichEditor.mount({
+      toolbarEl: document.getElementById('ttBar'),
+      editorEl: document.getElementById('ttEditor'),
+      content: post ? post.html : '',
+      placeholder: '내용을 입력하세요…',
+      countEl: document.getElementById('ttCount'),
+    }).then(function (ed) {
+      editor = ed;
       var save = document.getElementById('edSave');
+      if (!save) { ed.destroy(); return; } // 모달이 이미 닫힘
       save.disabled = false;
       save.addEventListener('click', function () {
         var title = document.getElementById('edTitle').value.trim();
@@ -404,6 +237,7 @@
           if (a.file) jobs.push(S.idb.put('files', { id: uid(), postId: rec.id, name: a.name, size: a.size, type: a.type, blob: a.file }));
         });
         Promise.all(jobs).then(function () {
+          editor.destroy();
           S.closeModal();
           renderBoards();
           S.toast(isEdit ? '게시글이 수정되었습니다.' : '게시글이 등록되었습니다.');
@@ -411,7 +245,7 @@
       });
     }).catch(function () {
       var holder = document.getElementById('ttEditor');
-      if (holder) holder.innerHTML = '에디터를 불러오지 못했습니다. 네트워크 연결을 확인해 주세요.';
+      if (holder) holder.innerHTML = '<div style="padding:16px 18px;color:var(--danger)">에디터를 불러오지 못했습니다. 네트워크 연결을 확인해 주세요.</div>';
     });
   }
 
@@ -446,7 +280,7 @@
         var u = URL.createObjectURL(g.blob);
         galUrls.push(u);
         return '<figure class="gal-item"><img src="' + u + '" alt="' + esc(g.name) + '" loading="lazy">' +
-          (S.isAdmin() ? '<button class="gal-del" data-gdel="' + g.id + '" title="삭제"><i data-lucide="x"></i></button>' : '') +
+          '<button class="gal-del" data-gdel="' + g.id + '" title="삭제 (관리자)"><i data-lucide="x"></i></button>' +
           '<figcaption>' + esc(g.name) + '</figcaption></figure>';
       }).join('');
       pager.innerHTML = pages > 1
@@ -473,8 +307,10 @@
     if (grid) grid.addEventListener('click', function (e) {
       var b = e.target.closest('[data-gdel]');
       if (!b) return;
-      if (!confirm('이 사진을 삭제할까요?')) return;
-      S.idb.del('gallery', b.dataset.gdel).then(renderGallery);
+      S.requireAdmin(function () {
+        if (!confirm('이 사진을 삭제할까요?')) return;
+        S.idb.del('gallery', b.dataset.gdel).then(renderGallery);
+      });
     });
     var upBtn = document.querySelector('[data-gallery-upload]');
     if (upBtn) upBtn.addEventListener('click', function () {

@@ -32,23 +32,74 @@
   .admin-top .at-meta { font-size: 13px; color: var(--ink-mute); }
   .admin-view { padding: 32px; max-width: 1240px; }
 
-  /* 주문 관리 — 상태 탭 · 일괄 처리 바 */
-  .otabs { display: flex; gap: 2px; border-bottom: 2px solid var(--line-soft); flex-wrap: wrap; }
+  /* 서브탭 (KMS · 동의문) */
+  .subtabs { display: inline-flex; gap: 4px; background: var(--surface-2); border: 1px solid var(--line-soft); border-radius: 12px; padding: 5px; margin-bottom: 20px; }
+  .subtabs button { display: inline-flex; align-items: center; gap: 7px; padding: 10px 18px; border: none; background: none; font: inherit; font-size: 14px; font-weight: 700; color: var(--ink-mute); cursor: pointer; border-radius: 9px; transition: all var(--dur-fast) var(--ease); }
+  .subtabs button:hover { color: var(--ink); }
+  .subtabs button.on { background: var(--main); color: #fff; box-shadow: var(--sh-sm); }
+  .subtabs button i[data-lucide] { width: 16px; height: 16px; }
+
+  /* 주문 처리 안내 */
+  .oguide { border: 1px solid var(--line-soft); border-radius: 12px; background: var(--main-tint); margin-bottom: 16px; overflow: hidden; }
+  .oguide summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 13px 18px; font-weight: 700; font-size: 14px; color: var(--main-deep); }
+  .oguide summary::-webkit-details-marker { display: none; }
+  .oguide summary i[data-lucide] { width: 17px; height: 17px; }
+  .oguide-body { padding: 4px 20px 18px; }
+  .oflow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 10px 0 14px; }
+  .oguide-body ul { margin: 0; padding-left: 18px; font-size: 13.5px; line-height: 1.95; color: var(--ink-soft); }
+  .oguide-body b { color: var(--ink); }
+
+  /* 주문 관리 — 상태 탭 */
+  .otabs { display: flex; gap: 2px; border-bottom: 2px solid var(--line-soft); flex-wrap: wrap; margin-top: 4px; }
   .otabs button { padding: 11px 14px; border: none; background: none; font: inherit; font-size: 14px; font-weight: 600; color: var(--ink-mute); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; }
   .otabs button:hover { color: var(--ink); }
   .otabs button.on { color: var(--point); border-color: var(--point); }
   .otabs .cnt { color: var(--point); font-weight: 800; margin-left: 5px; font-size: 13px; }
-  .obar { display: flex; gap: 8px; flex-wrap: wrap; padding: 14px 0; }
-  .obar .btn-sm { padding: 9px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; border: 1px solid var(--line); background: var(--surface); cursor: pointer; font-family: inherit; color: var(--ink); }
-  .obar .btn-sm:hover { border-color: var(--main); color: var(--main); }
-  .obar .btn-sm.primary { background: var(--info); color: #fff; border-color: var(--info); }
-  .obar .btn-sm.primary:hover { opacity: .92; color: #fff; }
+
+  /* 주문 처리 버튼 (그룹) */
+  .obar { display: flex; gap: 18px; flex-wrap: wrap; padding: 16px 0 4px; }
+  .ogrp { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; padding: 9px 12px; border: 1px solid var(--line-soft); border-radius: 12px; background: var(--surface-2); }
+  .ogrp-l { font-size: 11px; font-weight: 800; letter-spacing: .04em; color: var(--ink-mute); margin-right: 2px; }
+  .obtn { padding: 9px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; border: 1px solid var(--line); background: var(--surface); cursor: pointer; font-family: inherit; color: var(--ink); white-space: nowrap; }
+  .obtn:hover { border-color: var(--main); color: var(--main); }
+  .obtn.primary { background: var(--info); color: #fff; border-color: var(--info); }
+  .obtn.primary:hover { opacity: .92; color: #fff; }
   .odrop { position: relative; }
-  .odrop-menu { position: absolute; top: calc(100% + 4px); left: 0; background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--sh-md); padding: 6px; display: none; z-index: 40; min-width: 190px; }
+  .odrop-menu { position: absolute; top: calc(100% + 4px); left: 0; background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--sh-md); padding: 6px; display: none; z-index: 40; min-width: 200px; }
   .odrop-menu.open { display: block; }
   .odrop-menu button { display: block; width: 100%; text-align: left; padding: 9px 12px; border: none; background: none; font: inherit; font-size: 13px; border-radius: 7px; cursor: pointer; }
   .odrop-menu button:hover { background: var(--surface-2); }
-  .odrop-menu hr { border: none; border-top: 1px solid var(--line-soft); margin: 5px 0; }
+  .proc-info { border-left: 3px solid var(--info); background: var(--surface-2); padding: 10px 14px; font-size: 13.5px; border-radius: 0 8px 8px 0; margin-bottom: 14px; }
+
+  /* 상품 이미지 미리보기 / 목록 썸네일 */
+  .pthumb { width: 48px; height: 48px; border-radius: 8px; overflow: hidden; background: var(--surface-2); display: grid; place-items: center; color: var(--ink-faint); }
+  .pthumb img { width: 100%; height: 100%; object-fit: cover; }
+  .pthumb i[data-lucide] { width: 18px; height: 18px; }
+  .pimg-grid { display: flex; gap: 10px; flex-wrap: wrap; }
+  .pimg-cell { position: relative; width: 84px; height: 84px; border-radius: 10px; overflow: hidden; border: 1px solid var(--line-soft); background: var(--surface-2); }
+  .pimg-cell.new { border-color: var(--main); box-shadow: 0 0 0 2px var(--main-tint); }
+  .pimg-cell img { width: 100%; height: 100%; object-fit: cover; }
+  .pimg-role { position: absolute; left: 4px; bottom: 4px; background: rgba(42,39,35,.66); color: #fff; font-size: 10px; padding: 1px 6px; border-radius: 99px; }
+  .pimg-cell .gal-del { top: 4px; right: 4px; width: 20px; height: 20px; }
+
+  /* 관련상품 멀티 드롭다운 */
+  .ms { position: relative; max-width: 480px; }
+  .ms-toggle { display: inline-flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; max-width: 320px; padding: 11px 14px; border: 1.5px solid var(--line); border-radius: var(--r-sm); background: var(--surface); font: inherit; font-size: 14px; cursor: pointer; color: var(--ink); }
+  .ms-toggle:hover { border-color: var(--main); }
+  .ms-toggle i[data-lucide] { width: 16px; height: 16px; color: var(--ink-mute); }
+  .ms-panel { position: absolute; z-index: 30; margin-top: 6px; width: min(360px, 92vw); background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--sh-md); padding: 10px; }
+  .ms-search { width: 100%; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; font: inherit; font-size: 13px; margin-bottom: 8px; }
+  .ms-list { max-height: 240px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+  .ms-opt { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 8px; cursor: pointer; font-size: 13.5px; }
+  .ms-opt:hover { background: var(--surface-2); }
+  .ms-opt input { width: 16px; height: 16px; accent-color: var(--main); }
+  .ms-opt span:first-of-type { flex: 1; }
+  .ms-cat { font-size: 11px; color: var(--ink-mute); background: var(--surface-2); padding: 2px 8px; border-radius: 99px; }
+  .ms-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .ms-chip { display: inline-flex; align-items: center; gap: 5px; background: var(--main-tint); color: var(--main-deep); font-size: 12.5px; font-weight: 600; padding: 5px 6px 5px 12px; border-radius: 99px; }
+  .ms-chip button { border: none; background: none; cursor: pointer; color: var(--main-deep); display: grid; place-items: center; padding: 2px; border-radius: 50%; }
+  .ms-chip button:hover { background: rgba(0,0,0,.08); }
+  .ms-chip i[data-lucide] { width: 13px; height: 13px; }
 
   /* 대시보드 방문 차트 */
   .stat .ss { font-size: 12px; color: var(--ink-faint); margin-top: 3px; }
@@ -151,6 +202,7 @@
 
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="assets/site.js"></script>
+<script src="assets/editor.js"></script>
 <script src="assets/admin.js"></script>
 </body>
 </html>

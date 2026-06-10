@@ -739,3 +739,34 @@ button[type=submit]:disabled, .btn:disabled { opacity: 0.45; cursor: not-allowed
    ============================================================ */
 .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(8px); background: var(--ink); color: #fff; padding: 12px 22px; border-radius: var(--r-pill); font-size: 13.5px; font-weight: 600; z-index: 3000; box-shadow: var(--sh-lg); opacity: 0; visibility: hidden; transition: all var(--dur) var(--ease); max-width: 88vw; text-align: center; }
 .toast.show { opacity: 1; visibility: visible; transform: translateX(-50%); }
+
+/* ============================================================
+   인증 메시지 · 내비 스크롤 · 리치 reveal (최초 1회)
+   ============================================================ */
+.login-msg { font-size: 13px; min-height: 18px; margin-top: 8px; color: var(--ink-mute); }
+.login-msg.err { color: var(--danger); }
+
+#site-nav .nav { transition: box-shadow var(--dur) var(--ease), background var(--dur) var(--ease); }
+#site-nav .nav.scrolled { box-shadow: 0 4px 20px rgba(42,39,35,0.07); background: rgba(251,249,244,0.94); }
+
+/* JS 활성 시: reveal 요소는 처음 보일 때 1회만 등장 (깜빡임 방지) */
+html.js .reveal:not(.in) { opacity: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  html.js .reveal:not(.in) { transform: translateY(22px) scale(0.99); }
+  .reveal.in { animation: revealIn var(--dur-slow) var(--ease) both; }
+  html.js .reveal[data-reveal="left"]:not(.in)  { transform: translateX(-26px); }
+  html.js .reveal[data-reveal="right"]:not(.in) { transform: translateX(26px); }
+  html.js .reveal[data-reveal="scale"]:not(.in) { transform: scale(0.94); }
+  .reveal[data-reveal].in { animation-name: revealGeneric; }
+}
+@keyframes revealIn { from { opacity: 0; transform: translateY(22px) scale(0.99); } to { opacity: 1; transform: none; } }
+@keyframes revealGeneric { from { opacity: 0; } to { opacity: 1; transform: none; } }
+html.js .reveal.in { opacity: 1; }
+
+/* 미세 인터랙션 — 아이콘 배지 호버 */
+@media (prefers-reduced-motion: no-preference) {
+  .card-hover .icon-badge { transition: transform var(--dur) var(--ease); }
+  .card-hover:hover .icon-badge { transform: scale(1.08) rotate(-3deg); }
+  .num-chip { transition: transform var(--dur) var(--ease), background var(--dur-fast); }
+  .card-hover:hover .num-chip { transform: translateY(-2px); }
+}

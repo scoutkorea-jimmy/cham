@@ -69,7 +69,7 @@
       var list = products.filter(function (p) { return p.cat === cat; });
       box.innerHTML = list.length ? list.map(cardHTML).join('') : '<p class="muted">등록된 상품이 없습니다.</p>';
     });
-    if (any) { icons(); fillCardImages(); }
+    if (any) { icons(); fillCardImages(); if (S.revealScan) S.revealScan(); }
   }
 
   /* ================= 상품 상세 페이지 ================= */

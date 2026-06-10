@@ -17,6 +17,13 @@
  {"@type":"ListItem","position":1,"name":"홈","item":"index.html"},
  {"@type":"ListItem","position":2,"name":"협동조합 소개","item":"about.html"}]}
 </script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<style id="map-style">
+  .map-wrap { border-radius: var(--r-lg); overflow: hidden; border: 1px solid var(--line-soft); box-shadow: var(--sh-sm); }
+  #osmMap { width: 100%; aspect-ratio: 4/3; background: var(--surface-2); }
+  .leaflet-container { font: inherit; }
+  @media (max-width: 760px){ #osmMap { aspect-ratio: 4/3; min-height: 280px; } }
+</style>
 </head>
 <body data-page="about">
 <header id="site-nav"></header>
@@ -102,7 +109,7 @@
 <!-- 오시는 길 -->
 <section class="section" id="location">
   <div class="wrap" style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:48px;align-items:center">
-    <div class="reveal ph tone-main ratio-43" data-label="오시는 길 — 지도 영역"><i data-lucide="map-pin"></i></div>
+    <div class="reveal map-wrap"><div id="osmMap" role="img" aria-label="한국참전통발효식품협동조합 위치 지도"></div></div>
     <div class="reveal">
       <span class="eyebrow">오시는 길</span>
       <h2 style="margin-top:14px">찾아오시는 길</h2>
@@ -120,5 +127,22 @@
 <footer id="site-footer"></footer>
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="assets/site.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+  // OSM(OpenStreetMap) + Leaflet 약도. 좌표는 서울 구로구 구로동 인근 근사값으로,
+  // 정확한 핀 위치는 실제 측량 후 LAT/LNG 두 값만 교체하면 됩니다.
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!window.L || !document.getElementById('osmMap')) return;
+    var LAT = 37.50331, LNG = 126.88262;
+    var map = L.map('osmMap', { scrollWheelZoom: false, attributionControl: true }).setView([LAT, LNG], 16);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> 기여자'
+    }).addTo(map);
+    L.marker([LAT, LNG]).addTo(map)
+      .bindPopup('<b>한국참전통발효식품협동조합</b><br>서울 구로구 구로동 240, 세일빌딩 701호')
+      .openPopup();
+    map.on('click', function () { map.scrollWheelZoom.enable(); });
+  });
+</script>
 </body>
 </html>

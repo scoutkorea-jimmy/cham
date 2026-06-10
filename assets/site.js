@@ -109,31 +109,88 @@
     } catch (e) {}
   }
 
-  /* ---------------- 관리자 인증 (세션) ---------------- */
-  var ADMIN_SESSION = 'kach_admin';
-  function checkLogin(id, pw){ return id === 'admin' && pw === 'admin'; }
-  function isAdmin(){ try { return sessionStorage.getItem(ADMIN_SESSION) === '1'; } catch (e) { return false; } }
+  /* ---------------- 관리자 인증 (보안) ----------------
+     · 로그인 상태(세션)를 어디에도 저장하지 않습니다 — 새로고침/이동 시 재인증.
+     · 자격증명 평문을 소스에 두지 않습니다 — SHA-256 해시 비교(미지원 환경은 base64 폴백).
+     · 무작위 대입(brute force) 방지: 5회 실패 시 5분 잠금(시도 카운터만 저장).
+     · 데모 한계: 클라이언트 검증이므로 운영 시 반드시 서버 인증으로 교체하세요.
+  -------------------------------------------------------- */
+  var AUTH_USER = 'admin';
+  var AUTH_HASH = '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918'; // SHA-256('admin')
+  var AUTH_B64 = 'YWRtaW4=';            // base64('admin') — 폴백용
+  var GUARD_KEY = 'kach_login_guard';   // {fails, until} — 실패 카운터만 저장
+  var MAX_FAILS = 5, LOCK_MS = 5 * 60 * 1000;
+
+  function loginGuard(){ return getJSON(GUARD_KEY, { fails: 0, until: 0 }) || { fails: 0, until: 0 }; }
+  function lockMs(){ var g = loginGuard(); var r = (g.until || 0) - Date.now(); return r > 0 ? r : 0; }
+  function sha256Hex(str) {
+    if (window.crypto && window.crypto.subtle && window.TextEncoder) {
+      try {
+        return crypto.subtle.digest('SHA-256', new TextEncoder().encode(str)).then(function (buf) {
+          return Array.prototype.map.call(new Uint8Array(buf), function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+        });
+      } catch (e) {}
+    }
+    return Promise.resolve(null);
+  }
+  function b64(str){ try { return btoa(unescape(encodeURIComponent(str))); } catch (e) { return ''; } }
+  // returns Promise<{ok} | {ok:false, locked, lockMs} | {ok:false, attemptsLeft}>
+  function verifyLogin(id, pw) {
+    if (lockMs() > 0) return Promise.resolve({ ok: false, locked: true, lockMs: lockMs() });
+    return sha256Hex(pw).then(function (hex) {
+      var ok = id === AUTH_USER && (hex ? hex === AUTH_HASH : b64(pw) === AUTH_B64);
+      var g = loginGuard();
+      if (ok) { setJSON(GUARD_KEY, { fails: 0, until: 0 }); return { ok: true }; }
+      g.fails = (g.fails || 0) + 1;
+      var res = { ok: false };
+      if (g.fails >= MAX_FAILS) { g.until = Date.now() + LOCK_MS; g.fails = 0; res.locked = true; res.lockMs = LOCK_MS; }
+      else { res.attemptsLeft = MAX_FAILS - g.fails; }
+      setJSON(GUARD_KEY, g);
+      return res;
+    });
+  }
+
+  // 관리 기능 게이팅 — 호출 시마다 새로 인증을 요구(상태를 보관하지 않음)
   function requireAdmin(cb) {
-    if (isAdmin()) { cb(); return; }
-    var root = rawModal(
-      '<div class="modal-head"><div><div class="eyebrow">관리자</div><h3>관리자 로그인</h3><p>글쓰기 등 관리 기능은 관리자 로그인 후 이용할 수 있습니다.</p></div>' +
+    rawModal(
+      '<div class="modal-head"><div><div class="eyebrow">관리자 인증</div><h3>관리자 로그인</h3>' +
+        '<p>관리 기능은 인증 후 이용할 수 있습니다. 인증 정보는 저장되지 않으며, 작업할 때마다 다시 확인합니다.</p></div>' +
         '<button class="modal-close" data-modal-close aria-label="닫기"><i data-lucide="x"></i></button></div>' +
-      '<div class="modal-body"><form id="siteLoginForm">' +
-        '<div class="form-grid"><div class="field full"><label>아이디</label><input name="lid" autocomplete="username" required></div>' +
-        '<div class="field full"><label>비밀번호</label><input name="lpw" type="password" autocomplete="current-password" required></div></div>' +
-        '<div style="color:var(--danger);font-size:13px;min-height:18px;margin-top:8px" id="siteLoginErr"></div>' +
-        '<div class="modal-foot"><button type="button" class="btn btn-ghost" data-modal-close>취소</button><button type="submit" class="btn btn-point">로그인</button></div>' +
+      '<div class="modal-body"><form id="siteLoginForm" autocomplete="off">' +
+        '<div class="form-grid"><div class="field full"><label>아이디</label><input name="lid" autocomplete="off" required></div>' +
+        '<div class="field full"><label>비밀번호</label><input name="lpw" type="password" autocomplete="off" required></div></div>' +
+        '<div class="login-msg" id="siteLoginErr"></div>' +
+        '<div class="modal-foot"><button type="button" class="btn btn-ghost" data-modal-close>취소</button><button type="submit" class="btn btn-point" id="siteLoginBtn">인증</button></div>' +
       '</form></div>', 420);
     var f = document.getElementById('siteLoginForm');
+    var btn = document.getElementById('siteLoginBtn');
+    var err = document.getElementById('siteLoginErr');
+    var timer = null;
+    function refreshLock() {
+      var ms = lockMs();
+      if (ms > 0) {
+        btn.disabled = true; err.className = 'login-msg err';
+        err.textContent = '로그인 시도가 많아 잠시 잠겼습니다. ' + Math.ceil(ms / 1000) + '초 후 다시 시도하세요.';
+        timer = setTimeout(refreshLock, 1000);
+      } else { btn.disabled = false; if (timer) { clearTimeout(timer); timer = null; } }
+    }
+    refreshLock();
     f.addEventListener('submit', function (e) {
       e.preventDefault();
+      if (lockMs() > 0) { refreshLock(); return; }
+      btn.disabled = true;
       var fd = new FormData(f);
-      if (checkLogin(fd.get('lid'), fd.get('lpw'))) {
-        try { sessionStorage.setItem(ADMIN_SESSION, '1'); } catch (er) {}
-        closeModal(); cb();
-      } else { document.getElementById('siteLoginErr').textContent = '아이디 또는 비밀번호가 올바르지 않습니다.'; }
+      verifyLogin(fd.get('lid'), fd.get('lpw')).then(function (r) {
+        if (r.ok) { closeModal(); cb(); return; }
+        if (r.locked) { refreshLock(); return; }
+        btn.disabled = false;
+        err.className = 'login-msg err';
+        err.textContent = '아이디 또는 비밀번호가 올바르지 않습니다.' + (r.attemptsLeft != null ? ' (남은 시도 ' + r.attemptsLeft + '회)' : '');
+        f.querySelector('[name=lpw]').value = '';
+        f.querySelector('[name=lpw]').focus();
+      });
     });
-    var first = root.querySelector('input'); if (first) setTimeout(function(){ first.focus(); }, 60);
+    var first = f.querySelector('[name=lid]'); if (first) setTimeout(function(){ first.focus(); }, 60);
   }
 
   /* ---------------- 동의문 (관리자 페이지에서 수정) ---------------- */
@@ -734,16 +791,41 @@
     document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeModal(); });
   }
 
-  /* ---------------- Reveal on scroll ---------------- */
-  function initReveal() {
-    var els = document.querySelectorAll('.reveal');
-    if (!('IntersectionObserver' in window)) { els.forEach(function(e){ e.classList.add('in'); }); return; }
-    var io = new IntersectionObserver(function (entries) {
-      entries.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); } });
-    }, { threshold: 0.1, rootMargin: '0px 0px -6% 0px' });
-    els.forEach(function (e, i) { e.style.animationDelay = ((i % 4) * 70) + 'ms'; io.observe(e); });
+  /* ---------------- Reveal on scroll (최초 1회 애니메이션) ----------------
+     동적으로 추가되는 요소도 revealScan()으로 등록 → 처음 보일 때 1회만 재생 */
+  var revealIO = null;
+  function ensureIO() {
+    if (revealIO || !('IntersectionObserver' in window)) return revealIO;
+    revealIO = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add('in'); revealIO.unobserve(en.target); } });
+    }, { threshold: 0.08, rootMargin: '0px 0px -6% 0px' });
+    return revealIO;
+  }
+  function revealScan(root) {
+    var els = (root || document).querySelectorAll('.reveal:not(.in)');
+    var io = ensureIO();
+    if (!io) { els.forEach(function (e) { e.classList.add('in'); }); return; }
+    els.forEach(function (e) {
+      if (e.dataset.revScan) return;
+      e.dataset.revScan = '1';
+      // 형제 사이 순서에 따른 가벼운 스태거
+      var idx = 0, s = e;
+      while ((s = s.previousElementSibling) && idx < 6) { if (s.classList && s.classList.contains('reveal')) idx++; }
+      e.style.animationDelay = ((idx % 6) * 60) + 'ms';
+      io.observe(e);
+    });
   }
 
+  /* ---------------- 내비 스크롤 인터랙션 ---------------- */
+  function initNavScroll() {
+    var nav = document.querySelector('#site-nav .nav');
+    if (!nav) return;
+    var onScroll = function () { nav.classList.toggle('scrolled', (window.scrollY || document.documentElement.scrollTop) > 8); };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+  }
+
+  try { document.documentElement.classList.add('js'); } catch (e) {}
   function ready(fn){ if (document.readyState !== 'loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }
   ready(function () {
     seedPosts();
@@ -754,8 +836,9 @@
     initModalDelegation();
     renderPartnersStrip();
     renderNewsPreview();
-    initReveal();
+    revealScan();
     initToTop();
+    initNavScroll();
     icons();
     setTimeout(icons, 60);
     setTimeout(showPopup, 700);
@@ -766,8 +849,8 @@
     icons: icons, esc: esc, uid: uid, el: el,
     getJSON: getJSON, setJSON: setJSON, pushRecord: pushRecord,
     fmtWon: fmtWon, fmtYMD: fmtYMD, todayStr: todayStr, genOrderNo: genOrderNo,
-    idb: idb, toast: toast,
-    isAdmin: isAdmin, requireAdmin: requireAdmin, checkLogin: checkLogin, ADMIN_SESSION: ADMIN_SESSION,
+    idb: idb, toast: toast, revealScan: revealScan,
+    requireAdmin: requireAdmin, verifyLogin: verifyLogin, lockMs: lockMs,
     openModal: openModal, closeModal: closeModal, rawModal: rawModal, openOrderLookup: openOrderLookup,
     getPartners: getPartners, setPartners: setPartners, renderPartnersStrip: renderPartnersStrip, partnerDefaults: PARTNER_DEFAULTS,
     POPUP_KEY: POPUP_KEY, getPopups: getPopups,
