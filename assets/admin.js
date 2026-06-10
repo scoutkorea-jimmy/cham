@@ -9,11 +9,16 @@
   'use strict';
   var S = window.Site || {};
   function gj(k, d){ try { var s = localStorage.getItem(k); return s ? JSON.parse(s) : d; } catch (e) { return d; } }
-  function sj(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function sj(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }
   var esc = S.esc, fmtWon = S.fmtWon, stTag = S.stTag, uid = S.uid;
   function icons(){ if (window.lucide) window.lucide.createIcons(); }
   function fmtDate(iso){ if(!iso) return '-'; var d = new Date(iso); if(isNaN(d)) return esc(iso); return d.getFullYear()+'.'+('0'+(d.getMonth()+1)).slice(-2)+'.'+('0'+d.getDate()).slice(-2)+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2); }
   function toast(msg){ if (S.toast) S.toast(msg); }
+
+  // ObjectURL 수명 관리 — 재렌더 시 이전 URL 회수(메모리 누수 방지)
+  var objUrls = [];
+  function mkURL(blob){ var u = URL.createObjectURL(blob); objUrls.push(u); return u; }
+  function revokeURLs(){ objUrls.forEach(function (u) { try { URL.revokeObjectURL(u); } catch (e) {} }); objUrls = []; }
 
   var K = {
     orders: 'kach_orders', apps: 'kach_applications', inq: 'kach_inquiries',
@@ -182,6 +187,58 @@
     }).join('') + '</div>';
   }
 
+  /* ---------- 문서 렌더러 (KMS · 동의문 보기 모드) ----------
+     규칙: ■ 제목 / [N. 섹션] / - 불릿 / 빈 줄(문단 구분) / 인라인 #RRGGBB 색상칩 */
+  function colorize(s) {
+    return s.replace(/#([0-9A-Fa-f]{6})\b/g, function (m, hex) {
+      return '<span class="kms-swatch" style="background:#' + hex + '"></span>' + m;
+    });
+  }
+  function renderKMS(text) {
+    var lines = String(text || '').split('\n');
+    var html = '', ul = false;
+    function closeUL() { if (ul) { html += '</ul>'; ul = false; } }
+    lines.forEach(function (raw) {
+      var line = raw.replace(/\s+$/, '');
+      var t = line.trim();
+      var mSec = t.match(/^\[(\d+)\.\s*(.+?)\]$/);
+      if (t === '') { closeUL(); return; }
+      if (t.charAt(0) === '■') {            // ■ 문서 제목
+        closeUL();
+        html += '<h2 class="kms-title">' + colorize(esc(t.slice(1).trim())) + '</h2>';
+      } else if (mSec) {                          // [N. 섹션]
+        closeUL();
+        html += '<h3 class="kms-sec"><span class="kms-num">' + esc(mSec[1]) + '</span>' + colorize(esc(mSec[2])) + '</h3>';
+      } else if (t.charAt(0) === '-') {           // - 불릿
+        if (!ul) { html += '<ul class="kms-ul">'; ul = true; }
+        html += '<li>' + colorize(esc(t.replace(/^-\s?/, ''))) + '</li>';
+      } else {                                     // 일반 문단(부제·번호줄 등)
+        closeUL();
+        html += '<p class="kms-p">' + colorize(esc(t)) + '</p>';
+      }
+    });
+    closeUL();
+    return '<div class="kms-view rich">' + html + '</div>';
+  }
+  // 보기/편집 토글 패널 (KMS·동의문 공용)
+  function docPanel(opts) {
+    // opts: { mode, dataAttr, key, body, label, hint, saveAct, resetAct, editAct, cancelAct, monospace }
+    var head = '<div class="panel-head"><h3>' + opts.label + '</h3><span class="ph-sub">' + opts.hint + '</span>' +
+      (opts.mode === 'view'
+        ? '<button class="btn btn-ghost" style="padding:9px 16px;margin-left:auto" data-act="' + opts.editAct + '"><i data-lucide="pen-line"></i>편집</button>'
+        : '') + '</div>';
+    var bodyHtml = opts.mode === 'view'
+      ? '<div style="padding:8px 22px 22px">' + renderKMS(opts.body) + '</div>'
+      : '<div style="padding:22px"><textarea ' + opts.dataAttr + '="' + opts.key + '" rows="' + (opts.monospace ? 22 : 14) + '" style="width:100%;' +
+          (opts.monospace ? 'font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;background:#FFFEF9;' : 'font:inherit;font-size:13.5px;') +
+          'line-height:1.7;padding:16px 18px;border:1.5px solid var(--line);border-radius:10px;resize:vertical">' + esc(opts.body) + '</textarea>' +
+          '<div style="display:flex;gap:10px;margin-top:16px"><button class="btn btn-point" data-act="' + opts.saveAct + '"><i data-lucide="check"></i>저장</button>' +
+          '<button class="btn btn-ghost" data-act="' + opts.cancelAct + '"><i data-lucide="x"></i>취소</button>' +
+          '<button class="btn btn-ghost" data-act="' + opts.resetAct + '" style="margin-left:auto"><i data-lucide="rotate-ccw"></i>표준안 복원</button></div>' +
+        '</div>';
+    return '<div class="panel">' + head + bodyHtml + '</div>';
+  }
+
   /* ============================================================
      대시보드
      ============================================================ */
@@ -263,7 +320,7 @@
       S.idb.byIndex('pimg', 'productId', box.dataset.pthumb).then(function (imgs) {
         imgs.sort(function (a, b) { return (a.ord || 0) - (b.ord || 0); });
         var main = imgs.filter(function (i) { return i.role === 'main'; })[0] || imgs[0];
-        if (main) box.innerHTML = '<img src="' + URL.createObjectURL(main.blob) + '" alt="">';
+        if (main) box.innerHTML = '<img src="' + mkURL(main.blob) + '" alt="">';
       });
     });
   }
@@ -352,7 +409,7 @@
       imgs.sort(function (a, b) { return (a.ord || 0) - (b.ord || 0); });
       box.innerHTML = imgs.map(function (im) {
         if (pImgState.removed.indexOf(im.id) > -1) return '';
-        var u = URL.createObjectURL(im.blob);
+        var u = mkURL(im.blob);
         return '<div class="pimg-cell"><img src="' + u + '"><span class="pimg-role">' + (im.role === 'main' ? '대표' : im.role === 'detail' ? '상세' : '추가') + '</span>' +
           '<button type="button" class="gal-del" data-act="pimgdel" data-id="' + im.id + '"><i data-lucide="x"></i></button></div>';
       }).join('');
@@ -370,7 +427,7 @@
     icons();
   }
   function previewCell(file, label) {
-    return '<div class="pimg-cell new"><img src="' + URL.createObjectURL(file) + '"><span class="pimg-role">' + label + '</span></div>';
+    return '<div class="pimg-cell new"><img src="' + mkURL(file) + '"><span class="pimg-role">' + label + '</span></div>';
   }
   function updateRelChips() {
     var ms = document.getElementById('relMS'); if (!ms) return;
@@ -457,7 +514,7 @@
         rec.option = vals.length ? { name: document.getElementById('optName').value.trim() || '옵션', values: vals } : null;
       } else rec.option = null;
       rec.related = Array.prototype.slice.call(form.querySelectorAll('input[name=rel]:checked')).map(function (c) { return c.value; });
-      S.setProducts(products);
+      if (!S.setProducts(products)) { toast('저장 공간이 부족합니다. 상세 설명의 첨부 이미지를 줄이거나 데이터를 백업·정리해 주세요.'); return; }
 
       var jobs = [];
       pImgState.removed.forEach(function (iid) { jobs.push(S.idb.del('pimg', iid)); });
@@ -762,24 +819,22 @@
   /* ============================================================
      동의문 관리 — 서브탭
      ============================================================ */
-  var consentTab = 'privacy';
+  var consentTab = 'privacy', consentMode = 'view';
   function viewConsents() {
     var c = S.getConsents();
     var defs = { privacy: { label: '개인정보 수집·이용', icon: 'shield-check', hint: '체험지도사 신청 · 제품 주문 · 문의 양식에 표시' },
                  third: { label: '제3자 제공', icon: 'share-2', hint: '제품 주문 · 씨장 분양 양식에 표시' } };
     var cur = defs[consentTab];
     return subtabs([{ id: 'privacy', label: '개인정보 수집·이용', icon: 'shield-check' }, { id: 'third', label: '제3자 제공', icon: 'share-2' }], consentTab) +
-      '<div class="panel"><div class="panel-head"><h3>' + cur.label + ' 동의문</h3><span class="ph-sub">' + cur.hint + '</span></div>' +
-        '<div style="padding:22px"><textarea data-consent="' + consentTab + '" rows="14" style="width:100%;font:inherit;font-size:13.5px;line-height:1.75;padding:14px 16px;border:1.5px solid var(--line);border-radius:10px;resize:vertical">' + esc(c[consentTab].body) + '</textarea>' +
-          '<div style="display:flex;gap:10px;margin-top:16px"><button class="btn btn-point" data-act="consentsave"><i data-lucide="check"></i>저장</button>' +
-          '<button class="btn btn-ghost" data-act="consentreset"><i data-lucide="rotate-ccw"></i>표준안으로 복원</button></div>' +
-        '</div></div>';
+      docPanel({ mode: consentMode, dataAttr: 'data-consent', key: consentTab, body: c[consentTab].body,
+        label: cur.label + ' 동의문', hint: cur.hint, monospace: false,
+        editAct: 'consentEdit', saveAct: 'consentsave', cancelAct: 'consentCancel', resetAct: 'consentreset' });
   }
 
   /* ============================================================
      KMS — 서브탭 (표준 KMS · 디자인 룰북)
      ============================================================ */
-  var kmsTab = 'standard';
+  var kmsTab = 'standard', kmsMode = 'view';
   function viewKMS() {
     var k = getKMS();
     var defs = { standard: { label: '표준 KMS', icon: 'book-text', hint: '개발 관련 규칙 및 원칙' },
@@ -787,11 +842,77 @@
     var cur = defs[kmsTab];
     return '<div class="modal-note" style="margin-bottom:18px"><i data-lucide="book-open"></i><span><b>KMS(지식관리시스템)</b> — 표준 KMS는 개발 규칙·원칙을, 디자인 룰북은 홈페이지의 모든 디자인 표준을 기록·관리합니다. 디자인 변경 시 site.css 토큰과 룰북을 함께 갱신하세요.</span></div>' +
       subtabs([{ id: 'standard', label: '표준 KMS', icon: 'book-text' }, { id: 'design', label: '디자인 룰북', icon: 'palette' }], kmsTab) +
-      '<div class="panel"><div class="panel-head"><h3>' + cur.label + '</h3><span class="ph-sub">' + cur.hint + '</span></div>' +
-        '<div style="padding:22px"><textarea data-kms="' + kmsTab + '" rows="22" style="width:100%;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;line-height:1.7;padding:16px 18px;border:1.5px solid var(--line);border-radius:10px;resize:vertical;background:#FFFEF9">' + esc(k[kmsTab]) + '</textarea>' +
-          '<div style="display:flex;gap:10px;margin-top:16px"><button class="btn btn-point" data-act="kmssave"><i data-lucide="check"></i>저장</button>' +
-          '<button class="btn btn-ghost" data-act="kmsreset"><i data-lucide="rotate-ccw"></i>기본 문서로 복원</button></div>' +
-        '</div></div>';
+      docPanel({ mode: kmsMode, dataAttr: 'data-kms', key: kmsTab, body: k[kmsTab],
+        label: cur.label, hint: cur.hint, monospace: true,
+        editAct: 'kmsEdit', saveAct: 'kmssave', cancelAct: 'kmsCancel', resetAct: 'kmsreset' });
+  }
+
+  /* ============================================================
+     데이터 백업 · 복원 (localStorage + IndexedDB 이미지)
+     ============================================================ */
+  function blobToDataURL(blob) {
+    return new Promise(function (res) { var rd = new FileReader(); rd.onload = function () { res(rd.result); }; rd.onerror = function () { res(''); }; rd.readAsDataURL(blob); });
+  }
+  function dataURLToBlob(durl) { return fetch(durl).then(function (r) { return r.blob(); }); }
+  var IDB_STORES = ['files', 'gallery', 'pimg'];
+
+  function viewBackup() {
+    var orders = gj(K.orders, []).length, posts = gj(K.posts, []).length, prods = S.getProducts().length;
+    return '<div class="modal-note" style="margin-bottom:18px"><i data-lucide="info"></i><span>이 사이트의 데이터(주문·신청·문의·게시글·상품·파트너·팝업·동의문·KMS)와 <b>이미지(게시글 첨부·갤러리·상품 이미지)</b>는 이 브라우저에만 저장됩니다. 기기 변경·캐시 삭제 시 사라지므로, 아래 내보내기로 주기적으로 백업하세요.</span></div>' +
+      '<div class="panel"><div class="panel-head"><h3>전체 내보내기</h3><span class="ph-sub">주문 ' + orders + ' · 게시글 ' + posts + ' · 상품 ' + prods + ' + 전체 이미지</span></div>' +
+        '<div style="padding:22px"><p class="muted" style="margin:0 0 16px">모든 데이터와 이미지를 JSON 파일 하나로 내려받습니다.</p>' +
+        '<button class="btn btn-point" data-act="exportAll"><i data-lucide="download"></i>백업 파일 내려받기</button></div></div>' +
+      '<div class="panel" style="margin-top:24px"><div class="panel-head"><h3>가져오기 (복원)</h3><span class="ph-sub">백업 JSON으로 현재 데이터를 덮어씁니다</span></div>' +
+        '<div style="padding:22px"><div class="modal-note" style="margin-bottom:14px"><i data-lucide="alert-triangle"></i><span>현재 브라우저의 데이터가 백업 내용으로 <b>모두 교체</b>됩니다. 되돌릴 수 없으니 필요하면 먼저 내보내기로 백업하세요.</span></div>' +
+        '<button class="btn btn-ghost" data-act="importPick"><i data-lucide="upload"></i>백업 파일 선택</button></div></div>';
+  }
+
+  function doExport() {
+    var local = {};
+    for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && k.indexOf('kach_') === 0) local[k] = localStorage.getItem(k); }
+    Promise.all(IDB_STORES.map(function (st) {
+      return S.idb.all(st).then(function (recs) {
+        return Promise.all(recs.map(function (r) {
+          if (!r.blob) return r;
+          return blobToDataURL(r.blob).then(function (durl) { var c = Object.assign({}, r); c.blob = durl; c._blob = 1; return c; });
+        })).then(function (out) { return [st, out]; });
+      });
+    })).then(function (pairs) {
+      var idbDump = {}; pairs.forEach(function (p) { idbDump[p[0]] = p[1]; });
+      var dump = { app: 'kach', version: 1, exportedAt: new Date().toISOString(), local: local, idb: idbDump };
+      var blob = new Blob([JSON.stringify(dump)], { type: 'application/json' });
+      var u = URL.createObjectURL(blob), a = document.createElement('a');
+      var d = new Date(), p2 = function (x) { return ('0' + x).slice(-2); };
+      a.href = u; a.download = 'kach-backup-' + d.getFullYear() + p2(d.getMonth() + 1) + p2(d.getDate()) + '-' + p2(d.getHours()) + p2(d.getMinutes()) + '.json';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(u); }, 4000);
+      toast('백업 파일을 내려받았습니다.');
+    });
+  }
+
+  function doImport(file) {
+    var rd = new FileReader();
+    rd.onload = function () {
+      var data;
+      try { data = JSON.parse(rd.result); } catch (e) { alert('백업 파일을 읽을 수 없습니다.'); return; }
+      if (!data || data.app !== 'kach') { alert('이 사이트의 백업 파일이 아닙니다.'); return; }
+      if (!confirm('현재 데이터를 백업 내용으로 덮어씁니다. 계속할까요?')) return;
+      var rm = []; for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && k.indexOf('kach_') === 0) rm.push(k); }
+      rm.forEach(function (k) { localStorage.removeItem(k); });
+      Object.keys(data.local || {}).forEach(function (k) { try { localStorage.setItem(k, data.local[k]); } catch (e) {} });
+      Promise.all(IDB_STORES.map(function (st) {
+        return S.idb.all(st).then(function (old) { return Promise.all(old.map(function (r) { return S.idb.del(st, r.id); })); })
+          .then(function () {
+            var recs = (data.idb && data.idb[st]) || [];
+            return Promise.all(recs.map(function (r) {
+              var rec = Object.assign({}, r);
+              if (r._blob && typeof r.blob === 'string') { return dataURLToBlob(r.blob).then(function (b) { rec.blob = b; delete rec._blob; return S.idb.put(st, rec); }); }
+              delete rec._blob; return S.idb.put(st, rec);
+            }));
+          });
+      })).then(function () { alert('복원이 완료되었습니다. 페이지를 새로고침합니다.'); location.reload(); });
+    };
+    rd.readAsText(file);
   }
 
   /* ---------- nav ---------- */
@@ -806,6 +927,7 @@
     { id: 'popups', label: '팝업 관리', icon: 'bell', view: viewPopups, title: '팝업 관리', countKey: K.popups },
     { id: 'consents', label: '동의문 관리', icon: 'shield-check', view: viewConsents, title: '개인정보 동의문 관리' },
     { id: 'kms', label: 'KMS', icon: 'book-open', view: viewKMS, title: 'KMS — 표준 KMS · 디자인 룰북' },
+    { id: 'backup', label: '데이터 백업', icon: 'database', view: viewBackup, title: '데이터 백업 · 복원' },
   ];
   var current = 'dashboard';
 
@@ -818,6 +940,7 @@
     icons();
   }
   function render() {
+    revokeURLs();
     if (descEditor) { try { descEditor.destroy(); } catch (e) {} descEditor = null; }
     var n = NAV.filter(function(x){ return x.id === current; })[0] || NAV[0];
     document.getElementById('adminTitle').textContent = n.title;
@@ -850,12 +973,15 @@
     if (pf) {
       pendingLogo = '';
       var fileIn = pf.querySelector('input[name=logo]');
-      if (fileIn) fileIn.addEventListener('change', function(){ var f = fileIn.files[0]; if(!f) return; var rd = new FileReader(); rd.onload = function(){ pendingLogo = rd.result; }; rd.readAsDataURL(f); });
+      // 로고도 축소 후 저장(가로형 로고 — 가로 400px 기준) → localStorage 쿼터 압력↓
+      if (fileIn) fileIn.addEventListener('change', function(){ var f = fileIn.files[0]; if(!f) return; resizeToDataURL(f, 400, function (durl) { pendingLogo = durl; }); });
       pf.addEventListener('submit', function(e){
         e.preventDefault();
         var fd = new FormData(pf);
         var p = { id: uid(), name: fd.get('name'), url: fd.get('url'), logo: pendingLogo };
-        var a = S.getPartners(); a.push(p); S.setPartners(a); render();
+        var a = S.getPartners(); a.push(p);
+        if (!S.setPartners(a)) { toast('저장 공간이 부족합니다. 로고 용량을 줄이거나 데이터를 백업·정리해 주세요.'); return; }
+        render();
         toast('파트너가 추가되었습니다.');
       });
       var rs = document.getElementById('partnerReset');
@@ -874,7 +1000,9 @@
         e.preventDefault();
         var d = {}; new FormData(pop).forEach(function(v,k){ if(k!=='img') d[k]=v; });
         d.id = uid(); d.active = true; d.img = pendingPopImg;
-        var a = gj(K.popups, []); a.unshift(d); sj(K.popups, a); render();
+        var a = gj(K.popups, []); a.unshift(d);
+        if (!sj(K.popups, a)) { toast('저장 공간이 부족합니다. 이미지 용량을 줄이거나 데이터를 백업·정리해 주세요.'); return; }
+        render();
         toast('팝업이 추가되었습니다.');
       });
     }
@@ -941,28 +1069,41 @@
       document.querySelector('#productForm textarea[name=ship]').value = S.SHIP_TPL;
     } else if (act === 'tpl-refund') {
       document.querySelector('#productForm textarea[name=refund]').value = S.REFUND_TPL;
+    } else if (act === 'consentEdit') { consentMode = 'edit'; render();
+    } else if (act === 'consentCancel') { consentMode = 'view'; render();
     } else if (act === 'consentsave') {
       var existing = gj(K.consents, {}) || {};
       document.querySelectorAll('[data-consent]').forEach(function (t) { existing[t.dataset.consent] = { body: t.value }; });
-      sj(K.consents, existing);
+      if (!sj(K.consents, existing)) { toast('저장 공간이 부족합니다. 데이터를 백업·정리해 주세요.'); return; }
+      consentMode = 'view'; render();
       toast('동의문이 저장되었습니다. 신청·주문·문의 양식에 즉시 반영됩니다.');
     } else if (act === 'consentreset') {
       if (!confirm('현재 동의문을 표준안으로 복원할까요?')) return;
-      var ex = gj(K.consents, {}) || {}; delete ex[consentTab]; sj(K.consents, ex); render();
+      var ex = gj(K.consents, {}) || {}; delete ex[consentTab]; sj(K.consents, ex); consentMode = 'view'; render();
+    } else if (act === 'kmsEdit') { kmsMode = 'edit'; render();
+    } else if (act === 'kmsCancel') { kmsMode = 'view'; render();
     } else if (act === 'kmssave') {
       var k = gj(K.kms, {}) || {};
       document.querySelectorAll('[data-kms]').forEach(function (t) { k[t.dataset.kms] = t.value; });
-      sj(K.kms, k);
+      if (!sj(K.kms, k)) { toast('저장 공간이 부족합니다. 데이터를 백업·정리해 주세요.'); return; }
+      kmsMode = 'view'; render();
       toast('KMS 문서가 저장되었습니다.');
     } else if (act === 'kmsreset') {
       if (!confirm('현재 문서를 기본 문서로 복원할까요?')) return;
-      var kk = gj(K.kms, {}) || {}; delete kk[kmsTab]; sj(K.kms, kk); render();
+      var kk = gj(K.kms, {}) || {}; delete kk[kmsTab]; sj(K.kms, kk); kmsMode = 'view'; render();
+    } else if (act === 'exportAll') {
+      doExport();
+    } else if (act === 'importPick') {
+      var fin = document.createElement('input');
+      fin.type = 'file'; fin.accept = 'application/json,.json';
+      fin.onchange = function () { if (fin.files[0]) doImport(fin.files[0]); };
+      fin.click();
     }
   });
   document.addEventListener('click', function(e){
     var nav = e.target.closest('[data-nav]'); if (!nav) return;
     current = nav.dataset.nav;
-    prodEditing = null;
+    prodEditing = null; kmsMode = 'view'; consentMode = 'view';
     render();
     window.scrollTo(0, 0);
   });

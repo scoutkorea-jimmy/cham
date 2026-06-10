@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>관리자 · 한국참전통발효식품협동조합</title>
 <meta name="robots" content="noindex,nofollow">
+<link rel="preconnect" href="https://unpkg.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://esm.sh" crossorigin>
 <link rel="stylesheet" href="assets/site.css">
 <style id="admin-style">
   body { background: var(--surface-2); }
@@ -31,6 +36,17 @@
   .admin-top h1 { font-size: 22px; }
   .admin-top .at-meta { font-size: 13px; color: var(--ink-mute); }
   .admin-view { padding: 32px; max-width: 1240px; }
+
+  /* KMS · 동의문 보기 렌더 */
+  .kms-view { padding: 4px 2px; color: var(--ink); }
+  .kms-view .kms-title { font-size: 20px; font-family: var(--font-head); font-weight: 800; color: var(--main-deeper); margin: 4px 0 14px; padding-bottom: 12px; border-bottom: 2px solid var(--main-tint); }
+  .kms-view .kms-sec { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 800; color: var(--ink); margin: 22px 0 10px; }
+  .kms-view .kms-num { flex-shrink: 0; width: 24px; height: 24px; border-radius: 7px; background: var(--main); color: #fff; font-size: 13px; font-weight: 800; display: grid; place-items: center; }
+  .kms-view .kms-ul { margin: 6px 0 6px; padding-left: 6px; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .kms-view .kms-ul li { position: relative; padding-left: 18px; font-size: 13.5px; line-height: 1.7; color: var(--ink-soft); }
+  .kms-view .kms-ul li::before { content: ""; position: absolute; left: 3px; top: 9px; width: 5px; height: 5px; border-radius: 50%; background: var(--point); }
+  .kms-view .kms-p { font-size: 13.5px; color: var(--ink-mute); margin: 6px 0; line-height: 1.7; }
+  .kms-view .kms-swatch { display: inline-block; width: 12px; height: 12px; border-radius: 3px; border: 1px solid var(--line); vertical-align: -1px; margin-right: 3px; }
 
   /* 서브탭 (KMS · 동의문) */
   .subtabs { display: inline-flex; gap: 4px; background: var(--surface-2); border: 1px solid var(--line-soft); border-radius: 12px; padding: 5px; margin-bottom: 20px; }
@@ -200,9 +216,9 @@
   </main>
 </div>
 
-<script src="https://unpkg.com/lucide@latest"></script>
-<script src="assets/site.js"></script>
-<script src="assets/editor.js"></script>
-<script src="assets/admin.js"></script>
+<script defer src="https://unpkg.com/lucide@1.17.0"></script>
+<script defer src="assets/site.js"></script>
+<script defer src="assets/editor.js"></script>
+<script defer src="assets/admin.js"></script>
 </body>
 </html>

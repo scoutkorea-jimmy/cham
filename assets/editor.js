@@ -97,7 +97,11 @@
     if (window.lucide) window.lucide.createIcons();
     holder.innerHTML = '<div style="padding:16px 18px;color:var(--ink-mute)">에디터를 불러오는 중…</div>';
 
-    return load().then(function (T) {
+    // 15초 내 응답 없으면(네트워크 차단/오프라인) 타임아웃으로 거부
+    var timeout = new Promise(function (_, rej) {
+      setTimeout(function () { rej(new Error('editor load timeout')); }, 15000);
+    });
+    return Promise.race([load(), timeout]).then(function (T) {
       holder.innerHTML = '';
       var editor = new T.Editor({
         element: holder,

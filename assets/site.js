@@ -66,7 +66,7 @@
 
   /* ---------------- localStorage stores ---------------- */
   function getJSON(k, def){ try { var s = localStorage.getItem(k); return s ? JSON.parse(s) : def; } catch (e) { return def; } }
-  function setJSON(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function setJSON(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }  // false=쿼터 초과 등 실패
   function pushRecord(key, rec){ var a = getJSON(key, []); rec.id = rec.id || uid(); rec.at = new Date().toISOString(); rec.status = rec.status || '신규'; a.unshift(rec); setJSON(key, a); return rec; }
 
   /* ---------------- IndexedDB (첨부 · 갤러리 · 상품 이미지) ---------------- */
@@ -74,7 +74,9 @@
   function openDB(){
     if (dbPromise) return dbPromise;
     dbPromise = new Promise(function (res, rej) {
-      var r = indexedDB.open('kach_db', 2);
+      if (!window.indexedDB) { rej(new Error('IndexedDB unavailable')); return; }
+      var r;
+      try { r = indexedDB.open('kach_db', 2); } catch (e) { rej(e); return; }
       r.onupgradeneeded = function (e) {
         var d = e.target.result;
         if (!d.objectStoreNames.contains('files')) { var s = d.createObjectStore('files', { keyPath: 'id' }); s.createIndex('postId', 'postId', { unique: false }); }
@@ -83,14 +85,17 @@
       };
       r.onsuccess = function(){ res(r.result); };
       r.onerror = function(){ rej(r.error); };
+      r.onblocked = function(){ rej(new Error('IndexedDB blocked')); };
     });
+    // 사적 모드/차단 시: 이후 호출에서 안전 폴백하도록 메서드 레벨에서 catch
     return dbPromise;
   }
+  // 모든 메서드는 IndexedDB 미사용(사적 모드 등) 환경에서도 거부 없이 안전한 기본값을 반환
   var idb = {
-    put: function (store, rec) { return openDB().then(function (d) { return new Promise(function (res, rej) { var t = d.transaction(store, 'readwrite'); t.objectStore(store).put(rec); t.oncomplete = function(){ res(rec); }; t.onerror = function(){ rej(t.error); }; }); }); },
-    del: function (store, id) { return openDB().then(function (d) { return new Promise(function (res, rej) { var t = d.transaction(store, 'readwrite'); t.objectStore(store).delete(id); t.oncomplete = res; t.onerror = function(){ rej(t.error); }; }); }); },
-    all: function (store) { return openDB().then(function (d) { return new Promise(function (res) { var q = d.transaction(store).objectStore(store).getAll(); q.onsuccess = function(){ res(q.result || []); }; q.onerror = function(){ res([]); }; }); }); },
-    byIndex: function (store, index, val) { return openDB().then(function (d) { return new Promise(function (res) { var q = d.transaction(store).objectStore(store).index(index).getAll(val); q.onsuccess = function(){ res(q.result || []); }; q.onerror = function(){ res([]); }; }); }); },
+    put: function (store, rec) { return openDB().then(function (d) { return new Promise(function (res, rej) { var t = d.transaction(store, 'readwrite'); t.objectStore(store).put(rec); t.oncomplete = function(){ res(rec); }; t.onerror = function(){ rej(t.error); }; }); }).catch(function(){ return null; }); },
+    del: function (store, id) { return openDB().then(function (d) { return new Promise(function (res, rej) { var t = d.transaction(store, 'readwrite'); t.objectStore(store).delete(id); t.oncomplete = function(){ res(true); }; t.onerror = function(){ rej(t.error); }; }); }).catch(function(){ return false; }); },
+    all: function (store) { return openDB().then(function (d) { return new Promise(function (res) { var q = d.transaction(store).objectStore(store).getAll(); q.onsuccess = function(){ res(q.result || []); }; q.onerror = function(){ res([]); }; }); }).catch(function(){ return []; }); },
+    byIndex: function (store, index, val) { return openDB().then(function (d) { return new Promise(function (res) { var q = d.transaction(store).objectStore(store).index(index).getAll(val); q.onsuccess = function(){ res(q.result || []); }; q.onerror = function(){ res([]); }; }); }).catch(function(){ return []; }); },
   };
 
   /* ---------------- 방문 통계 (대시보드용) ---------------- */
@@ -150,6 +155,10 @@
     });
   }
 
+  // 잠금 카운트다운 타이머 — 모달 닫힐 때 정리(누적 방지)
+  var loginTimer = null;
+  function clearLoginTimer(){ if (loginTimer) { clearTimeout(loginTimer); loginTimer = null; } }
+
   // 관리 기능 게이팅 — 호출 시마다 새로 인증을 요구(상태를 보관하지 않음)
   function requireAdmin(cb) {
     rawModal(
@@ -165,14 +174,13 @@
     var f = document.getElementById('siteLoginForm');
     var btn = document.getElementById('siteLoginBtn');
     var err = document.getElementById('siteLoginErr');
-    var timer = null;
     function refreshLock() {
       var ms = lockMs();
       if (ms > 0) {
         btn.disabled = true; err.className = 'login-msg err';
         err.textContent = '로그인 시도가 많아 잠시 잠겼습니다. ' + Math.ceil(ms / 1000) + '초 후 다시 시도하세요.';
-        timer = setTimeout(refreshLock, 1000);
-      } else { btn.disabled = false; if (timer) { clearTimeout(timer); timer = null; } }
+        loginTimer = setTimeout(refreshLock, 1000);
+      } else { btn.disabled = false; clearLoginTimer(); }
     }
     refreshLock();
     f.addEventListener('submit', function (e) {
@@ -222,7 +230,7 @@
     { id: 'p_org', name: '전통장류 명인회', logo: '', url: '' },
   ];
   function getPartners(){ var p = getJSON(PARTNER_KEY, null); return p && p.length != null ? p : PARTNER_DEFAULTS.slice(); }
-  function setPartners(arr){ setJSON(PARTNER_KEY, arr); }
+  function setPartners(arr){ return setJSON(PARTNER_KEY, arr); }
 
   function partnerItemHTML(p) {
     var inner = p.logo
@@ -267,7 +275,7 @@
   ];
   function seedPosts(){ if (!localStorage.getItem(POSTS_KEY)) setJSON(POSTS_KEY, POST_SEEDS); }
   function getPosts(){ return getJSON(POSTS_KEY, []); }
-  function setPosts(a){ setJSON(POSTS_KEY, a); }
+  function setPosts(a){ return setJSON(POSTS_KEY, a); }
 
   function renderNewsPreview() {
     var box = document.getElementById('news-rows');
@@ -334,7 +342,7 @@
   ];
   function seedProducts(){ if (!localStorage.getItem(PRODUCTS_KEY)) setJSON(PRODUCTS_KEY, PRODUCT_DEFAULTS); }
   function getProducts(){ return getJSON(PRODUCTS_KEY, []); }
-  function setProducts(a){ setJSON(PRODUCTS_KEY, a); }
+  function setProducts(a){ return setJSON(PRODUCTS_KEY, a); }
   function getProduct(id){ var a = getProducts(); for (var i = 0; i < a.length; i++) if (a[i].id === id) return a[i]; return null; }
 
   /* ---------------- 주문 상태 ---------------- */
@@ -442,7 +450,7 @@
       '</div>' +
       '<div class="footer-bottom">' +
         '<span>© 2026 한국참전통발효식품협동조합. All rights reserved.</span>' +
-        '<span class="foot-meta">이용약관 · 개인정보처리방침 · <a href="admin.html" class="admin-link" title="관리자 페이지">관리자</a></span>' +
+        '<span class="foot-meta"><a href="terms.html">이용약관</a> · <a href="privacy.html"><b>개인정보처리방침</b></a> · <a href="admin.html" class="admin-link" title="관리자 페이지">관리자</a></span>' +
       '</div>' +
     '</div>';
   }
@@ -649,6 +657,7 @@
     var r = document.getElementById('modalRoot');
     if (r) r.classList.remove('open');
     document.body.style.overflow = '';
+    clearLoginTimer();
   }
 
   function submitModal(form) {

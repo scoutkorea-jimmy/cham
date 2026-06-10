@@ -12,12 +12,17 @@
   if (!S) return;
   var esc = S.esc, fmtWon = S.fmtWon, icons = S.icons;
 
+  // ObjectURL 수명 관리 — 문서 종료 시 일괄 회수
+  var objUrls = [];
+  function mkURL(blob){ var u = URL.createObjectURL(blob); objUrls.push(u); return u; }
+  window.addEventListener('pagehide', function () { objUrls.forEach(function (u) { try { URL.revokeObjectURL(u); } catch (e) {} }); objUrls = []; });
+
   /* ---------- 상품 이미지 로드 (대표 1장) ---------- */
   function mainImage(productId) {
     return S.idb.byIndex('pimg', 'productId', productId).then(function (imgs) {
       imgs.sort(function (a, b) { return (a.ord || 0) - (b.ord || 0); });
       var main = imgs.filter(function (i) { return i.role === 'main'; })[0] || imgs[0];
-      return main ? URL.createObjectURL(main.blob) : null;
+      return main ? mkURL(main.blob) : null;
     });
   }
 
@@ -184,13 +189,13 @@
         var dbox = document.getElementById('pdDetailImgs');
         if (dbox && detailImgs.length) {
           dbox.innerHTML = detailImgs.map(function (d) {
-            return '<img src="' + URL.createObjectURL(d.blob) + '" alt="' + esc(p.name) + ' 상세 이미지" style="width:100%;border-radius:var(--r-sm);margin-top:12px">';
+            return '<img src="' + mkURL(d.blob) + '" alt="' + esc(p.name) + ' 상세 이미지" style="width:100%;border-radius:var(--r-sm);margin-top:12px">';
           }).join('');
         }
       });
       if (!imgs.length) return;
       var main = document.getElementById('pdMain');
-      var urls = imgs.map(function (i) { return URL.createObjectURL(i.blob); });
+      var urls = imgs.map(function (i) { return mkURL(i.blob); });
       main.innerHTML = urls.map(function (u) {
         return '<div class="pd-slide"><img src="' + u + '" alt="' + esc(p.name) + '"></div>';
       }).join('');
