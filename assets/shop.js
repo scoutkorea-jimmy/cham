@@ -94,7 +94,7 @@
         '<a class="btn btn-point" href="products.html" style="margin-top:18px">제품 목록으로</a></div>';
       return;
     }
-    document.title = p.name + ' · 한국참전통발효식품협동조합';
+    document.title = p.name + ' · 한국찬전통발효식품협동조합';
     var soldout = p.status === '품절';
     var basePrice = p.salePrice != null && p.salePrice !== '' ? Number(p.salePrice) : Number(p.price);
 
@@ -106,7 +106,7 @@
         '@context': 'https://schema.org', '@type': 'Product',
         name: p.name, description: p.summary,
         offers: { '@type': 'Offer', price: basePrice, priceCurrency: 'KRW', availability: soldout ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock' },
-        brand: { '@type': 'Brand', name: '한국참전통발효식품협동조합' },
+        brand: { '@type': 'Brand', name: '한국찬전통발효식품협동조합' },
       });
       document.head.appendChild(ld);
     } catch (e) {}
