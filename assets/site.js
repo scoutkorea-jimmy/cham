@@ -403,7 +403,7 @@
     return '<div class="nav"><div class="nav-inner">' +
         '<a class="brand" href="index.html" aria-label="홈으로">' +
           '<img src="assets/logo.png" alt="한국참전통발효식품협동조합 로고">' +
-          '<span class="bt"><b>한국참전통발효식품</b><span>협동조합 · 孝</span></span>' +
+          '<span class="bt"><b>한국참전통발효식품협동조합</b></span>' +
         '</a>' +
         '<nav class="nav-links" aria-label="주 메뉴">' + links + '</nav>' +
         '<div class="nav-cta">' +

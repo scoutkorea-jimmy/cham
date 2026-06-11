@@ -285,9 +285,19 @@ p  { margin: 0 0 var(--s4); text-wrap: pretty; }
   display:flex; align-items:center; gap: var(--s6); }
 .brand { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
 .brand img { width: 42px; height: 42px; mix-blend-mode: multiply; }
-.brand .bt { display: flex; flex-direction: column; line-height: 1.12; }
-.brand .bt b { font-family: var(--font-head); font-weight: 800; font-size: 16px; color: var(--ink); letter-spacing: -0.01em; }
-.brand .bt span { font-size: 10.5px; letter-spacing: 0.14em; color: var(--ink-mute); font-weight: 500; }
+.brand .bt { display: flex; align-items: center; line-height: 1.12; }
+.brand .bt b { font-family: var(--font-head); font-weight: 800; font-size: 17px; color: var(--ink); letter-spacing: -0.02em; white-space: nowrap; }
+/* 좌상단 브랜드: 전체 법인명을 한 줄로 — 작은 화면에서 글자/로고 축소로 한 줄 유지 */
+@media (max-width: 600px){
+  .brand img { width: 36px; height: 36px; }
+  .brand .bt b { font-size: 14px; }
+  .nav-inner { gap: var(--s4); padding-inline: var(--s5); }
+}
+@media (max-width: 430px){
+  .brand img { width: 32px; height: 32px; }
+  .brand .bt b { font-size: 12.5px; }
+  .nav-cta .btn-point { display: none; }  /* 좁은 화면: 상단 CTA는 숨기고 햄버거 메뉴의 신청 버튼 사용 */
+}
 
 .nav-links { display: flex; align-items: center; gap: 2px; margin-left: auto; }
 .nav-item { position: relative; }
