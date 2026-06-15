@@ -95,6 +95,13 @@
       return;
     }
     document.title = p.name + ' · 한국참전통발효식품협동조합';
+    /* 제품별 메타/OG 보강(공유 미리보기·검색) */
+    try {
+      var setM = function (sel, val) { var m = document.querySelector(sel); if (m && val) m.setAttribute('content', val); };
+      setM('meta[name="description"]', p.summary || p.name);
+      setM('meta[property="og:title"]', p.name + ' · 한국참전통발효식품협동조합');
+      setM('meta[property="og:description"]', p.summary);
+    } catch (e) {}
     var soldout = p.status === '품절';
     var basePrice = p.salePrice != null && p.salePrice !== '' ? Number(p.salePrice) : Number(p.price);
 

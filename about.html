@@ -137,7 +137,13 @@
   // OSM(OpenStreetMap) + Leaflet 약도. 좌표는 서울 구로구 구로동 인근 근사값으로,
   // 정확한 핀 위치는 실제 측량 후 LAT/LNG 두 값만 교체하면 됩니다.
   document.addEventListener('DOMContentLoaded', function () {
-    if (!window.L || !document.getElementById('osmMap')) return;
+    var mapEl = document.getElementById('osmMap');
+    if (!mapEl) return;
+    if (!window.L) {
+      mapEl.innerHTML = '<div style="display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center;height:100%;min-height:280px;padding:24px;text-align:center;color:var(--ink-mute);line-height:1.6">' +
+        '<b style="color:var(--ink)">지도를 불러올 수 없습니다</b><span>서울특별시 구로구 구로동 240, 세일빌딩 701호</span></div>';
+      return;
+    }
     var LAT = 37.50331, LNG = 126.88262;
     var map = L.map('osmMap', { scrollWheelZoom: false, attributionControl: true }).setView([LAT, LNG], 16);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
