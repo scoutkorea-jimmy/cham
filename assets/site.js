@@ -323,7 +323,7 @@
       gosi: gosiBase({ pname: '전통 청국장 500g', volume: '500g', ingredients: '국산 콩 100%', storage: '냉동 보관 (-18℃ 이하)', expiry: '제조일로부터 6개월 (냉동 기준, 별도 표기)' }), ship: SHIP_TPL, refund: REFUND_TPL, related: ['p_doenjang', 'p_jangajji'] },
     { id: 'p_jangajji', name: '제철 장아찌', cat: '발효식품', price: 15000, salePrice: null, unit: '500g', status: '판매중', stock: 30, option: null,
       summary: '전통 장으로 담근 짭조름한 밑반찬. 제철 채소로 담급니다.', icon: 'salad', tone: 'tone-oat',
-      descHtml: '<h3>장이 익으면 반찬이 됩니다</h3><p>제철 채소를 3년 숙성 전통 장에 박아 담근 장아찌입니다. 시기에 따라 구성 채소가 달라집니다.</p>',
+      descHtml: '<h3>장이 익으면 반찬이 됩니다</h3><p>제철 채소를 3년 숙성 전통 장에 섞어 담근 장아찌입니다. 시기에 따라 구성 채소가 달라집니다.</p>',
       gosi: gosiBase({ pname: '제철 장아찌 500g', volume: '500g', ingredients: '제철 채소(깻잎·고추·무 등), 전통 간장·된장, 천일염', storage: '냉장 보관 (0~10℃)', expiry: '제조일로부터 6개월 (냉장 기준, 별도 표기)' }), ship: SHIP_TPL, refund: REFUND_TPL, related: ['p_cheongguk', 'p_meju'] },
     { id: 'p_meju', name: '전통 메주', cat: '발효식품', price: 18000, salePrice: null, unit: '1개', status: '판매중', stock: 25,
       option: { name: '구성', values: [ { label: '1개', add: 0, stock: 25 }, { label: '3개 묶음 (5% 할인)', add: 33300, stock: 10 } ] },
