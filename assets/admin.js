@@ -301,13 +301,39 @@
       return '<div class="src-row"><div class="src-top"><span class="src-name">' + stTag(k) + '</span><span class="src-num">' + n + '건</span></div><div class="src-track"><div class="src-fill" style="width:' + Math.max(3, w) + '%;background:' + c + '"></div></div></div>';
     }).join('') : '<div class="admin-empty" style="padding:30px 10px"><i data-lucide="inbox"></i><div>주문이 없습니다.</div></div>';
 
+    // 오늘 해야 할 일(실무 처리 대기 항목 — 누르면 해당 화면으로 이동)
+    var needPay = orders.filter(function (o) { return o.status === '주문접수'; }).length;
+    var needShip = orders.filter(function (o) { return o.status === '결제완료' || o.status === '배송준비중'; }).length;
+    var needRma = orders.filter(function (o) { return o.status === '반품요청' || o.status === '교환요청'; }).length;
+    var needApp = apps.filter(function (r) { return r.status === '신규'; }).length;
+    var needInq = inq.filter(function (r) { return r.status === '신규'; }).length;
+    var todos = [
+      { n: needPay, label: '결제(입금) 확인', i: 'banknote', nav: 'orders', otab: '주문접수' },
+      { n: needShip, label: '발송 처리', i: 'truck', nav: 'orders', otab: '결제완료' },
+      { n: needRma, label: '취소·반품·교환', i: 'undo-2', nav: 'orders', otab: 'crx' },
+      { n: needApp, label: '지도사 신청', i: 'user-plus', nav: 'apps' },
+      { n: needInq, label: '문의 답변', i: 'message-square', nav: 'inq' },
+    ];
+    var totalTodo = todos.reduce(function (s, t) { return s + t.n; }, 0);
+    var todoCards = todos.map(function (t) {
+      var on = t.n > 0;
+      return '<button class="todo' + (on ? ' on' : '') + '" data-nav="' + t.nav + '"' + (t.otab ? ' data-otab="' + t.otab + '"' : '') + '>' +
+        '<span class="todo-i"><i data-lucide="' + t.i + '"></i></span>' +
+        '<span class="todo-n">' + t.n + '<em>건</em></span>' +
+        '<span class="todo-l">' + t.label + '</span>' +
+        (on ? '<span class="todo-go">처리하러 가기 <i data-lucide="arrow-right"></i></span>' : '<span class="todo-go done">처리 완료</span>') +
+      '</button>';
+    }).join('');
+    var todoPanel = '<div class="panel todo-panel"><div class="panel-head"><h3>오늘 해야 할 일</h3><span class="ph-sub">' + (totalTodo ? '처리 대기 ' + totalTodo + '건 — 항목을 누르면 해당 화면으로 바로 이동합니다' : '밀린 일이 없습니다 👍') + '</span></div><div class="todo-grid">' + todoCards + '</div></div>';
+
     var visitPanel = '<div class="panel"><div class="panel-head"><h3>최근 7일 방문 추이</h3><span class="ph-sub">방문자 수 기준 · 데모 집계</span></div><div style="padding:22px">' + chart + '</div></div>';
     var sourcePanel = '<div class="panel"><div class="panel-head"><h3>방문자 유입 분석</h3><span class="ph-sub">총 ' + srcTotal + '회 방문</span></div><div style="padding:20px 22px 24px"><div class="src-list">' + srcBars + '</div></div></div>';
     var recentPanel = '<div class="panel"><div class="panel-head"><h3>최근 접수 내역</h3><span class="ph-sub">주문 · 신청 · 문의 통합</span></div><table class="admin-table"><thead><tr><th>일시</th><th>구분</th><th>이름</th><th>내용</th><th>상태</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
     var statusPanel = '<div class="panel"><div class="panel-head"><h3>주문 상태 분포</h3><span class="ph-sub">전체 ' + orders.length + '건</span></div><div style="padding:20px 22px 24px"><div class="src-list">' + stBars + '</div></div></div>';
 
     return '<div class="dash">' +
-      '<div class="stat-grid">' + cards + '</div>' +
+      todoPanel +
+      '<div class="stat-grid" style="margin-top:24px">' + cards + '</div>' +
       '<div class="dash-2col">' + visitPanel + sourcePanel + '</div>' +
       '<div class="dash-2col">' + recentPanel + statusPanel + '</div>' +
     '</div>';
@@ -769,13 +795,35 @@
   /* ============================================================
      지도사 신청 · 문의
      ============================================================ */
+  function cohortStatusSel(c) {
+    return '<select class="st-sel" data-act="cstatus" data-id="' + c.id + '">' +
+      ['모집중', '예정', '상시', '마감'].map(function (s) { return '<option' + (c.status === s ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select>';
+  }
+  function cohortPanel() {
+    var list = S.getCohorts();
+    var rows = list.length ? list.map(function (c) {
+      return '<tr><td><b>' + esc(c.name) + '</b></td><td>' + esc(c.period || '-') + '</td><td>' + esc(c.schedule || '-') + '</td><td>' + esc(c.place || '-') + '</td><td>' + cohortStatusSel(c) +
+        '</td><td><button class="icon-btn" data-act="cdel" data-id="' + c.id + '" title="기수 삭제"><i data-lucide="trash-2"></i></button></td></tr>';
+    }).join('') : emptyRow(6, '등록된 기수가 없습니다. 아래에서 추가하세요.');
+    return '<div class="panel"><div class="panel-head"><h3>모집 기수 관리</h3><span class="ph-sub">여기서 추가·수정한 기수가 지도사 과정 페이지와 신청서에 그대로 반영됩니다</span></div>' +
+      '<div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>기수명</th><th>교육 기간</th><th>요일·시간</th><th>장소</th><th>모집 상태</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      '<form class="admin-form" id="cohortForm" style="border-top:1px solid var(--line-soft)">' +
+        '<div class="field"><label>기수명 <span style="color:var(--point)">*</span></label><input name="name" required placeholder="예) 2026년 3기"></div>' +
+        '<div class="field"><label>교육 기간</label><input name="period" placeholder="예) 2026.09.05 ~ 09.26"></div>' +
+        '<div class="field"><label>요일 · 시간</label><input name="schedule" placeholder="예) 토 10:00–16:00"></div>' +
+        '<div class="field"><label>장소</label><input name="place" placeholder="예) 구로 본원"></div>' +
+        '<div class="field"><label>모집 상태</label><select name="status">' + ['모집중', '예정', '상시', '마감'].map(function (s) { return '<option>' + s + '</option>'; }).join('') + '</select></div>' +
+        '<div class="field full"><button class="btn btn-point" type="submit" style="padding:10px 18px"><i data-lucide="plus"></i>기수 추가</button></div>' +
+      '</form></div>';
+  }
   function viewApps() {
     var a = gj(K.apps, []);
     var rows = a.length ? a.map(function(r){
       return '<tr><td class="dt">' + fmtDate(r.at) + '</td><td>' + esc(r.name||'-') + '</td><td>' + esc(r.phone||'-') + '</td><td>' + esc(r.region||'-') + '</td><td>' + esc(r.course||'-') + '</td><td style="max-width:200px">' + esc(r.memo||'-') + '</td><td>' + statusSelect(K.apps,'apps',r) + '</td><td>' + delBtn(K.apps, r.id) + '</td></tr>';
     }).join('') : emptyRow(8, '신청 내역이 없습니다.');
-    return '<div class="panel"><div class="panel-head"><h3>전통발효식품체험지도사 신청 관리</h3><span class="ph-sub">총 ' + a.length + '명</span></div>' +
-      '<div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>일시</th><th>이름</th><th>연락처</th><th>지역</th><th>희망 과정</th><th>비고</th><th>상태</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
+    return cohortPanel() +
+      '<div class="panel" style="margin-top:24px"><div class="panel-head"><h3>전통발효식품체험지도사 신청 관리</h3><span class="ph-sub">총 ' + a.length + '명</span></div>' +
+      '<div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>일시</th><th>이름</th><th>연락처</th><th>지역</th><th>신청 기수</th><th>비고</th><th>상태</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
   }
   function viewInq() {
     var a = gj(K.inq, []);
@@ -1050,6 +1098,21 @@
       });
     }
 
+    var cf = document.getElementById('cohortForm');
+    if (cf) {
+      cf.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var fd = new FormData(cf);
+        var name = (fd.get('name') || '').trim();
+        if (!name) return;
+        var list = S.getCohorts();
+        list.push({ id: uid(), name: name, period: (fd.get('period') || '').trim(), schedule: (fd.get('schedule') || '').trim(), place: (fd.get('place') || '').trim(), status: fd.get('status') || '모집중' });
+        if (!S.setCohorts(list)) { toast('저장 공간이 부족합니다.'); return; }
+        render();
+        toast('기수가 추가되었습니다. 지도사 페이지·신청서에 반영됩니다.');
+      });
+    }
+
     bindProductForm();
   }
 
@@ -1060,6 +1123,10 @@
     if (t.dataset && t.dataset.act === 'pstatus') {
       var a = S.getProducts(); a.forEach(function (p) { if (p.id === t.dataset.id) p.status = t.value; }); S.setProducts(a);
       toast('판매 상태가 변경되었습니다.');
+    }
+    if (t.dataset && t.dataset.act === 'cstatus') {
+      var cl = S.getCohorts(); cl.forEach(function (c) { if (c.id === t.dataset.id) c.status = t.value; }); S.setCohorts(cl);
+      toast('기수 모집 상태가 변경되었습니다.');
     }
     if (t.name === 'rel') updateRelChips();
     if (t.id === 'oselAll') { document.querySelectorAll('.osel').forEach(function (c) { c.checked = t.checked; }); }
@@ -1101,6 +1168,10 @@
       if (!confirm('삭제하시겠습니까?')) return;
       if (b.dataset.key === 'PARTNER') { S.setPartners(S.getPartners().filter(function(p){ return p.id !== b.dataset.id; })); }
       else removeRow(b.dataset.key, b.dataset.id);
+      render();
+    } else if (act === 'cdel') {
+      if (!confirm('이 기수를 삭제할까요? 지도사 페이지·신청서에서도 사라집니다.')) return;
+      S.setCohorts(S.getCohorts().filter(function (c) { return c.id !== b.dataset.id; }));
       render();
     } else if (act === 'poptoggle') {
       var a = gj(K.popups, []); a.forEach(function(p){ if(p.id===b.dataset.id) p.active = !p.active; }); sj(K.popups, a); render();
@@ -1158,6 +1229,7 @@
     var nav = e.target.closest('[data-nav]'); if (!nav) return;
     if (!confirmLeave()) return;
     current = nav.dataset.nav;
+    if (nav.dataset.otab) orderTab = nav.dataset.otab;
     prodEditing = null; kmsMode = 'view'; consentMode = 'view';
     render();
     window.scrollTo(0, 0);

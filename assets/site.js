@@ -537,6 +537,35 @@
   var PAY_BANK = '농협 000-0000-0000-00';
   var PAY_HOLDER = '한국참전통발효식품협동조합';
 
+  /* ---------------- 지도사 모집 기수(期數) ---------------- */
+  var COHORTS_KEY = 'kach_cohorts_v1';
+  var COHORT_DEFAULTS = [
+    { id: 'c1', name: '2026년 1기', period: '2026.04.04 ~ 04.25', schedule: '토 10:00–16:00', place: '구로 본원', status: '모집중' },
+    { id: 'c2', name: '2026년 2기', period: '2026.06.06 ~ 06.27', schedule: '토 10:00–16:00', place: '구로 본원', status: '예정' },
+    { id: 'c3', name: '원데이 체험', period: '매월 셋째 주 토요일', schedule: '13:00–16:00', place: '구로 본원 / 정선', status: '상시' },
+  ];
+  function getCohorts(){ var c = getJSON(COHORTS_KEY, null); return (c && c.length != null) ? c : COHORT_DEFAULTS.slice(); }
+  function setCohorts(list){ return setJSON(COHORTS_KEY, list); }
+  // 신청서에 노출할 기수 — 모집중·상시만 + '상담 후 결정'
+  function cohortApplyOptions(){
+    var open = getCohorts().filter(function (c) { return c.status === '모집중' || c.status === '상시'; });
+    var names = open.map(function (c) { return c.name + (c.period ? ' (' + c.period + ')' : ''); });
+    names.push('상담 후 결정');
+    return names;
+  }
+  var COHORT_STATUS_TAG = { '모집중': 'tag solid', '예정': 'tag', '상시': 'tag point', '마감': 'tag' };
+  // 지도사 과정 페이지의 일정표(#cohort-rows)를 기수 데이터로 채움
+  function renderCohortSchedule(){
+    var tb = document.getElementById('cohort-rows');
+    if (!tb) return;
+    var list = getCohorts();
+    if (!list.length) { tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--ink-mute);padding:24px">현재 안내된 기수가 없습니다. 신청 후 일정을 안내드립니다.</td></tr>'; return; }
+    tb.innerHTML = list.map(function (c) {
+      var cls = COHORT_STATUS_TAG[c.status] || 'tag';
+      return '<tr' + (c.status === '마감' ? ' style="opacity:.55"' : '') + '><td><b>' + esc(c.name) + '</b></td><td>' + esc(c.period || '-') + '</td><td>' + esc(c.schedule || '-') + '</td><td>' + esc(c.place || '-') + '</td><td><span class="' + cls + '">' + esc(c.status) + '</span></td></tr>';
+    }).join('');
+  }
+
   var MODALS = {
     apply: {
       kicker: '체험지도사', title: '전통발효식품체험지도사 신청', store: 'kach_applications',
@@ -546,7 +575,7 @@
         { name: 'name', label: '이름', required: true, placeholder: '홍길동' },
         { name: 'phone', label: '연락처', type: 'tel', required: true, placeholder: '010-0000-0000' },
         { name: 'region', label: '지역', placeholder: '예) 서울 구로구' },
-        { name: 'course', label: '희망 과정', type: 'select', options: ['정규 지도사 과정', '원데이 체험 클래스', '아직 결정 못함'] },
+        { name: 'course', label: '신청 기수', type: 'select', required: true, options: cohortApplyOptions },
         { name: 'memo', label: '비고', type: 'textarea', full: true, placeholder: '문의하실 내용이나 일정 희망을 적어주세요.' },
       ],
     },
@@ -600,7 +629,8 @@
     if (f.omitEmpty && !val) return '';
     var ctrl;
     if (f.type === 'select') {
-      ctrl = '<select name="' + f.name + '" id="' + id + '"' + req + '>' + f.options.map(function(o){ return '<option' + (o === val ? ' selected' : '') + '>' + esc(o) + '</option>'; }).join('') + '</select>';
+      var opts = typeof f.options === 'function' ? f.options() : (f.options || []);
+      ctrl = '<select name="' + f.name + '" id="' + id + '"' + req + '>' + opts.map(function(o){ return '<option' + (o === val ? ' selected' : '') + '>' + esc(o) + '</option>'; }).join('') + '</select>';
     } else if (f.type === 'textarea') {
       ctrl = '<textarea name="' + f.name + '" id="' + id + '" placeholder="' + esc(f.placeholder || '') + '"' + req + '>' + esc(val) + '</textarea>';
     } else {
@@ -865,6 +895,7 @@
     initModalDelegation();
     renderPartnersStrip();
     renderNewsPreview();
+    renderCohortSchedule();
     revealScan();
     initToTop();
     initNavScroll();
@@ -889,6 +920,7 @@
     productDefaults: PRODUCT_DEFAULTS, SHIP_TPL: SHIP_TPL, REFUND_TPL: REFUND_TPL, gosiBase: gosiBase,
     OSTAT: OSTAT, stTag: stTag, ST_COLOR: ST_COLOR,
     VISITS_KEY: VISITS_KEY, SOURCES_KEY: SOURCES_KEY,
+    COHORTS_KEY: COHORTS_KEY, getCohorts: getCohorts, setCohorts: setCohorts, cohortDefaults: COHORT_DEFAULTS,
     PAY_BANK: PAY_BANK, PAY_HOLDER: PAY_HOLDER,
   };
 })();

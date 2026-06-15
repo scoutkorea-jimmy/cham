@@ -231,6 +231,26 @@
   .src-num em { color: var(--ink-mute); font-style: normal; font-weight: 600; margin-left: 5px; }
   .src-track { height: 13px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }
   .src-fill { height: 100%; border-radius: 99px; min-width: 6px; transition: width .45s var(--ease); }
+
+  /* 오늘 해야 할 일 — 실무 처리 대기 카드 */
+  .todo-panel .panel-head { border-bottom: none; padding-bottom: 0; }
+  .todo-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; padding: 16px 22px 22px; }
+  @media (max-width: 1100px){ .todo-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 700px){ .todo-grid { grid-template-columns: repeat(2, 1fr); } }
+  .todo { text-align: left; border: 1.5px solid var(--line-soft); background: var(--surface-2); border-radius: 14px; padding: 16px 16px 14px; cursor: pointer; display: flex; flex-direction: column; gap: 7px; font: inherit; transition: transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease); }
+  .todo:hover { transform: translateY(-2px); box-shadow: var(--sh-sm); }
+  .todo:focus-visible { outline: 3px solid var(--point); outline-offset: 2px; }
+  .todo.on { border-color: var(--point); background: var(--point-tint); }
+  .todo-i { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; background: #fff; color: var(--ink-mute); }
+  .todo.on .todo-i { background: var(--point); color: #fff; }
+  .todo-i i[data-lucide] { width: 21px; height: 21px; }
+  .todo-n { font-family: var(--font-head); font-weight: 800; font-size: 30px; line-height: 1; color: var(--ink-faint); }
+  .todo.on .todo-n { color: var(--point-deep); }
+  .todo-n em { font-style: normal; font-size: 15px; font-weight: 700; margin-left: 3px; color: var(--ink-mute); }
+  .todo-l { font-size: 15.5px; font-weight: 700; color: var(--ink); }
+  .todo-go { font-size: 13px; font-weight: 700; color: var(--point); display: inline-flex; align-items: center; gap: 4px; }
+  .todo-go i[data-lucide] { width: 14px; height: 14px; }
+  .todo-go.done { color: var(--ink-faint); }
 </style>
 </head>
 <body data-page="admin">
