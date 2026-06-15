@@ -100,6 +100,19 @@
 
   /* ---------------- 방문 통계 (대시보드용) ---------------- */
   var VISITS_KEY = 'kach_visits_v1';
+  var SOURCES_KEY = 'kach_sources_v1';
+  // 유입 경로 분류 — 이전 페이지(referrer) 도메인 기준
+  function classifySource(ref) {
+    if (!ref) return '직접 방문';
+    try {
+      var self = location.hostname.replace(/^www\./, '').toLowerCase();
+      var h = new URL(ref).hostname.replace(/^www\./, '').toLowerCase();
+      if (h === self) return '직접 방문';
+      if (/google|naver|daum|bing|yahoo|duckduckgo|kagi|baidu|zum|nate|search/.test(h)) return '검색엔진';
+      if (/facebook|instagram|youtube|youtu\.be|twitter|t\.co|x\.com|kakao|band\.us|tistory|blog|threads|linkedin|pinterest/.test(h)) return '소셜·블로그';
+      return '기타 사이트';
+    } catch (e) { return '기타 사이트'; }
+  }
   function trackVisit() {
     if (currentPage() === 'admin') return;
     try {
@@ -107,7 +120,14 @@
       var d = todayStr();
       if (!v[d]) v[d] = { pv: 0, uv: 0 };
       v[d].pv += 1;
-      if (sessionStorage.getItem('kach_uv_' + d) !== '1') { v[d].uv += 1; sessionStorage.setItem('kach_uv_' + d, '1'); }
+      if (sessionStorage.getItem('kach_uv_' + d) !== '1') {
+        v[d].uv += 1; sessionStorage.setItem('kach_uv_' + d, '1');
+        // 신규 방문 1회당 유입 경로 1건 집계
+        var src = getJSON(SOURCES_KEY, {});
+        var cat = classifySource(document.referrer || '');
+        src[cat] = (src[cat] || 0) + 1;
+        setJSON(SOURCES_KEY, src);
+      }
       var keys = Object.keys(v).sort();
       while (keys.length > 90) { delete v[keys.shift()]; }
       setJSON(VISITS_KEY, v);
@@ -868,7 +888,7 @@
     PRODUCTS_KEY: PRODUCTS_KEY, getProducts: getProducts, setProducts: setProducts, getProduct: getProduct,
     productDefaults: PRODUCT_DEFAULTS, SHIP_TPL: SHIP_TPL, REFUND_TPL: REFUND_TPL, gosiBase: gosiBase,
     OSTAT: OSTAT, stTag: stTag, ST_COLOR: ST_COLOR,
-    VISITS_KEY: VISITS_KEY,
+    VISITS_KEY: VISITS_KEY, SOURCES_KEY: SOURCES_KEY,
     PAY_BANK: PAY_BANK, PAY_HOLDER: PAY_HOLDER,
   };
 })();

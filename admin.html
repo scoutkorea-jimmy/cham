@@ -215,6 +215,22 @@
   .admin-nav button:focus-visible, .obtn:focus-visible, .otabs button:focus-visible,
   .subtabs button:focus-visible, .icon-btn:focus-visible, .st-sel:focus-visible,
   .as-foot a:focus-visible, .as-foot button:focus-visible { outline: 3px solid var(--point); outline-offset: 2px; }
+
+  /* =========================================================
+     대시보드 — 화면 전체 폭 채우기 + 유입/상태 그래프
+     ========================================================= */
+  .admin-view.view-full { max-width: none; }
+  .dash-2col { display: grid; grid-template-columns: 1.6fr 1fr; gap: 24px; margin-top: 24px; align-items: start; }
+  @media (max-width: 1100px){ .dash-2col { grid-template-columns: 1fr; } }
+  .src-list { display: flex; flex-direction: column; gap: 18px; }
+  .src-row { display: flex; flex-direction: column; gap: 8px; }
+  .src-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 14.5px; }
+  .src-name { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--ink); }
+  .src-name i[data-lucide] { width: 18px; height: 18px; color: var(--ink-mute); }
+  .src-num { font-weight: 700; color: var(--ink-soft); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .src-num em { color: var(--ink-mute); font-style: normal; font-weight: 600; margin-left: 5px; }
+  .src-track { height: 13px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }
+  .src-fill { height: 100%; border-radius: 99px; min-width: 6px; transition: width .45s var(--ease); }
 </style>
 </head>
 <body data-page="admin">

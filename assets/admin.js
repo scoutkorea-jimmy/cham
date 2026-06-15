@@ -282,10 +282,35 @@
       return '<tr><td class="dt">' + fmtDate(r.at) + '</td><td><span class="tag">' + label + '</span></td><td>' + esc(r.name || '-') + '</td><td>' + esc(detail) + '</td><td>' + stTag(r.status || '신규') + '</td></tr>';
     }).join('') : emptyRow(5, '아직 접수된 내역이 없습니다.');
 
-    return '<div class="stat-grid">' + cards + '</div>' +
-      '<div class="panel" style="margin-top:24px"><div class="panel-head"><h3>최근 7일 방문 추이</h3><span class="ph-sub">브라우저 기준 데모 집계 — 운영 시 서버/애널리틱스로 교체</span></div><div style="padding:22px">' + chart + '</div></div>' +
-      '<div class="panel" style="margin-top:24px"><div class="panel-head"><h3>최근 접수 내역</h3><span class="ph-sub">주문 · 신청 · 문의 통합</span></div>' +
-      '<table class="admin-table"><thead><tr><th>일시</th><th>구분</th><th>이름</th><th>내용</th><th>상태</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+    // 방문자 유입 분석(유입 경로별 그래프)
+    var srcData = gj(S.SOURCES_KEY, {});
+    var srcOrder = ['직접 방문', '검색엔진', '소셜·블로그', '기타 사이트'];
+    var srcTotal = srcOrder.reduce(function (s, k) { return s + (srcData[k] || 0); }, 0);
+    var srcMeta = { '직접 방문': { c: 'var(--main)', i: 'link' }, '검색엔진': { c: 'var(--info)', i: 'search' }, '소셜·블로그': { c: 'var(--point)', i: 'share-2' }, '기타 사이트': { c: 'var(--ink-mute)', i: 'globe' } };
+    var srcBars = srcTotal ? srcOrder.map(function (k) {
+      var n = srcData[k] || 0, pct = Math.round(n / srcTotal * 100), m = srcMeta[k];
+      return '<div class="src-row"><div class="src-top"><span class="src-name"><i data-lucide="' + m.i + '"></i>' + k + '</span><span class="src-num">' + n + '명 <em>' + pct + '%</em></span></div><div class="src-track"><div class="src-fill" style="width:' + Math.max(2, pct) + '%;background:' + m.c + '"></div></div></div>';
+    }).join('') : '<div class="admin-empty" style="padding:30px 10px"><i data-lucide="route"></i><div>아직 유입 데이터가 없습니다.<br>방문이 쌓이면 경로별로 표시됩니다.</div></div>';
+
+    // 주문 상태 분포 그래프
+    var stMap = {}; orders.forEach(function (o) { var s = o.status || '기타'; stMap[s] = (stMap[s] || 0) + 1; });
+    var stKeys = Object.keys(stMap).sort(function (a, b) { return stMap[b] - stMap[a]; });
+    var stMax = stKeys.length ? Math.max.apply(null, stKeys.map(function (k) { return stMap[k]; })) : 1;
+    var stBars = stKeys.length ? stKeys.map(function (k) {
+      var n = stMap[k], c = (S.ST_COLOR && S.ST_COLOR[k]) || '#6E8252', w = Math.round(n / stMax * 100);
+      return '<div class="src-row"><div class="src-top"><span class="src-name">' + stTag(k) + '</span><span class="src-num">' + n + '건</span></div><div class="src-track"><div class="src-fill" style="width:' + Math.max(3, w) + '%;background:' + c + '"></div></div></div>';
+    }).join('') : '<div class="admin-empty" style="padding:30px 10px"><i data-lucide="inbox"></i><div>주문이 없습니다.</div></div>';
+
+    var visitPanel = '<div class="panel"><div class="panel-head"><h3>최근 7일 방문 추이</h3><span class="ph-sub">방문자 수 기준 · 데모 집계</span></div><div style="padding:22px">' + chart + '</div></div>';
+    var sourcePanel = '<div class="panel"><div class="panel-head"><h3>방문자 유입 분석</h3><span class="ph-sub">총 ' + srcTotal + '회 방문</span></div><div style="padding:20px 22px 24px"><div class="src-list">' + srcBars + '</div></div></div>';
+    var recentPanel = '<div class="panel"><div class="panel-head"><h3>최근 접수 내역</h3><span class="ph-sub">주문 · 신청 · 문의 통합</span></div><table class="admin-table"><thead><tr><th>일시</th><th>구분</th><th>이름</th><th>내용</th><th>상태</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+    var statusPanel = '<div class="panel"><div class="panel-head"><h3>주문 상태 분포</h3><span class="ph-sub">전체 ' + orders.length + '건</span></div><div style="padding:20px 22px 24px"><div class="src-list">' + stBars + '</div></div></div>';
+
+    return '<div class="dash">' +
+      '<div class="stat-grid">' + cards + '</div>' +
+      '<div class="dash-2col">' + visitPanel + sourcePanel + '</div>' +
+      '<div class="dash-2col">' + recentPanel + statusPanel + '</div>' +
+    '</div>';
   }
 
   /* ============================================================
@@ -307,9 +332,11 @@
         '<td><b>' + esc(p.name) + '</b><div class="pc-sub">' + esc(p.unit || '') + (p.option ? ' · 옵션 ' + p.option.values.length + '종' : '') + '</div></td>' +
         '<td><span class="tag">' + esc(p.cat) + '</span></td><td>' + priceTxt + '</td><td>' + stock + '</td>' +
         '<td><select class="st-sel" data-act="pstatus" data-id="' + p.id + '">' + ['판매중', '품절', '숨김'].map(function (s) { return '<option' + (p.status === s ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select></td>' +
-        '<td style="white-space:nowrap"><a class="icon-btn" href="product.html?id=' + p.id + '" target="_blank" title="상세페이지 보기" style="margin-right:4px;text-decoration:none"><i data-lucide="external-link"></i></a>' +
-        '<button class="icon-btn" data-act="pedit" data-id="' + p.id + '" title="수정" style="margin-right:4px"><i data-lucide="pen-line"></i></button>' +
-        '<button class="icon-btn" data-act="pdel" data-id="' + p.id + '" title="삭제"><i data-lucide="trash-2"></i></button></td></tr>';
+        '<td style="white-space:nowrap"><div style="display:inline-flex;gap:6px;align-items:center">' +
+        '<button class="btn btn-point" data-act="pedit" data-id="' + p.id + '" style="padding:8px 15px"><i data-lucide="pen-line"></i>수정</button>' +
+        '<a class="btn btn-ghost" href="product.html?id=' + p.id + '" target="_blank" title="새 창에서 상세페이지 보기" style="padding:8px 13px;text-decoration:none"><i data-lucide="external-link"></i>보기</a>' +
+        '<button class="icon-btn" data-act="pdel" data-id="' + p.id + '" title="삭제"><i data-lucide="trash-2"></i></button>' +
+        '</div></td></tr>';
     }).join('') : emptyRow(7, '등록된 상품이 없습니다.');
     setTimeout(loadListThumbs, 20);
     return '<div class="panel" style="max-width:none"><div class="panel-head"><h3>상품 목록</h3><button class="btn btn-point" data-act="pnew" style="padding:10px 18px"><i data-lucide="plus"></i>상품 등록</button></div>' +
@@ -958,7 +985,9 @@
     if (descEditor) { try { descEditor.destroy(); } catch (e) {} descEditor = null; }
     var n = NAV.filter(function(x){ return x.id === current; })[0] || NAV[0];
     document.getElementById('adminTitle').textContent = n.title;
-    document.getElementById('adminView').innerHTML = n.view();
+    var av = document.getElementById('adminView');
+    av.innerHTML = n.view();
+    av.classList.toggle('view-full', current === 'dashboard');
     renderNav();
     icons();
     bindForms();
