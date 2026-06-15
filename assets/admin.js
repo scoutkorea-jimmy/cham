@@ -399,7 +399,7 @@
       '<input placeholder="옵션값 (예: 전통 보자기 포장)" class="ov-label" value="' + esc(v ? v.label : '') + '" style="flex:2;min-width:160px">' +
       '<input placeholder="추가금액" type="number" class="ov-add" value="' + (v ? v.add : 0) + '" style="flex:1;min-width:90px">' +
       '<input placeholder="재고" type="number" class="ov-stock" value="' + (v ? v.stock : 10) + '" style="flex:1;min-width:70px">' +
-      '<button type="button" class="icon-btn" data-act="optdel"><i data-lucide="x"></i></button></div>';
+      '<button type="button" class="icon-btn" data-act="optdel" title="옵션값 삭제"><i data-lucide="x"></i></button></div>';
   }
   function loadProductImages() {
     var box = document.getElementById('pImgList');
@@ -639,7 +639,7 @@
 
     return '<div class="panel" style="max-width:none"><div class="panel-head"><h3>주문 관리</h3><span class="ph-sub">주문을 선택한 뒤 단계 버튼으로 처리 · 자동 알림(메일/SMS)은 운영 연동 시 발송</span></div>' +
       '<div style="padding:16px 22px 0">' + orderGuide() + tabHtml + bar +
-        '<div style="margin-top:12px"><input id="oSearch" type="search" autocomplete="off" placeholder="주문번호 · 주문자 · 연락처 · 입금자명 · 상품 검색" style="width:360px;max-width:100%;padding:9px 13px;border:1px solid var(--line);border-radius:9px;font:inherit;background:var(--surface)"></div>' +
+        '<div style="margin-top:12px"><input id="oSearch" type="search" autocomplete="off" placeholder="주문번호 · 주문자 · 연락처 · 입금자명 · 상품 검색" style="width:380px;max-width:100%;padding:12px 15px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:16px;background:var(--surface)"></div>' +
       '</div>' +
       '<div style="overflow-x:auto"><table class="admin-table" style="font-size:13px"><thead><tr>' +
         '<th><input type="checkbox" id="oselAll" style="width:16px;height:16px;accent-color:var(--main)"></th>' +
@@ -933,6 +933,17 @@
   ];
   var current = 'dashboard';
 
+  /* ---------- 저장하지 않은 변경 경고 ---------- */
+  var dirty = false;
+  function isEditingForm() {
+    return prodEditing !== null || kmsMode === 'edit' || consentMode === 'edit'
+      || !!document.getElementById('partnerForm') || !!document.getElementById('popupForm');
+  }
+  // 이동/취소 전 호출 — 변경이 있으면 확인, 사용자가 취소하면 false 반환(이동 중단)
+  function confirmLeave() {
+    return !dirty || confirm('저장하지 않은 변경 내용이 있습니다.\n저장하지 않고 이동하시겠습니까?');
+  }
+
   function renderNav() {
     document.getElementById('adminNav').innerHTML = NAV.map(function(n){
       var cnt = n.countKey ? gj(n.countKey, []).length : 0;
@@ -942,6 +953,7 @@
     icons();
   }
   function render() {
+    dirty = false;
     revokeURLs();
     if (descEditor) { try { descEditor.destroy(); } catch (e) {} descEditor = null; }
     var n = NAV.filter(function(x){ return x.id === current; })[0] || NAV[0];
@@ -1038,6 +1050,7 @@
     // 서브탭
     var st = e.target.closest('[data-subtab]');
     if (st) {
+      if (!confirmLeave()) return;
       if (current === 'kms') kmsTab = st.dataset.subtab;
       else if (current === 'consents') consentTab = st.dataset.subtab;
       render(); return;
@@ -1064,7 +1077,7 @@
       var a = gj(K.popups, []); a.forEach(function(p){ if(p.id===b.dataset.id) p.active = !p.active; }); sj(K.popups, a); render();
     } else if (act === 'pnew') { prodEditing = 'new'; pImgState.removed = []; render();
     } else if (act === 'pedit') { prodEditing = b.dataset.id; pImgState.removed = []; render();
-    } else if (act === 'pback') { prodEditing = null; pImgState = { main: null, extra: [], detail: [], removed: [] }; render();
+    } else if (act === 'pback') { if (!confirmLeave()) return; prodEditing = null; pImgState = { main: null, extra: [], detail: [], removed: [] }; render();
     } else if (act === 'pdel') {
       if (!confirm('이 상품을 삭제할까요? 상품 이미지도 함께 삭제됩니다.')) return;
       S.setProducts(S.getProducts().filter(function (p) { return p.id !== b.dataset.id; }));
@@ -1072,17 +1085,17 @@
       render();
     } else if (act === 'pimgdel') {
       pImgState.removed.push(b.dataset.id);
-      b.closest('.pimg-cell').remove();
+      b.closest('.pimg-cell').remove(); dirty = true;
     } else if (act === 'optadd') {
-      document.getElementById('optRows').insertAdjacentHTML('beforeend', optRowHTML(null)); icons();
+      document.getElementById('optRows').insertAdjacentHTML('beforeend', optRowHTML(null)); icons(); dirty = true;
     } else if (act === 'optdel') {
-      b.closest('.opt-row').remove();
+      b.closest('.opt-row').remove(); dirty = true;
     } else if (act === 'tpl-ship') {
-      document.querySelector('#productForm textarea[name=ship]').value = S.SHIP_TPL;
+      document.querySelector('#productForm textarea[name=ship]').value = S.SHIP_TPL; dirty = true;
     } else if (act === 'tpl-refund') {
-      document.querySelector('#productForm textarea[name=refund]').value = S.REFUND_TPL;
+      document.querySelector('#productForm textarea[name=refund]').value = S.REFUND_TPL; dirty = true;
     } else if (act === 'consentEdit') { consentMode = 'edit'; render();
-    } else if (act === 'consentCancel') { consentMode = 'view'; render();
+    } else if (act === 'consentCancel') { if (!confirmLeave()) return; consentMode = 'view'; render();
     } else if (act === 'consentsave') {
       var existing = gj(K.consents, {}) || {};
       document.querySelectorAll('[data-consent]').forEach(function (t) { existing[t.dataset.consent] = { body: t.value }; });
@@ -1093,7 +1106,7 @@
       if (!confirm('현재 동의문을 표준안으로 복원할까요?')) return;
       var ex = gj(K.consents, {}) || {}; delete ex[consentTab]; sj(K.consents, ex); consentMode = 'view'; render();
     } else if (act === 'kmsEdit') { kmsMode = 'edit'; render();
-    } else if (act === 'kmsCancel') { kmsMode = 'view'; render();
+    } else if (act === 'kmsCancel') { if (!confirmLeave()) return; kmsMode = 'view'; render();
     } else if (act === 'kmssave') {
       var k = gj(K.kms, {}) || {};
       document.querySelectorAll('[data-kms]').forEach(function (t) { k[t.dataset.kms] = t.value; });
@@ -1114,11 +1127,23 @@
   });
   document.addEventListener('click', function(e){
     var nav = e.target.closest('[data-nav]'); if (!nav) return;
+    if (!confirmLeave()) return;
     current = nav.dataset.nav;
     prodEditing = null; kmsMode = 'view'; consentMode = 'view';
     render();
     window.scrollTo(0, 0);
   });
+
+  // 편집 중인 폼에 입력이 생기면 '변경 있음'으로 표시
+  function markDirty(e){
+    if (!isEditingForm()) return;
+    var v = document.getElementById('adminView');
+    if (v && e.target && v.contains(e.target)) dirty = true;
+  }
+  document.addEventListener('input', markDirty);
+  document.addEventListener('change', markDirty);
+  // 새로고침·탭 닫기·홈페이지 이동·로그아웃 시 변경분 손실 경고(브라우저 기본 확인창)
+  window.addEventListener('beforeunload', function (e) { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
 
   /* ---------- auth (상태 미저장 · 잠금) ---------- */
   var authed = false;

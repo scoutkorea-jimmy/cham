@@ -177,6 +177,44 @@
   .login-hint { font-size: 12px; color: var(--ink-faint); margin-top: 14px; }
   .login-err { color: var(--danger); font-size: 13px; margin-top: 10px; min-height: 18px; }
   @media (max-width: 760px){ .admin-side { position: fixed; left: -260px; transition: left .2s; z-index: 50; } .admin-view{ padding: 20px; } }
+
+  /* =========================================================
+     시니어 친화(50–60대) 보강 — 글씨·버튼·터치영역 확대 + 또렷한 포커스
+     아래 규칙은 위 기본 스타일을 덮어쓰는 '가독성 레이어'입니다.
+     ========================================================= */
+  .admin-top h1 { font-size: 24px; }
+  .admin-top .at-meta { font-size: 14px; }
+  .admin-nav button { font-size: 16px; padding: 13px 15px; }
+  .admin-nav button i[data-lucide] { width: 20px; height: 20px; }
+  .admin-nav .badge { font-size: 12.5px; padding: 2px 9px; }
+  .as-foot a, .as-foot button { font-size: 14.5px; padding: 11px 12px; }
+  .panel-head h3 { font-size: 18px; }
+  .panel-head .ph-sub { font-size: 13.5px; }
+  .admin-table { font-size: 15px; }
+  .admin-table th { font-size: 12.5px; }
+  .admin-table th, .admin-table td { padding: 14px 16px; }
+  .admin-table .dt { font-size: 13px; }
+  .pcard .pc-name { font-size: 15px; }
+  .pcard .pc-sub { font-size: 13px; }
+  .field label, .admin-form label { font-size: 15px; font-weight: 700; }
+  .field input, .field select { font-size: 16px; min-height: 48px; }
+  .field textarea { font-size: 16px; }
+  .otabs button { font-size: 15.5px; padding: 13px 16px; }
+  .otabs .cnt { font-size: 14px; }
+  .subtabs button { font-size: 15px; padding: 12px 20px; }
+  .obtn { font-size: 15px; padding: 11px 16px; min-height: 44px; }
+  .odrop-menu button { font-size: 14.5px; padding: 11px 13px; }
+  .st-sel { font-size: 14px; padding: 8px 13px; }
+  .icon-btn { width: 40px; height: 40px; }
+  .icon-btn i[data-lucide] { width: 18px; height: 18px; }
+  .oguide summary { font-size: 15px; }
+  .oguide-body ul { font-size: 14.5px; }
+  .proc-info { font-size: 14.5px; }
+  /* 입력·조작 중인 위치를 분명히 — 또렷한 포커스 표시(키보드·저시력 사용자) */
+  .admin-view input:focus, .admin-view select:focus, .admin-view textarea:focus { outline: 3px solid var(--main-tint); outline-offset: 1px; }
+  .admin-nav button:focus-visible, .obtn:focus-visible, .otabs button:focus-visible,
+  .subtabs button:focus-visible, .icon-btn:focus-visible, .st-sel:focus-visible,
+  .as-foot a:focus-visible, .as-foot button:focus-visible { outline: 3px solid var(--point); outline-offset: 2px; }
 </style>
 </head>
 <body data-page="admin">
