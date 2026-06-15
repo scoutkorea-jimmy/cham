@@ -638,7 +638,9 @@
     }).join('') : emptyRow(11, '해당 상태의 주문이 없습니다.');
 
     return '<div class="panel" style="max-width:none"><div class="panel-head"><h3>주문 관리</h3><span class="ph-sub">주문을 선택한 뒤 단계 버튼으로 처리 · 자동 알림(메일/SMS)은 운영 연동 시 발송</span></div>' +
-      '<div style="padding:16px 22px 0">' + orderGuide() + tabHtml + bar + '</div>' +
+      '<div style="padding:16px 22px 0">' + orderGuide() + tabHtml + bar +
+        '<div style="margin-top:12px"><input id="oSearch" type="search" autocomplete="off" placeholder="주문번호 · 주문자 · 연락처 · 입금자명 · 상품 검색" style="width:360px;max-width:100%;padding:9px 13px;border:1px solid var(--line);border-radius:9px;font:inherit;background:var(--surface)"></div>' +
+      '</div>' +
       '<div style="overflow-x:auto"><table class="admin-table" style="font-size:13px"><thead><tr>' +
         '<th><input type="checkbox" id="oselAll" style="width:16px;height:16px;accent-color:var(--main)"></th>' +
         '<th>주문번호 / 시각</th><th>구분</th><th>주문상품</th><th>수량</th><th>금액</th><th>주문자</th><th>입금자명</th><th>배송지</th><th>상태</th><th></th>' +
@@ -1013,13 +1015,23 @@
   /* ---------- delegation ---------- */
   document.addEventListener('change', function(e){
     var t = e.target;
-    if (t.dataset && t.dataset.act === 'status') { updateField(t.dataset.key, t.dataset.id, 'status', t.value); renderNav(); }
+    if (t.dataset && t.dataset.act === 'status') { updateField(t.dataset.key, t.dataset.id, 'status', t.value); renderNav(); toast('상태가 변경되었습니다.'); }
     if (t.dataset && t.dataset.act === 'pstatus') {
       var a = S.getProducts(); a.forEach(function (p) { if (p.id === t.dataset.id) p.status = t.value; }); S.setProducts(a);
       toast('판매 상태가 변경되었습니다.');
     }
     if (t.name === 'rel') updateRelChips();
     if (t.id === 'oselAll') { document.querySelectorAll('.osel').forEach(function (c) { c.checked = t.checked; }); }
+  });
+
+  // 주문 목록 즉시 검색(주문번호·주문자·연락처·입금자·상품 등 행 전체 텍스트 매칭)
+  document.addEventListener('input', function (e) {
+    if (!e.target || e.target.id !== 'oSearch') return;
+    var q = e.target.value.trim().toLowerCase();
+    document.querySelectorAll('.admin-table tbody tr').forEach(function (tr) {
+      if (!tr.querySelector('.osel')) return;
+      tr.style.display = (!q || tr.textContent.toLowerCase().indexOf(q) > -1) ? '' : 'none';
+    });
   });
 
   document.addEventListener('click', function(e){
