@@ -32,6 +32,10 @@
       { label: '모집 기수', href: 'instructor.html#schedule' },
       { label: '신청하기', href: 'instructor.html#apply' },
     ]},
+    { id: 'nuruk', label: '누룩이야기', href: 'nuruk.html', dd: [
+      { label: '커리큘럼', href: 'nuruk.html#curriculum' },
+      { label: '수업 안내', href: 'nuruk.html#notice' },
+    ]},
     { id: 'products', label: '제품', href: 'products.html', dd: [
       { label: '장류', href: 'products.html#jang' },
       { label: '발효식품', href: 'products.html#ferment' },
@@ -456,7 +460,8 @@
         '<div class="footer-col">' +
           '<h6>바로가기</h6>' +
           '<a href="about.html">협동조합 소개</a><a href="ferments.html">전통발효식품</a>' +
-          '<a href="instructor.html">체험지도사 과정</a><a href="products.html">제품 판매</a>' +
+          '<a href="instructor.html">체험지도사 과정</a><a href="nuruk.html">누룩이야기</a>' +
+          '<a href="products.html">제품 판매</a>' +
           '<a href="news.html">소식마당</a><a href="contact.html">문의하기</a>' +
         '</div>' +
         '<div class="footer-col footer-info">' +
