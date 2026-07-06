@@ -4,12 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>전통발효식품 체험지도사 과정 · 한국참전통발효식품협동조합</title>
-<meta name="description" content="발효 원리부터 체험 프로그램 운영까지 — 전통발효식품 체험지도사를 양성합니다.">
+<!-- 확인필요: 민간자격 등록 명칭 — '전통발효식품 체험지도사' 표기로 전 페이지 통일함 (발주처 원문 '체험지도자사'는 오기로 판단) -->
+<meta name="description" content="3개월(12주, 총 12강) 전통발효식품 체험지도사 양성 과정 — 장류·식초류 실습부터 정선 현장 실습, 수료 후 강사 활동까지.">
 <meta name="robots" content="index,follow">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="한국참전통발효식품협동조합">
 <meta property="og:title" content="전통발효식품 체험지도사 과정 · 한국참전통발효식품협동조합">
-<meta property="og:description" content="발효 원리부터 체험 프로그램 운영까지 — 전통발효식품 체험지도사를 양성합니다.">
+<meta property="og:description" content="3개월(12주, 총 12강) 전통발효식품 체험지도사 양성 과정 — 장류·식초류 실습부터 정선 현장 실습, 수료 후 강사 활동까지.">
 <meta property="og:image" content="assets/logo.png">
 <link rel="preconnect" href="https://unpkg.com" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -22,6 +23,13 @@
  {"@type":"ListItem","position":1,"name":"홈","item":"index.html"},
  {"@type":"ListItem","position":2,"name":"전통발효식품 체험지도사 과정","item":"instructor.html"}]}
 </script>
+<style id="page-style">
+  .fact-row { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+  @media (max-width:820px){ .fact-row{grid-template-columns:1fr;} }
+  .curri-table td:first-child { white-space:nowrap; font-weight:700; color:var(--main); }
+  .curri-table .week-note { display:block; margin-top:4px; font-size:13px; color:var(--ink-mute); font-weight:400; }
+  .class-list { margin:10px 0 0; padding-left:18px; color:var(--ink-soft); line-height:1.9; }
+</style>
 </head>
 <body data-page="instructor">
 <header id="site-nav"></header>
@@ -31,64 +39,174 @@
     <div class="crumb reveal"><a href="index.html">홈</a><i data-lucide="chevron-right"></i><span>체험지도사</span></div>
     <span class="eyebrow reveal">대표 과정</span>
     <h1 class="reveal" style="margin-top:14px">전통발효식품 체험지도사 과정</h1>
-    <p class="lede reveal">발효의 원리를 이해하고, 직접 만들고, 사람들에게 가르치는 전문 지도사를 양성합니다. 우리 협동조합만의 가장 특별한 길입니다.</p>
+    <p class="lede reveal">3개월(12주, 총 12강) 동안 장류와 식초류를 직접 만들고, 사람들에게 가르치는 전문 지도사로 성장합니다. 우리 협동조합만의 가장 특별한 길입니다.</p>
     <div class="reveal" style="margin-top:28px"><button class="btn btn-point btn-lg" data-modal="apply"><i data-lucide="sprout"></i>지금 신청하기</button></div>
   </div>
 </section>
 
-<!-- 과정 소개 -->
+<!-- C-1. 교육안내 -->
 <section class="section" id="intro">
   <div class="wrap">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center">
-      <div class="reveal">
-        <span class="eyebrow">과정 소개</span>
-        <h2 style="margin-top:14px">전통발효식품<br>체험지도사란?</h2>
-        <p class="lede" style="margin-top:18px">전통 발효식품의 원리와 제조법을 익히고, 이를 바탕으로 일반 시민·학생을 대상으로 체험 프로그램을 기획하고 운영할 수 있는 전문 교육 인력입니다.</p>
-        <p class="muted">사라져가는 전통의 맛과 씨장 문화를 다음 세대로 잇는 가장 든든한 사람들입니다.</p>
-      </div>
-      <div class="reveal ph tone-main ratio-43" data-label="지도사 양성 교육 — 강의 및 실습 현장"><i data-lucide="graduation-cap"></i></div>
+    <div class="section-head reveal">
+      <span class="eyebrow">교육안내</span>
+      <h2>교육 기간과 과정 안내</h2>
+      <p class="lede">교육 기간은 <b>3개월(12주 과정, 총 12강)</b>, 주 1회 진행됩니다. 교육 수료 후 강사로 활동할 수 있습니다.</p>
+    </div>
+    <div class="fact-row" style="margin-top:40px">
+      <div class="card card-pad reveal"><div class="icon-badge"><i data-lucide="calendar-days"></i></div><h4 style="margin:18px 0 8px">교육 기간</h4><p class="muted" style="margin:0">3개월 · 12주 과정 · 총 12강 (주 1회)</p></div>
+      <div class="card card-pad reveal"><div class="icon-badge point"><i data-lucide="graduation-cap"></i></div><h4 style="margin:18px 0 8px">수료 후 활동</h4><p class="muted" style="margin:0">교육 수료 후 강사로 활동할 수 있습니다.</p></div>
+      <div class="card card-pad reveal"><div class="icon-badge oat"><i data-lucide="eye"></i></div><h4 style="margin:18px 0 8px">강사 준비 과정</h4><p class="muted" style="margin:0">강사로 활동하실 분은 수료 후 다른 교육 참관 과정이 있습니다.</p></div>
     </div>
 
-    <h3 class="reveal" style="margin-top:72px;text-align:center">교육 목표</h3>
-    <div class="grid g-3" style="margin-top:36px">
-      <div class="card card-pad reveal"><div class="icon-badge"><i data-lucide="flask-conical"></i></div><h4 style="margin:18px 0 8px">발효 원리 이해</h4><p class="muted" style="margin:0">미생물과 숙성의 과학을 이해하고 발효의 기본 원리를 익힙니다.</p></div>
-      <div class="card card-pad reveal"><div class="icon-badge point"><i data-lucide="clipboard-list"></i></div><h4 style="margin:18px 0 8px">체험 프로그램 운영</h4><p class="muted" style="margin:0">참가자 눈높이에 맞춘 체험 프로그램을 기획하고 진행합니다.</p></div>
-      <div class="card card-pad reveal"><div class="icon-badge oat"><i data-lucide="book-open"></i></div><h4 style="margin:18px 0 8px">전통 식문화 교육</h4><p class="muted" style="margin:0">장 문화와 씨장의 가치를 올바르게 전달하는 교육 역량을 기릅니다.</p></div>
+    <h3 class="reveal" style="margin-top:72px">기본과정 일정표 (12주 · 총 12강)</h3>
+    <p class="muted reveal" style="margin-top:8px">아래는 31기 기준 일정입니다. (31기: 2026. 5. 15 ~ 7. 24, 매주 금 14:00–15:00) 기수별 세부 일정은 달라질 수 있습니다.</p>
+    <div class="table-wrap reveal" style="margin-top:24px">
+      <table class="table curri-table">
+        <thead><tr><th style="width:90px">주차</th><th>교육 내용</th><th style="width:30%">담당 강사</th></tr></thead>
+        <tbody>
+          <tr><td>1주</td><td>오리엔테이션 — 마음열기·서로 알아가기 · 개강식 · 교육안내 · 전통발효식품 사업의 비전 · 자기소개 · 단체사진</td><td>전승일 · 김필연 · 송영이 · 신봉희 · 이영임</td></tr>
+          <tr><td>2주</td><td>발효식품이란 · 전통 된장 만들기</td><td>김필연 · 송영이</td></tr>
+          <tr><td>3주</td><td>장류 역사 · 전통 막장 만들기</td><td>김필연 · 송영이</td></tr>
+          <tr><td>4주</td><td>전통 청국장 만들기</td><td>김필연 · 송영이</td></tr>
+          <tr><td>5주</td><td>고추장 만들기</td><td>김필연 · 송영이</td></tr>
+          <tr><td>6주</td><td>발효청 · 효소 만들기</td><td>김필연</td></tr>
+          <tr><td>7주</td><td>와인 · 식초 만들기</td><td>김필연 · 박형주</td></tr>
+          <tr><td>8~9주<span class="week-note">1박 2일</span></td><td>정선 만장대 현장 실습 — 단체 정선 출발 · 메주 만들기 · <b>1급 자격증 시험</b> · 정선 시장 견학</td><td>전승일 · 김필연 · 이영임</td></tr>
+          <tr><td>10주</td><td>전통주 만들기</td><td>김필연</td></tr>
+          <tr><td>11주</td><td>전통 한식 간장 만들기</td><td>김필연 · 송영이</td></tr>
+          <tr><td>12주</td><td>수료식 · 다과 · 기념촬영</td><td>전승일 · 김필연 · 강사 전원</td></tr>
+        </tbody>
+      </table>
     </div>
+    <p class="muted reveal" style="margin-top:14px;font-size:14px">강사진: 전승일(정선만장대 회장) · 김필연(협동조합 대표) · 송영이(협동조합 감사·강사) · 신봉희(조합 교육원장) · 이영임(조합 실장) · 박형주(협동조합 강사)</p>
+
+    <h3 class="reveal" style="margin-top:64px">심화과정(강사과정) 일정표</h3>
+    <!-- TODO: [심화과정(강사과정) 일정표] 수령 후 아래 표 교체 -->
+    <div class="table-wrap reveal" style="margin-top:24px">
+      <table class="table curri-table">
+        <thead><tr><th style="width:90px">주차</th><th>교육 내용</th><th style="width:30%">담당 강사</th></tr></thead>
+        <tbody>
+          <tr><td colspan="3" style="text-align:center;color:var(--ink-mute);padding:28px">【심화과정(강사과정) 일정표 — 수령 후 게재 예정】</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted reveal" style="margin-top:14px">기본과정 수료 후 강사로 활동하실 분을 위한 심화과정입니다. 세부 일정은 확정되는 대로 안내드립니다.</p>
   </div>
 </section>
 
-<!-- 교육 과정 -->
-<section class="section band-oat" id="curriculum">
+<!-- C-2. 발효식품을 배우는 목적 -->
+<section class="section band-oat" id="purpose">
   <div class="wrap">
     <div class="section-head reveal">
-      <span class="eyebrow">교육 과정</span>
-      <h2>4강으로 완성하는 지도사 과정</h2>
-      <p class="lede">이론과 실습을 균형 있게 구성한 예시 커리큘럼입니다.</p>
+      <span class="eyebrow">배우는 목적</span>
+      <h2>발효식품, 이렇게 활용할 수 있습니다</h2>
+      <p class="lede">배움의 목적에 따라 세 가지 길이 열립니다.</p>
     </div>
-    <div class="grid g-2" style="margin-top:48px;gap:20px">
-      <div class="card card-pad reveal" style="display:flex;gap:20px;align-items:flex-start"><span class="num-chip">1강</span><div><h4>전통 발효의 이해</h4><p class="muted" style="margin:8px 0 0">발효의 과학과 한국 장 문화의 역사, 씨장의 의미를 배웁니다.</p></div></div>
-      <div class="card card-pad reveal" style="display:flex;gap:20px;align-items:flex-start"><span class="num-chip">2강</span><div><h4>된장·고추장 만들기</h4><p class="muted" style="margin:8px 0 0">전통 방식으로 메주를 다루고 장을 담그는 실습을 진행합니다.</p></div></div>
-      <div class="card card-pad reveal" style="display:flex;gap:20px;align-items:flex-start"><span class="num-chip">3강</span><div><h4>체험 프로그램 기획</h4><p class="muted" style="margin:8px 0 0">대상별 체험 프로그램을 설계하고 운영 시나리오를 작성합니다.</p></div></div>
-      <div class="card card-pad reveal" style="display:flex;gap:20px;align-items:flex-start"><span class="num-chip">4강</span><div><h4>지도사 실무</h4><p class="muted" style="margin:8px 0 0">현장 운영, 안전·위생 관리, 수료 후 활동 방법을 익힙니다.</p></div></div>
+    <div class="grid g-3" style="margin-top:44px">
+      <div class="card card-pad card-hover reveal">
+        <div class="icon-badge"><i data-lucide="hand-heart"></i></div>
+        <h4 style="margin:18px 0 8px">나눔형</h4>
+        <p class="muted" style="margin:0">내가 배워서 가족·친척·주위 분들과 건강한 발효식품을 나눕니다.</p>
+      </div>
+      <div class="card card-pad card-hover reveal">
+        <div class="icon-badge point"><i data-lucide="briefcase"></i></div>
+        <h4 style="margin:18px 0 8px">수입창출형</h4>
+        <ul class="class-list" style="margin-top:0">
+          <li>강사로 활동합니다.</li>
+          <li>홈샵을 운영합니다.</li>
+        </ul>
+      </div>
+      <div class="card card-pad card-hover reveal">
+        <div class="icon-badge oat"><i data-lucide="store"></i></div>
+        <h4 style="margin:18px 0 8px">사업형</h4>
+        <ul class="class-list" style="margin-top:0">
+          <li>장류는 강원도 정선에서 만들어 판매합니다.</li>
+          <li>씨장 담기에 참여합니다.</li>
+          <li>회원 모집 (연 1만 원)</li>
+        </ul>
+        <!-- 확인필요: '연 1만원 회원모집'은 안내 텍스트로만 구현 — 가입·결제 기능 요구 여부 발주처 확인 대기 -->
+      </div>
     </div>
   </div>
 </section>
 
-<!-- 수료 혜택 -->
-<section class="section" id="benefit">
+<!-- C-3. 과정 구성 -->
+<section class="section" id="curriculum">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow">과정 구성</span>
+      <!-- 확인필요: 발주처 원문 '4강' 표현 — 실제 일정표(12강) 기준으로 '4단계' 골격으로 구성함 -->
+      <h2>4단계로 완성하는 체험지도사 과정</h2>
+      <p class="lede">12주 과정을 네 단계로 밟아가며 장류부터 식초류, 현장 실습까지 완성합니다.</p>
+    </div>
+    <div class="grid g-2" style="margin-top:48px;gap:20px">
+      <div class="card card-pad reveal" style="display:flex;gap:20px;align-items:flex-start"><span class="num-chip">1단계</span><div><h4>발효 입문 · 장류 기초 <small class="muted" style="font-weight:400">(1~3주)</small></h4><p class="muted" style="margin:8px 0 0">오리엔테이션과 발효식품의 이해, 전통 된장·막장 만들기로 장류의 기본을 익힙니다.</p></div></div>
+      <div class="card card-pad reveal" style="display:flex;gap:20px;align-items:flex-start"><span class="num-chip">2단계</span><div><h4>장류 심화 · 발효청 <small class="muted" style="font-weight:400">(4~6주)</small></h4><p class="muted" style="margin:8px 0 0">청국장·고추장을 담그고 발효청·효소 만들기까지 장류를 심화합니다.</p></div></div>
+      <div class="card card-pad reveal" style="display:flex;gap:20px;align-items:flex-start"><span class="num-chip">3단계</span><div><h4>식초류 · 정선 현장 실습 <small class="muted" style="font-weight:400">(7~9주)</small></h4><p class="muted" style="margin:8px 0 0">와인·식초를 빚고, 정선 만장대에서 1박 2일 현장 실습(메주 만들기 · 1급 자격증 시험)을 진행합니다.</p></div></div>
+      <div class="card card-pad reveal" style="display:flex;gap:20px;align-items:flex-start"><span class="num-chip">4단계</span><div><h4>전통주 · 간장 · 수료 <small class="muted" style="font-weight:400">(10~12주)</small></h4><p class="muted" style="margin:8px 0 0">전통주와 전통 한식 간장을 만들고 수료식으로 과정을 마무리합니다.</p></div></div>
+    </div>
+
+    <div class="card card-pad reveal" style="margin-top:28px;background:var(--main-tint);border:none">
+      <div style="display:flex;gap:16px;align-items:flex-start">
+        <div class="icon-badge" style="flex-shrink:0"><i data-lucide="clock"></i></div>
+        <div>
+          <h4 style="margin:0 0 6px">원데이 수업 안내</h4>
+          <p class="muted" style="margin:0">전 과정 등록이 부담스러우시다면 관심 있는 주제만 골라 듣는 <b>원데이 수업</b>도 가능합니다. 일정은 문의해 주세요.</p>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="reveal" style="margin-top:64px">수업 구분</h3>
+    <div class="grid g-2" style="margin-top:28px">
+      <div class="card card-pad reveal">
+        <div class="icon-badge oat"><i data-lucide="bean"></i></div>
+        <h4 style="margin:16px 0 4px">장류반</h4>
+        <ul class="class-list">
+          <li>된장</li><li>간장</li><li>막장</li><li>청국장</li><li>고추장</li>
+        </ul>
+      </div>
+      <div class="card card-pad reveal">
+        <div class="icon-badge point"><i data-lucide="flask-round"></i></div>
+        <h4 style="margin:16px 0 4px">식초류반</h4>
+        <ul class="class-list">
+          <li>청 만들기</li><li>와인</li><li>식초</li><li>전통주 (막걸리)</li>
+        </ul>
+      </div>
+    </div>
+    <div class="grid g-2 reveal" style="margin-top:28px;gap:20px">
+      <!-- TODO: [장류반 수업 사진] 수령 후 교체 -->
+      <div class="ph tone-oat ratio-32" data-label="장류반 수업 사진"><i data-lucide="camera"></i></div>
+      <!-- TODO: [식초류반 수업 사진] 수령 후 교체 -->
+      <div class="ph tone-point ratio-32" data-label="식초류반 수업 사진"><i data-lucide="camera"></i></div>
+    </div>
+  </div>
+</section>
+
+<!-- C-4. 수료 후 이어지는 길 -->
+<section class="section band-tint" id="benefit">
   <div class="wrap">
     <div class="section-head reveal"><span class="eyebrow">수료 혜택</span><h2>수료 후 이어지는 길</h2></div>
     <div class="grid g-3" style="margin-top:40px">
       <div class="card card-pad reveal"><div class="icon-badge point"><i data-lucide="award"></i></div><h4 style="margin:18px 0 8px">수료증 발급</h4><p class="muted" style="margin:0">전 과정 이수 시 협동조합 명의의 수료증을 발급합니다.</p></div>
-      <div class="card card-pad reveal"><div class="icon-badge"><i data-lucide="hand-helping"></i></div><h4 style="margin:18px 0 8px">지도사 활동 지원</h4><p class="muted" style="margin:0">체험 행사 연계, 교보재 지원 등 활동 기반을 함께 마련합니다.</p></div>
-      <div class="card card-pad reveal"><div class="icon-badge oat"><i data-lucide="users"></i></div><h4 style="margin:18px 0 8px">협동조합 네트워크</h4><p class="muted" style="margin:0">전국 지도사·생산자 네트워크에 참여할 수 있습니다.</p></div>
+      <div class="card card-pad reveal"><div class="icon-badge"><i data-lucide="hand-helping"></i></div><h4 style="margin:18px 0 8px">지도사 활동 지원</h4><p class="muted" style="margin:0">체험 행사 연계, 교재 지원 등 활동 기반을 함께 마련합니다.</p></div>
+      <div class="card card-pad reveal"><div class="icon-badge oat"><i data-lucide="school"></i></div><h4 style="margin:18px 0 8px">다양한 강의처</h4><p class="muted" style="margin:0">학교, 주민센터, 복지센터 등에서 강사로 활동할 수 있습니다.</p></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center;margin-top:72px">
+      <div class="reveal">
+        <span class="eyebrow">전통발효식품 체험지도사란</span>
+        <h3 style="margin-top:14px">전통을 가르치는 사람</h3>
+        <p class="lede" style="margin-top:16px">전통 발효식품의 원리와 제조법을 익히고, 일반 시민·학생을 대상으로 체험 프로그램을 기획·운영하는 전문 교육 인력입니다.</p>
+        <p class="muted">사라져가는 전통의 맛과 씨장 문화를 다음 세대로 잇는 가장 든든한 사람들입니다.</p>
+      </div>
+      <!-- TODO: [강의·실습 현장 사진] 수령 후 교체 (products 페이지의 '교육하는 모습' 사진은 이 자리에 배치하기로 판단) -->
+      <div class="reveal ph tone-main ratio-43" data-label="강의·실습 현장 사진"><i data-lucide="users"></i></div>
     </div>
   </div>
 </section>
 
 <!-- 교육 일정 -->
-<section class="section band-tint" id="schedule">
+<section class="section" id="schedule">
   <div class="wrap wrap-narrow">
     <div class="section-head reveal"><span class="eyebrow">교육 일정</span><h2>모집 기수 안내</h2><p class="lede">‘모집중’ 기수에 신청하실 수 있습니다. 일정은 사정에 따라 변동될 수 있습니다.</p></div>
     <div class="table-wrap reveal" style="margin-top:36px">

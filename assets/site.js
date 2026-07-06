@@ -25,10 +25,11 @@
       { label: '전통발효 과정', href: 'ferments.html#process' },
     ]},
     { id: 'instructor', label: '체험지도사', href: 'instructor.html', dd: [
-      { label: '과정 소개', href: 'instructor.html#intro' },
-      { label: '교육 과정', href: 'instructor.html#curriculum' },
-      { label: '수료 혜택', href: 'instructor.html#benefit' },
-      { label: '교육 일정', href: 'instructor.html#schedule' },
+      { label: '교육안내', href: 'instructor.html#intro' },
+      { label: '배우는 목적', href: 'instructor.html#purpose' },
+      { label: '과정 구성', href: 'instructor.html#curriculum' },
+      { label: '수료 후 이어지는 길', href: 'instructor.html#benefit' },
+      { label: '모집 기수', href: 'instructor.html#schedule' },
       { label: '신청하기', href: 'instructor.html#apply' },
     ]},
     { id: 'products', label: '제품', href: 'products.html', dd: [
