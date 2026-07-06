@@ -55,8 +55,11 @@
         <span class="pill"><i data-lucide="leaf"></i>자연 발효</span>
       </div>
     </div>
-    <div class="hero-logo reveal">
-      <img src="assets/logo.png" alt="한국참전통발효식품협동조합 로고 — 장독과 효(孝)">
+    <div class="hero-visual reveal">
+      <!-- TODO: [항아리 실사 사진] 수령 후 교체 -->
+      <div class="ph tone-oat ratio-43 hv-main" data-label="항아리 실사 사진"><i data-lucide="archive"></i></div>
+      <!-- TODO: [식초 실사 사진] 수령 후 교체 -->
+      <div class="ph tone-point ratio-1 hv-sub" data-label="식초 실사 사진"><i data-lucide="flask-round"></i></div>
     </div>
   </div>
 </section>
@@ -90,6 +93,12 @@
           allowfullscreen></iframe>
       </div>
     </div>
+    <div class="grid g-2 reveal" style="margin-top:28px;gap:20px">
+      <!-- TODO: [발효된 메주 사진] 수령 후 교체 -->
+      <div class="ph tone-oat ratio-32" data-label="발효된 메주 사진"><i data-lucide="package"></i></div>
+      <!-- TODO: [씨장 항아리 사진] 수령 후 교체 -->
+      <div class="ph tone-deep ratio-32" data-label="씨장 항아리 사진"><i data-lucide="archive"></i></div>
+    </div>
     <div class="grid g-3" style="margin-top:56px">
       <div class="card card-pad card-hover reveal">
         <div class="icon-badge"><i data-lucide="users"></i></div>
@@ -111,6 +120,7 @@
 </section>
 
 <!-- 핵심 가치 -->
+<!-- 참고: 메인 '썰렁하다' 피드백 대응 — 현장·제품 사진 수령 후 아래 핵심가치/서비스 카드에 사진 헤더를 얹는 전환 검토 (사진 수령 전까지 구조 변경 보류) -->
 <section class="section band-oat" id="values">
   <div class="wrap">
     <div class="section-head center reveal">
@@ -265,6 +275,11 @@
   /* 히어로 카피 3단 구성 — 서브카피(중간) > 메인카피(축소) > 설명문 */
   .hero-kicker { font-family:var(--font-head); font-weight:700; font-size:clamp(20px,2.4vw,30px); color:var(--main); margin:0 0 14px; letter-spacing:-0.01em; }
   .hero .hero-title { font-size:var(--fs-h1); }
+  /* 히어로 실사 2장 — 항아리(메인) 위에 식초(서브) 겹침 배치 */
+  .hero-visual { position:relative; width:100%; padding:0 0 52px 28px; }
+  .hero-visual .hv-main { border-radius:var(--r-lg); }
+  .hero-visual .hv-sub { position:absolute; width:42%; left:0; bottom:0; border-radius:var(--r-lg); box-shadow:var(--sh-md); border:5px solid var(--surface); }
+  @media (max-width:900px){ .hero-visual { order:-1; max-width:440px; margin:0 auto; } }
   .video-embed { max-width:none; margin:48px auto 0; }
   .video-frame { position:relative; aspect-ratio:16/9; border-radius:var(--r-lg); overflow:hidden; border:1px solid var(--line-soft); box-shadow:var(--sh-md); background:var(--main-deeper); }
   .video-frame iframe { position:absolute; inset:0; width:100%; height:100%; border:0; display:block; }
