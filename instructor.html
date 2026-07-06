@@ -29,6 +29,8 @@
   .curri-table td:first-child { white-space:nowrap; font-weight:700; color:var(--main); }
   .curri-table .week-note { display:block; margin-top:4px; font-size:13px; color:var(--ink-mute); font-weight:400; }
   .class-list { margin:10px 0 0; padding-left:18px; color:var(--ink-soft); line-height:1.9; }
+  .def-grid { display:grid; grid-template-columns:1fr 1fr; gap:64px; align-items:center; margin-top:72px; }
+  @media (max-width:820px){ .def-grid { grid-template-columns:1fr; gap:28px; } }
 </style>
 </head>
 <body data-page="instructor">
@@ -192,7 +194,7 @@
       <div class="card card-pad reveal"><div class="icon-badge oat"><i data-lucide="school"></i></div><h4 style="margin:18px 0 8px">다양한 강의처</h4><p class="muted" style="margin:0">학교, 주민센터, 복지센터 등에서 강사로 활동할 수 있습니다.</p></div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center;margin-top:72px">
+    <div class="def-grid">
       <div class="reveal">
         <span class="eyebrow">전통발효식품 체험지도사란</span>
         <h3 style="margin-top:14px">전통을 가르치는 사람</h3>
