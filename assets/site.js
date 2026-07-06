@@ -425,17 +425,21 @@
       var caret = n.dd ? ' <i data-lucide="chevron-down" style="width:14px;height:14px;opacity:.6"></i>' : '';
       return '<div class="nav-item' + active + '"><a href="' + n.href + '">' + n.label + caret + '</a>' + dd + '</div>';
     }).join('');
-    return '<div class="nav"><div class="nav-inner">' +
-        '<a class="brand" href="index.html" aria-label="홈으로">' +
-          '<img src="assets/logo.png" alt="한국참전통발효식품협동조합 로고">' +
-          '<span class="bt"><b>한국참전통발효식품협동조합</b></span>' +
-        '</a>' +
-        '<nav class="nav-links" aria-label="주 메뉴">' + links + '</nav>' +
-        '<div class="nav-cta">' +
-          '<button class="btn btn-point" data-modal="apply"><i data-lucide="sprout"></i>지도사 신청</button>' +
-          '<button class="btn btn-ghost nav-toggle" aria-label="메뉴 열기" id="navToggle" style="padding:11px 13px"><i data-lucide="menu"></i></button>' +
-        '</div>' +
-      '</div></div>';
+    return '<div class="nav">' +
+        '<div class="nav-top"><div class="nav-inner">' +
+          '<a class="brand" href="index.html" aria-label="홈으로">' +
+            '<img src="assets/logo.png" alt="한국참전통발효식품협동조합 로고">' +
+            '<span class="bt"><b>한국참전통발효식품협동조합</b></span>' +
+          '</a>' +
+          '<div class="nav-cta">' +
+            '<button class="btn btn-point" data-modal="apply"><i data-lucide="sprout"></i>지도사 신청</button>' +
+            '<button class="btn btn-ghost nav-toggle" aria-label="메뉴 열기" id="navToggle" style="padding:11px 13px"><i data-lucide="menu"></i></button>' +
+          '</div>' +
+        '</div></div>' +
+        '<div class="nav-bar"><div class="nav-inner">' +
+          '<nav class="nav-links" aria-label="주 메뉴">' + links + '</nav>' +
+        '</div></div>' +
+      '</div>';
   }
   function buildMobile() {
     var cur = currentPage();
