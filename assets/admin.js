@@ -46,7 +46,7 @@
   /* ---------- 데모 시드 ---------- */
   function seed() {
     if (!localStorage.getItem(K.popups)) sj(K.popups, [
-      { id: uid(), title: '[샘플] 2026 봄학기 지도사 과정 모집', body: '전통발효식품체험지도사 2026년 1기를 모집합니다.\n4월 4일 개강 · 선착순 마감.', link: 'instructor.html', linkLabel: '과정 보러가기', active: true, startsAt: '', endsAt: '', img: '' },
+      { id: uid(), title: '[샘플] 2026 봄학기 지도사 과정 모집', body: '전통발효식품 체험지도사 2026년 1기를 모집합니다.\n4월 4일 개강 · 선착순 마감.', link: 'instructor.html', linkLabel: '과정 보러가기', active: true, startsAt: '', endsAt: '', img: '' },
     ]);
     if (!localStorage.getItem(K.orders)) sj(K.orders, [
       { id: uid(), kind: 'order', orderNo: '2026030912341', product: '전통 된장 (1kg)', productId: 'p_doenjang', qty: '2', unitPrice: 25000, total: 50000, depositor: '김참살', name: '김참살', phone: '010-2241-7780', address: '서울 구로구 구로동 123', payMethod: '무통장입금', status: '주문접수', at: '2026-03-09T10:12:00' },
@@ -822,7 +822,7 @@
       return '<tr><td class="dt">' + fmtDate(r.at) + '</td><td>' + esc(r.name||'-') + '</td><td>' + esc(r.phone||'-') + '</td><td>' + esc(r.region||'-') + '</td><td>' + esc(r.course||'-') + '</td><td style="max-width:200px">' + esc(r.memo||'-') + '</td><td>' + statusSelect(K.apps,'apps',r) + '</td><td>' + delBtn(K.apps, r.id) + '</td></tr>';
     }).join('') : emptyRow(8, '신청 내역이 없습니다.');
     return cohortPanel() +
-      '<div class="panel" style="margin-top:24px"><div class="panel-head"><h3>전통발효식품체험지도사 신청 관리</h3><span class="ph-sub">총 ' + a.length + '명</span></div>' +
+      '<div class="panel" style="margin-top:24px"><div class="panel-head"><h3>전통발효식품 체험지도사 신청 관리</h3><span class="ph-sub">총 ' + a.length + '명</span></div>' +
       '<div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>일시</th><th>이름</th><th>연락처</th><th>지역</th><th>신청 기수</th><th>비고</th><th>상태</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
   }
   function viewInq() {

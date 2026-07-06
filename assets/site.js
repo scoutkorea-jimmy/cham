@@ -276,8 +276,8 @@
   /* ---------------- 게시글 (소식마당) ---------------- */
   var POSTS_KEY = 'kach_posts_v1';
   var POST_SEEDS = [
-    { id: 'sp1', cat: '공지', important: true, sample: true, title: '2026년 봄학기 전통발효식품체험지도사 과정 모집 안내', at: '2026-03-04T09:00:00',
-      html: '<p>전통발효식품체험지도사 2026년 1기 교육생을 모집합니다.</p><ul><li>교육 기간: 2026.04.04 ~ 04.25 (매주 토요일)</li><li>장소: 구로 본원</li><li>신청 방법: 홈페이지 신청서 접수 후 담당자 안내</li></ul><p>많은 관심 부탁드립니다.</p>' },
+    { id: 'sp1', cat: '공지', important: true, sample: true, title: '2026년 봄학기 전통발효식품 체험지도사 과정 모집 안내', at: '2026-03-04T09:00:00',
+      html: '<p>전통발효식품 체험지도사 2026년 1기 교육생을 모집합니다.</p><ul><li>교육 기간: 2026.04.04 ~ 04.25 (매주 토요일)</li><li>장소: 구로 본원</li><li>신청 방법: 홈페이지 신청서 접수 후 담당자 안내</li></ul><p>많은 관심 부탁드립니다.</p>' },
     { id: 'sp2', cat: '공지', sample: true, title: '홈페이지 리뉴얼 오픈 안내', at: '2026-02-28T09:00:00',
       html: '<p>홈페이지가 새 단장을 마치고 오픈했습니다. 이용에 불편이 없도록 계속 다듬어가겠습니다.</p>' },
     { id: 'sp3', cat: '공지', sample: true, title: '설 연휴 배송 및 고객센터 운영 일정', at: '2026-02-05T09:00:00',
@@ -286,7 +286,7 @@
       html: '<p>정선만장대의 씨장 보존 활동이 언론에 소개되었습니다.</p>' },
     { id: 'sp5', cat: '공지', sample: true, title: '씨장 분양 신청 상시 접수 안내', at: '2026-01-10T09:00:00',
       html: '<p>전국민 씨장 갖기 운동 — 씨장 분양 신청을 상시 접수하고 있습니다.</p>' },
-    { id: 'sp6', cat: '교육', sample: true, badge: '모집중', title: '전통발효식품체험지도사 2026년 1기 (4/4 개강)', at: '2026-02-20T09:00:00',
+    { id: 'sp6', cat: '교육', sample: true, badge: '모집중', title: '전통발효식품 체험지도사 2026년 1기 (4/4 개강)', at: '2026-02-20T09:00:00',
       html: '<p>모집 마감: 2026.03.28 · 매주 토요일 10:00–16:00 · 구로 본원</p>' },
     { id: 'sp7', cat: '교육', sample: true, badge: '원데이', title: '된장·고추장 담그기 원데이 체험 클래스 (3월)', at: '2026-02-15T09:00:00',
       html: '<p>2026.03.21 (토) 13:00–16:00 · 구로 본원</p>' },
@@ -441,7 +441,7 @@
     }).join('');
     return '<div class="mobile-menu" id="mobileMenu">' +
       '<div class="mm-body"><div class="mm-head"><b>메뉴</b><button id="mmClose" aria-label="닫기"><i data-lucide="x"></i></button></div>' + items +
-      '<button class="btn btn-point btn-lg" data-modal="apply" style="margin-top:16px"><i data-lucide="sprout"></i>전통발효식품체험지도사 신청</button>' +
+      '<button class="btn btn-point btn-lg" data-modal="apply" style="margin-top:16px"><i data-lucide="sprout"></i>전통발효식품 체험지도사 신청</button>' +
       '</div></div>';
   }
   function buildFooter() {
@@ -568,7 +568,7 @@
 
   var MODALS = {
     apply: {
-      kicker: '체험지도사', title: '전통발효식품체험지도사 신청', store: 'kach_applications',
+      kicker: '체험지도사', title: '전통발효식품 체험지도사 신청', store: 'kach_applications',
       desc: '아래 정보를 남겨주시면 담당자가 순차적으로 연락드립니다.', submit: '신청서 제출',
       consents: ['privacy'],
       fields: [
