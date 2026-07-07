@@ -38,28 +38,22 @@
 <body data-page="index">
 <header id="site-nav"></header>
 
-<!-- HERO -->
+<!-- HERO — 고객사 제공 정선 장독대 전경 사진을 배경으로 사용 -->
 <section class="hero">
-  <div class="wrap hero-grid">
-    <div>
+  <div class="wrap">
+    <div class="hero-copy">
       <p class="hero-kicker reveal">천년의 지혜 발효식품</p>
       <h1 class="reveal hero-title">전통의 깊이,<br>발효의 가치를<br>이어갑니다.</h1>
       <p class="sub reveal">전통발효식품의 보급과 한 항아리에 담긴 ‘장’을 다음 세대로 계승합니다.</p>
       <div class="hero-cta reveal">
         <a class="btn btn-point btn-lg" href="instructor.html"><i data-lucide="sprout"></i>전통발효식품 체험지도사 신청</a>
-        <a class="btn btn-ghost btn-lg" href="products.html"><i data-lucide="shopping-basket"></i>제품 보러가기</a>
+        <a class="btn btn-on-dark btn-lg" href="products.html"><i data-lucide="shopping-basket"></i>제품 보러가기</a>
       </div>
       <div class="pill-row reveal" style="margin-top:36px">
         <span class="pill"><i data-lucide="archive"></i>전통 장 담그기</span>
         <span class="pill"><i data-lucide="graduation-cap"></i>체험지도사 양성</span>
         <span class="pill"><i data-lucide="leaf"></i>자연 발효</span>
       </div>
-    </div>
-    <div class="hero-visual reveal">
-      <!-- TODO: [항아리 실사 사진] 수령 후 교체 -->
-      <div class="ph tone-oat ratio-43 hv-main" data-img-slot="home-hero-jar" data-label="항아리 실사 사진"><i data-lucide="archive"></i></div>
-      <!-- TODO: [식초 실사 사진] 수령 후 교체 -->
-      <div class="ph tone-point ratio-1 hv-sub" data-img-slot="home-hero-vinegar" data-label="식초 실사 사진"><i data-lucide="flask-round"></i></div>
     </div>
   </div>
 </section>
@@ -170,7 +164,8 @@
         <a class="btn btn-on-dark btn-lg" href="instructor.html">과정 자세히 보기 <i data-lucide="arrow-right"></i></a>
       </div>
     </div>
-    <div class="reveal ph tone-oat ratio-43" data-img-slot="home-instructor" data-label="체험지도사 교육 현장 — 장 담그기 실습">
+    <div class="reveal ph tone-oat ratio-43 has-img" data-img-slot="home-instructor" data-label="체험지도사 교육 현장 — 장 담그기 실습">
+      <img class="slot-photo" src="assets/edu-lecture.jpg" alt="체험지도사 교육 현장 — 강사의 발효식품 수업 장면">
       <i data-lucide="users"></i>
     </div>
   </div>
@@ -278,14 +273,19 @@
 <footer id="site-footer"></footer>
 
 <style id="page-style">
-  /* 히어로 카피 3단 구성 — 서브카피(중간) > 메인카피(축소) > 설명문 */
-  .hero-kicker { font-family:var(--font-head); font-weight:700; font-size:clamp(20px,2.4vw,30px); color:var(--main); margin:0 0 14px; letter-spacing:-0.01em; }
-  .hero .hero-title { font-size:var(--fs-h1); }
-  /* 히어로 실사 2장 — 항아리(메인) 위에 식초(서브) 겹침 배치 */
-  .hero-visual { position:relative; width:100%; padding:0 0 52px 28px; }
-  .hero-visual .hv-main { border-radius:var(--r-lg); }
-  .hero-visual .hv-sub { position:absolute; width:42%; left:0; bottom:0; border-radius:var(--r-lg); box-shadow:var(--sh-md); border:5px solid var(--surface); }
-  @media (max-width:900px){ .hero-visual { order:-1; max-width:440px; margin:0 auto; } }
+  /* 히어로 — 정선 장독대 전경 사진 배경 + 카피 3단 (서브카피 > 메인카피(축소) > 설명문) */
+  .hero {
+    background:
+      linear-gradient(105deg, rgba(28,32,22,.74) 0%, rgba(28,32,22,.46) 52%, rgba(28,32,22,.24) 100%),
+      url('assets/hero-bg.jpg') center 60% / cover no-repeat;
+    padding-top: calc(var(--s20) + 16px);
+    padding-bottom: calc(var(--sec-pad) + 28px);
+  }
+  .hero-copy { max-width: 640px; }
+  .hero-kicker { font-family:var(--font-head); font-weight:700; font-size:clamp(20px,2.4vw,30px); color:var(--sub); margin:0 0 14px; letter-spacing:-0.01em; }
+  .hero .hero-title { font-size:var(--fs-h1); color:#fff; }
+  .hero .sub { color:rgba(255,255,255,.92); }
+  .hero .pill { background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.3); color:#fff; }
   .video-embed { max-width:none; margin:48px auto 0; }
   .video-frame { position:relative; aspect-ratio:16/9; border-radius:var(--r-lg); overflow:hidden; border:1px solid var(--line-soft); box-shadow:var(--sh-md); background:var(--main-deeper); }
   .video-frame iframe { position:absolute; inset:0; width:100%; height:100%; border:0; display:block; }

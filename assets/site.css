@@ -95,7 +95,7 @@
 
   --maxw: 1200px;
   --maxw-narrow: 880px;
-  --nav-h: 118px; /* 2단 헤더: 브랜드 66px + 메뉴 52px (모바일에선 66px로 재정의) */
+  --nav-h: 132px; /* 2단 헤더: 브랜드(중앙·상하여백) 80px + 메뉴 52px (모바일에선 80px로 재정의) */
 
   /* ---- Shadows (soft, offset-y only) ---- */
   --sh-xs: 0 1px 2px rgba(42,39,35,0.05);
@@ -267,8 +267,8 @@ p  { margin: 0 0 var(--s4); text-wrap: pretty; }
 .ph.ratio-32 { aspect-ratio: 3/2; }
 .ph.ratio-169 { aspect-ratio: 16/9; }
 .ph.ratio-photo { aspect-ratio: 5/6; }
-/* 관리자에서 올린 실제 사진이 있으면 placeholder 요소(라벨·아이콘·텍스처)를 감춤 */
-.ph .slot-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+/* 실제 사진(커밋본 .slot-photo / 관리자 업로드 .slot-img)이 있으면 placeholder 요소를 감춤 */
+.ph .slot-img, .ph .slot-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .ph.has-img::before, .ph.has-img::after,
 .ph.has-img > i, .ph.has-img > svg { display: none; }
 /* subtle weave texture for placeholders */
@@ -291,7 +291,8 @@ p  { margin: 0 0 var(--s4); text-wrap: pretty; }
 }
 .nav-inner { width:100%; max-width: var(--maxw); margin-inline:auto; padding-inline: var(--s8);
   display:flex; align-items:center; gap: var(--s6); }
-.nav-top .nav-inner { height: 66px; justify-content: space-between; }
+.nav-top .nav-inner { height: auto; padding-top: 20px; padding-bottom: 14px; justify-content: center; position: relative; }
+.nav-top .nav-cta { position: absolute; right: var(--s8); top: 50%; transform: translateY(-50%); }
 .nav-bar { border-top: 1px solid var(--line-soft); background: rgba(251,249,244,0.6); }
 .nav-bar .nav-inner { height: 52px; justify-content: center; }
 .brand { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
@@ -342,7 +343,7 @@ p  { margin: 0 0 var(--s4); text-wrap: pretty; }
   .nav-item > a { padding: 10px 10px; font-size: 14px; }  /* 좁은 데스크톱: 7개 메뉴 한 줄 유지 */
 }
 @media (max-width: 900px){
-  :root { --nav-h: 66px; }        /* 하단 메뉴줄이 사라지므로 헤더 높이 재정의 */
+  :root { --nav-h: 80px; }        /* 하단 메뉴줄이 사라지므로 헤더 높이 재정의 */
   .nav-bar { display: none; }
   .nav-toggle { display: inline-flex; }
 }
@@ -488,8 +489,8 @@ p  { margin: 0 0 var(--s4); text-wrap: pretty; }
    ============================================================ */
 :root {
   --pat-size: 54px;
-  --pat-dark:  url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='54'%20height='54'%3E%3Cg%20fill='none'%20stroke='rgba(61,55,40,0.055)'%20stroke-width='1.1'%3E%3Ccircle%20cx='0'%20cy='0'%20r='27'/%3E%3Ccircle%20cx='54'%20cy='0'%20r='27'/%3E%3Ccircle%20cx='0'%20cy='54'%20r='27'/%3E%3Ccircle%20cx='54'%20cy='54'%20r='27'/%3E%3Ccircle%20cx='27'%20cy='27'%20r='27'/%3E%3C/g%3E%3C/svg%3E");
-  --pat-light: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='54'%20height='54'%3E%3Cg%20fill='none'%20stroke='rgba(255,255,255,0.075)'%20stroke-width='1.1'%3E%3Ccircle%20cx='0'%20cy='0'%20r='27'/%3E%3Ccircle%20cx='54'%20cy='0'%20r='27'/%3E%3Ccircle%20cx='0'%20cy='54'%20r='27'/%3E%3Ccircle%20cx='54'%20cy='54'%20r='27'/%3E%3Ccircle%20cx='27'%20cy='27'%20r='27'/%3E%3C/g%3E%3C/svg%3E");
+  --pat-dark:  url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='54'%20height='54'%3E%3Cg%20fill='none'%20stroke='rgba(61,55,40,0.028)'%20stroke-width='1.1'%3E%3Ccircle%20cx='0'%20cy='0'%20r='27'/%3E%3Ccircle%20cx='54'%20cy='0'%20r='27'/%3E%3Ccircle%20cx='0'%20cy='54'%20r='27'/%3E%3Ccircle%20cx='54'%20cy='54'%20r='27'/%3E%3Ccircle%20cx='27'%20cy='27'%20r='27'/%3E%3C/g%3E%3C/svg%3E");
+  --pat-light: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='54'%20height='54'%3E%3Cg%20fill='none'%20stroke='rgba(255,255,255,0.045)'%20stroke-width='1.1'%3E%3Ccircle%20cx='0'%20cy='0'%20r='27'/%3E%3Ccircle%20cx='54'%20cy='0'%20r='27'/%3E%3Ccircle%20cx='0'%20cy='54'%20r='27'/%3E%3Ccircle%20cx='54'%20cy='54'%20r='27'/%3E%3Ccircle%20cx='27'%20cy='27'%20r='27'/%3E%3C/g%3E%3C/svg%3E");
 }
 html.pat-strong {
   --pat-dark:  url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='54'%20height='54'%3E%3Cg%20fill='none'%20stroke='rgba(61,55,40,0.12)'%20stroke-width='1.1'%3E%3Ccircle%20cx='0'%20cy='0'%20r='27'/%3E%3Ccircle%20cx='54'%20cy='0'%20r='27'/%3E%3Ccircle%20cx='0'%20cy='54'%20r='27'/%3E%3Ccircle%20cx='54'%20cy='54'%20r='27'/%3E%3Ccircle%20cx='27'%20cy='27'%20r='27'/%3E%3C/g%3E%3C/svg%3E");

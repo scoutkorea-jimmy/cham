@@ -109,8 +109,6 @@
      각 페이지의 placeholder(.ph)에 data-img-slot="id"를 달아두면,
      관리자에서 올린 사진(IndexedDB 'simg')이 자리표시 대신 표시됩니다. */
   var IMG_SLOTS = [
-    { id: 'home-hero-jar',       page: '홈',          label: '히어로 — 항아리 실사' },
-    { id: 'home-hero-vinegar',   page: '홈',          label: '히어로 — 식초 실사' },
     { id: 'home-story-meju',     page: '홈',          label: '우리 이야기 — 발효된 메주' },
     { id: 'home-story-seedjang', page: '홈',          label: '우리 이야기 — 씨장 항아리' },
     { id: 'home-instructor',     page: '홈',          label: '체험지도사 강조 — 교육 현장' },
