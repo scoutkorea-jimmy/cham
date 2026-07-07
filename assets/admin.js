@@ -326,6 +326,17 @@
     }).join('');
     var todoPanel = '<div class="panel todo-panel"><div class="panel-head"><h3>오늘 해야 할 일</h3><span class="ph-sub">' + (totalTodo ? '처리 대기 ' + totalTodo + '건 — 항목을 누르면 해당 화면으로 바로 이동합니다' : '밀린 일이 없습니다 👍') + '</span></div><div class="todo-grid">' + todoCards + '</div></div>';
 
+    // 홈 팝업 빠른 게시/중지 — 대시보드에서 바로 올리고 내림
+    var pops = gj(K.popups, []);
+    var popRows = pops.length ? pops.map(function (p) {
+      return '<div style="display:flex;align-items:center;gap:14px;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line-soft)">' +
+        '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><b>' + esc(p.title) + '</b>' +
+        '<span class="pc-sub" style="margin-left:10px">' + (p.startsAt || '상시') + (p.endsAt ? ' ~ ' + p.endsAt : '') + '</span></span>' +
+        '<span class="pc-sub">' + (p.active ? '게시 중' : '중지됨') + '</span>' +
+        '<button class="toggle ' + (p.active ? 'on' : '') + '" data-act="poptoggle" data-id="' + p.id + '" title="게시/중지"><i></i></button></div>';
+    }).join('') : '<div class="admin-empty" style="padding:20px 10px"><i data-lucide="bell-off"></i><div>등록된 팝업이 없습니다. ‘팝업 관리’에서 추가하세요.</div></div>';
+    var popPanel = '<div class="panel" style="margin-top:24px"><div class="panel-head"><h3>홈 팝업 게시/중지</h3><button class="btn btn-ghost" data-nav="popups" style="padding:8px 16px"><i data-lucide="bell"></i>팝업 관리로 이동</button></div><div style="padding:8px 22px 14px">' + popRows + '</div></div>';
+
     var visitPanel = '<div class="panel"><div class="panel-head"><h3>최근 7일 방문 추이</h3><span class="ph-sub">방문자 수 기준 · 데모 집계</span></div><div style="padding:22px">' + chart + '</div></div>';
     var sourcePanel = '<div class="panel"><div class="panel-head"><h3>방문자 유입 분석</h3><span class="ph-sub">총 ' + srcTotal + '회 방문</span></div><div style="padding:20px 22px 24px"><div class="src-list">' + srcBars + '</div></div></div>';
     var recentPanel = '<div class="panel"><div class="panel-head"><h3>최근 접수 내역</h3><span class="ph-sub">주문 · 신청 · 문의 통합</span></div><table class="admin-table"><thead><tr><th>일시</th><th>구분</th><th>이름</th><th>내용</th><th>상태</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
@@ -333,6 +344,7 @@
 
     return '<div class="dash">' +
       todoPanel +
+      popPanel +
       '<div class="stat-grid" style="margin-top:24px">' + cards + '</div>' +
       '<div class="dash-2col">' + visitPanel + sourcePanel + '</div>' +
       '<div class="dash-2col">' + recentPanel + statusPanel + '</div>' +
@@ -894,6 +906,36 @@
   }
 
   /* ============================================================
+     페이지 이미지 관리 — 각 페이지의 사진 슬롯 교체
+     ============================================================ */
+  function viewImages() {
+    var slots = S.IMG_SLOTS || [];
+    var pages = [], byPage = {};
+    slots.forEach(function (s) { if (!byPage[s.page]) { byPage[s.page] = []; pages.push(s.page); } byPage[s.page].push(s); });
+    var html = pages.map(function (pg) {
+      var cells = byPage[pg].map(function (s) {
+        return '<div class="pcard">' +
+          '<div class="pc-logo" data-slot-cell="' + s.id + '" style="height:96px;background:var(--surface-2);border-radius:8px;display:grid;place-items:center;overflow:hidden"><span class="pc-sub">사진 없음</span></div>' +
+          '<div><div class="pc-name">' + esc(s.label) + '</div></div>' +
+          '<div class="pc-row">' +
+            '<label class="btn btn-ghost" style="padding:8px 14px;cursor:pointer"><i data-lucide="upload"></i>사진 올리기<input type="file" accept="image/*" data-simg-up="' + s.id + '" style="display:none"></label>' +
+            '<button class="btn btn-ghost" data-act="simgdel" data-id="' + s.id + '" style="padding:8px 14px;color:var(--point)"><i data-lucide="trash-2"></i>내리기</button>' +
+          '</div></div>';
+      }).join('');
+      return '<div class="panel" style="margin-bottom:24px"><div class="panel-head"><h3>' + esc(pg) + '</h3><span class="ph-sub">' + byPage[pg].length + '개 자리</span></div><div class="card-list">' + cells + '</div></div>';
+    }).join('');
+    return '<div class="modal-note" style="margin-bottom:18px"><i data-lucide="image"></i><span>사진을 올리면 해당 페이지의 회색 자리표시가 <b>즉시 실제 사진으로</b> 바뀝니다. ‘내리기’를 누르면 다시 자리표시로 돌아갑니다. 사진은 이 브라우저에 저장되므로 <b>데이터 백업</b> 메뉴로 주기적으로 백업하세요.</span></div>' + html;
+  }
+  function fillSlotPreviews() {
+    S.idb.all('simg').then(function (recs) {
+      recs.forEach(function (r) {
+        var cell = document.querySelector('[data-slot-cell="' + r.id + '"]');
+        if (cell && r.blob) cell.innerHTML = '<img src="' + mkURL(r.blob) + '" alt="" style="width:100%;height:100%;object-fit:cover">';
+      });
+    });
+  }
+
+  /* ============================================================
      동의문 관리 — 서브탭
      ============================================================ */
   var consentTab = 'privacy', consentMode = 'view';
@@ -931,7 +973,7 @@
     return new Promise(function (res) { var rd = new FileReader(); rd.onload = function () { res(rd.result); }; rd.onerror = function () { res(''); }; rd.readAsDataURL(blob); });
   }
   function dataURLToBlob(durl) { return fetch(durl).then(function (r) { return r.blob(); }); }
-  var IDB_STORES = ['files', 'gallery', 'pimg'];
+  var IDB_STORES = ['files', 'gallery', 'pimg', 'simg'];
 
   function viewBackup() {
     var orders = gj(K.orders, []).length, posts = gj(K.posts, []).length, prods = S.getProducts().length;
@@ -1000,6 +1042,7 @@
     { id: 'apps', label: '지도사 신청', icon: 'user-plus', view: viewApps, title: '참가자 신청 관리', countKey: K.apps },
     { id: 'inq', label: '문의 내역', icon: 'message-square', view: viewInq, title: '문의 내역 관리', countKey: K.inq },
     { id: 'posts', label: '게시글 관리', icon: 'file-text', view: viewPosts, title: '게시글 관리', countKey: K.posts },
+    { id: 'images', label: '페이지 이미지', icon: 'image', view: viewImages, title: '페이지 이미지 관리' },
     { id: 'partners', label: '파트너 관리', icon: 'handshake', view: viewPartners, title: '파트너 관리' },
     { id: 'popups', label: '팝업 관리', icon: 'bell', view: viewPopups, title: '팝업 관리', countKey: K.popups },
     { id: 'consents', label: '동의문 관리', icon: 'shield-check', view: viewConsents, title: '개인정보 동의문 관리' },
@@ -1114,11 +1157,27 @@
     }
 
     bindProductForm();
+    if (document.querySelector('[data-slot-cell]')) fillSlotPreviews();
   }
 
   /* ---------- delegation ---------- */
   document.addEventListener('change', function(e){
     var t = e.target;
+    if (t.dataset && t.dataset.simgUp) {
+      var f = t.files && t.files[0]; if (!f) return;
+      var slotId = t.dataset.simgUp;
+      resizeToDataURL(f, 1600, function (durl) {
+        if (!durl) { toast('이미지를 읽을 수 없습니다.'); return; }
+        dataURLToBlob(durl).then(function (blob) {
+          return S.idb.put('simg', { id: slotId, blob: blob, at: new Date().toISOString() });
+        }).then(function (r) {
+          if (!r) { toast('이미지 저장에 실패했습니다. 브라우저 저장 공간을 확인해 주세요.'); return; }
+          dirty = false; render();
+          toast('사진이 저장되었습니다. 해당 페이지에 바로 반영됩니다.');
+        });
+      });
+      return;
+    }
     if (t.dataset && t.dataset.act === 'status') { updateField(t.dataset.key, t.dataset.id, 'status', t.value); renderNav(); toast('상태가 변경되었습니다.'); }
     if (t.dataset && t.dataset.act === 'pstatus') {
       var a = S.getProducts(); a.forEach(function (p) { if (p.id === t.dataset.id) p.status = t.value; }); S.setProducts(a);
@@ -1175,6 +1234,10 @@
       render();
     } else if (act === 'poptoggle') {
       var a = gj(K.popups, []); a.forEach(function(p){ if(p.id===b.dataset.id) p.active = !p.active; }); sj(K.popups, a); render();
+      toast('팝업이 ' + (a.some(function(p){ return p.id===b.dataset.id && p.active; }) ? '게시' : '중지') + '되었습니다.');
+    } else if (act === 'simgdel') {
+      if (!confirm('이 자리의 사진을 내릴까요? 페이지는 기본 자리표시로 돌아갑니다.')) return;
+      S.idb.del('simg', b.dataset.id).then(function(){ render(); toast('사진을 내렸습니다.'); });
     } else if (act === 'pnew') { prodEditing = 'new'; pImgState.removed = []; render();
     } else if (act === 'pedit') { prodEditing = b.dataset.id; pImgState.removed = []; render();
     } else if (act === 'pback') { if (!confirmLeave()) return; prodEditing = null; pImgState = { main: null, extra: [], detail: [], removed: [] }; render();

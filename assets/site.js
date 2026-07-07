@@ -33,6 +33,7 @@
       { label: '신청하기', href: 'instructor.html#apply' },
     ]},
     { id: 'nuruk', label: '누룩이야기', href: 'nuruk.html', dd: [
+      { label: '누룩이란?', href: 'nuruk.html#about' },
       { label: '커리큘럼', href: 'nuruk.html#curriculum' },
       { label: '수업 안내', href: 'nuruk.html#notice' },
     ]},
@@ -81,12 +82,13 @@
     dbPromise = new Promise(function (res, rej) {
       if (!window.indexedDB) { rej(new Error('IndexedDB unavailable')); return; }
       var r;
-      try { r = indexedDB.open('kach_db', 2); } catch (e) { rej(e); return; }
+      try { r = indexedDB.open('kach_db', 3); } catch (e) { rej(e); return; }
       r.onupgradeneeded = function (e) {
         var d = e.target.result;
         if (!d.objectStoreNames.contains('files')) { var s = d.createObjectStore('files', { keyPath: 'id' }); s.createIndex('postId', 'postId', { unique: false }); }
         if (!d.objectStoreNames.contains('gallery')) d.createObjectStore('gallery', { keyPath: 'id' });
         if (!d.objectStoreNames.contains('pimg')) { var p = d.createObjectStore('pimg', { keyPath: 'id' }); p.createIndex('productId', 'productId', { unique: false }); }
+        if (!d.objectStoreNames.contains('simg')) d.createObjectStore('simg', { keyPath: 'id' });  // 페이지 이미지 슬롯
       };
       r.onsuccess = function(){ res(r.result); };
       r.onerror = function(){ rej(r.error); };
@@ -102,6 +104,49 @@
     all: function (store) { return openDB().then(function (d) { return new Promise(function (res) { var q = d.transaction(store).objectStore(store).getAll(); q.onsuccess = function(){ res(q.result || []); }; q.onerror = function(){ res([]); }; }); }).catch(function(){ return []; }); },
     byIndex: function (store, index, val) { return openDB().then(function (d) { return new Promise(function (res) { var q = d.transaction(store).objectStore(store).index(index).getAll(val); q.onsuccess = function(){ res(q.result || []); }; q.onerror = function(){ res([]); }; }); }).catch(function(){ return []; }); },
   };
+
+  /* ---------------- 페이지 이미지 슬롯 (관리자 '페이지 이미지'에서 교체) ----------------
+     각 페이지의 placeholder(.ph)에 data-img-slot="id"를 달아두면,
+     관리자에서 올린 사진(IndexedDB 'simg')이 자리표시 대신 표시됩니다. */
+  var IMG_SLOTS = [
+    { id: 'home-hero-jar',       page: '홈',          label: '히어로 — 항아리 실사' },
+    { id: 'home-hero-vinegar',   page: '홈',          label: '히어로 — 식초 실사' },
+    { id: 'home-story-meju',     page: '홈',          label: '우리 이야기 — 발효된 메주' },
+    { id: 'home-story-seedjang', page: '홈',          label: '우리 이야기 — 씨장 항아리' },
+    { id: 'home-instructor',     page: '홈',          label: '체험지도사 강조 — 교육 현장' },
+    { id: 'about-ceo',           page: '협동조합 소개', label: '대표 인사말 — 대표 사진' },
+    { id: 'ferments-meju',       page: '전통발효식품', label: '전통 발효란 — 발효된 메주' },
+    { id: 'ferments-seedjang',   page: '전통발효식품', label: '씨장 이야기 — 씨장 항아리' },
+    { id: 'inst-class-jang',     page: '체험지도사',   label: '수업 구분 — 장류반 수업' },
+    { id: 'inst-class-vinegar',  page: '체험지도사',   label: '수업 구분 — 식초류반 수업' },
+    { id: 'inst-field',          page: '체험지도사',   label: '지도사란 — 강의·실습 현장' },
+    { id: 'nuruk-intro',         page: '누룩이야기',   label: '누룩이란 — 누룩 사진' },
+    { id: 'nuruk-rice',          page: '누룩이야기',   label: '쌀누룩 만들기' },
+    { id: 'nuruk-yogurt',        page: '누룩이야기',   label: '요거트 만들기' },
+    { id: 'nuruk-gochujang',     page: '누룩이야기',   label: '저염 고추장 만들기' },
+    { id: 'nuruk-makjang',       page: '누룩이야기',   label: '저염 막장 만들기' },
+    { id: 'nuruk-ganjang',       page: '누룩이야기',   label: '저염 간장·소금 만들기' },
+    { id: 'prod-seedjang',       page: '제품',        label: '씨장 분양 — 장독대' },
+    { id: 'prod-giftset',        page: '제품',        label: '명절선물세트' },
+  ];
+  function renderSlotImages() {
+    var slots = document.querySelectorAll('[data-img-slot]');
+    if (!slots.length) return;
+    idb.all('simg').then(function (recs) {
+      var map = {};
+      recs.forEach(function (r) { map[r.id] = r; });
+      slots.forEach(function (el) {
+        var rec = map[el.getAttribute('data-img-slot')];
+        if (!rec || !rec.blob || el.querySelector('.slot-img')) return;
+        var img = document.createElement('img');
+        img.className = 'slot-img';
+        img.alt = el.getAttribute('data-label') || '';
+        img.src = URL.createObjectURL(rec.blob);
+        el.classList.add('has-img');
+        el.appendChild(img);
+      });
+    });
+  }
 
   /* ---------------- 방문 통계 (대시보드용) ---------------- */
   var VISITS_KEY = 'kach_visits_v1';
@@ -906,6 +951,7 @@
     renderPartnersStrip();
     renderNewsPreview();
     renderCohortSchedule();
+    renderSlotImages();
     revealScan();
     initToTop();
     initNavScroll();
@@ -920,6 +966,7 @@
     getJSON: getJSON, setJSON: setJSON, pushRecord: pushRecord,
     fmtWon: fmtWon, fmtYMD: fmtYMD, todayStr: todayStr, genOrderNo: genOrderNo,
     idb: idb, toast: toast, revealScan: revealScan,
+    IMG_SLOTS: IMG_SLOTS, renderSlotImages: renderSlotImages,
     requireAdmin: requireAdmin, verifyLogin: verifyLogin, lockMs: lockMs,
     openModal: openModal, closeModal: closeModal, rawModal: rawModal, openOrderLookup: openOrderLookup,
     getPartners: getPartners, setPartners: setPartners, renderPartnersStrip: renderPartnersStrip, partnerDefaults: PARTNER_DEFAULTS,

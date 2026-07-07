@@ -45,8 +45,28 @@
   </div>
 </section>
 
+<!-- 누룩이란? -->
+<section class="section" id="about">
+  <div class="wrap split" style="grid-template-columns:1.1fr 0.9fr">
+    <div class="reveal">
+      <span class="eyebrow">누룩이란?</span>
+      <h2 style="margin-top:14px">발효를 깨우는<br>작은 씨앗, 누룩</h2>
+      <p class="lede" style="margin-top:18px">누룩은 쌀·밀 같은 곡물에 이로운 곰팡이(누룩균)와 효모를 번식시킨 <b>천연 발효제</b>입니다. 누룩 속 효소가 곡물의 전분을 당으로, 단백질을 감칠맛 성분으로 분해하면서 비로소 발효가 시작됩니다.</p>
+      <p class="muted">우리 조상들은 이 누룩으로 술을 빚고 장을 담그고 식초를 길렀습니다. 누룩 없이는 전통주도, 식초도, 깊은 장맛도 시작될 수 없기에 누룩은 우리 발효문화의 출발점이라 불립니다.</p>
+      <p class="muted">특히 쌀누룩은 발효가 만든 자연의 단맛과 감칠맛을 내기 때문에, 소금과 설탕을 줄인 <b style="color:var(--ink)">저염 장류</b>·요거트·발효 조미료의 바탕 재료가 됩니다. 누룩이야기의 모든 수업이 쌀누룩 만들기에서 시작하는 이유입니다.</p>
+      <div class="grid g-3" style="gap:14px;margin-top:24px">
+        <div><b style="color:var(--main)">당화</b><p class="muted" style="margin:4px 0 0;font-size:14px">전분을 분해해 자연의 단맛을 만듭니다.</p></div>
+        <div><b style="color:var(--main)">감칠맛</b><p class="muted" style="margin:4px 0 0;font-size:14px">단백질을 분해해 깊은 맛을 냅니다.</p></div>
+        <div><b style="color:var(--main)">저염</b><p class="muted" style="margin:4px 0 0;font-size:14px">소금을 줄여도 맛의 균형을 지켜줍니다.</p></div>
+      </div>
+    </div>
+    <!-- TODO: [누룩(쌀누룩) 사진] 수령 후 교체 -->
+    <div class="reveal ph tone-oat ratio-43" data-img-slot="nuruk-intro" data-label="누룩(쌀누룩) 사진"><i data-lucide="wheat"></i></div>
+  </div>
+</section>
+
 <!-- 커리큘럼 -->
-<section class="section" id="curriculum">
+<section class="section band-tint" id="curriculum">
   <div class="wrap">
     <div class="section-head reveal">
       <span class="eyebrow">커리큘럼</span>
@@ -56,27 +76,27 @@
     <div class="nuruk-grid" style="margin-top:44px">
       <div class="card card-hover nuruk-card reveal">
         <!-- TODO: [쌀누룩 만들기 수업 사진] 수령 후 교체 -->
-        <div class="ph tone-oat ratio-32" data-label="쌀누룩 만들기 사진"><i data-lucide="wheat"></i></div>
+        <div class="ph tone-oat ratio-32" data-img-slot="nuruk-rice" data-label="쌀누룩 만들기 사진"><i data-lucide="wheat"></i></div>
         <div class="nc-body"><span class="tag point">필수 과정</span><h4>1. 쌀누룩 만들기</h4><p class="muted" style="margin:0;font-size:14px">모든 누룩 수업의 출발점 — 쌀에 누룩균을 띄워 발효의 씨앗을 만듭니다.</p></div>
       </div>
       <div class="card card-hover nuruk-card reveal">
         <!-- TODO: [요거트 만들기 수업 사진] 수령 후 교체 -->
-        <div class="ph tone-main ratio-32" data-label="요거트 만들기 사진"><i data-lucide="milk"></i></div>
+        <div class="ph tone-main ratio-32" data-img-slot="nuruk-yogurt" data-label="요거트 만들기 사진"><i data-lucide="milk"></i></div>
         <div class="nc-body"><span class="tag">커리큘럼</span><h4>2. 요거트 만들기</h4><p class="muted" style="margin:0;font-size:14px">누룩 발효를 응용해 집에서 즐기는 건강한 요거트를 만듭니다.</p></div>
       </div>
       <div class="card card-hover nuruk-card reveal">
         <!-- TODO: [저염 고추장 만들기 수업 사진] 수령 후 교체 -->
-        <div class="ph tone-point ratio-32" data-label="저염 고추장 만들기 사진"><i data-lucide="flame"></i></div>
+        <div class="ph tone-point ratio-32" data-img-slot="nuruk-gochujang" data-label="저염 고추장 만들기 사진"><i data-lucide="flame"></i></div>
         <div class="nc-body"><span class="tag">커리큘럼</span><h4>3. 저염 고추장 만들기</h4><p class="muted" style="margin:0;font-size:14px">쌀누룩의 단맛을 살려 염도를 낮춘 건강한 고추장을 담급니다.</p></div>
       </div>
       <div class="card card-hover nuruk-card reveal">
         <!-- TODO: [저염 막장 만들기 수업 사진] 수령 후 교체 -->
-        <div class="ph tone-oat ratio-32" data-label="저염 막장 만들기 사진"><i data-lucide="soup"></i></div>
+        <div class="ph tone-oat ratio-32" data-img-slot="nuruk-makjang" data-label="저염 막장 만들기 사진"><i data-lucide="soup"></i></div>
         <div class="nc-body"><span class="tag">커리큘럼</span><h4>4. 저염 막장 만들기</h4><p class="muted" style="margin:0;font-size:14px">구수한 강원도식 막장을 저염 방식으로 담가 부담 없이 즐깁니다.</p></div>
       </div>
       <div class="card card-hover nuruk-card reveal">
         <!-- TODO: [저염 간장·소금 만들기 수업 사진] 수령 후 교체 -->
-        <div class="ph tone-deep ratio-32" data-label="저염 간장·소금 만들기 사진"><i data-lucide="droplet"></i></div>
+        <div class="ph tone-deep ratio-32" data-img-slot="nuruk-ganjang" data-label="저염 간장·소금 만들기 사진"><i data-lucide="droplet"></i></div>
         <div class="nc-body"><span class="tag">커리큘럼</span><h4>5. 저염 간장·소금 만들기</h4><p class="muted" style="margin:0;font-size:14px">누룩 발효로 감칠맛을 끌어올린 저염 간장과 발효 소금을 만듭니다.</p></div>
       </div>
     </div>
@@ -85,7 +105,7 @@
 
 <!-- 수업 안내 -->
 <section class="section band-oat" id="notice">
-  <div class="wrap wrap-narrow">
+  <div class="wrap">
     <div class="card card-pad reveal" style="text-align:center">
       <div class="icon-badge" style="margin:0 auto"><i data-lucide="info"></i></div>
       <h3 style="margin:18px 0 10px">수업 안내</h3>
