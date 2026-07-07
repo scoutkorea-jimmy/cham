@@ -43,7 +43,7 @@
   <div class="wrap">
     <div class="hero-copy">
       <p class="hero-kicker reveal">천년의 지혜 발효식품</p>
-      <h1 class="reveal hero-title">전통의 깊이,<br>발효의 가치를<br>이어갑니다.</h1>
+      <h1 class="reveal hero-title">전통의 깊이,<br>발효의 가치를 이어갑니다.</h1>
       <p class="sub reveal">전통발효식품의 보급과 한 항아리에 담긴 ‘장’을 다음 세대로 계승합니다.</p>
       <div class="hero-cta reveal">
         <a class="btn btn-point btn-lg" href="instructor.html"><i data-lucide="sprout"></i>전통발효식품 체험지도사 신청</a>
@@ -273,19 +273,22 @@
 <footer id="site-footer"></footer>
 
 <style id="page-style">
-  /* 히어로 — 정선 장독대 전경 사진 배경 + 카피 3단 (서브카피 > 메인카피(축소) > 설명문) */
+  /* 히어로 — 정선 장독대 전경 사진 배경, 카피 가운데 정렬 (서브카피 > 메인카피 > 설명문) */
   .hero {
     background:
-      linear-gradient(105deg, rgba(28,32,22,.74) 0%, rgba(28,32,22,.46) 52%, rgba(28,32,22,.24) 100%),
+      linear-gradient(rgba(28,32,22,.62) 0%, rgba(28,32,22,.44) 45%, rgba(28,32,22,.58) 100%),
       url('assets/hero-bg.jpg') center 60% / cover no-repeat;
-    padding-top: calc(var(--s20) + 16px);
-    padding-bottom: calc(var(--sec-pad) + 28px);
+    padding-top: calc(var(--s20) + 24px);
+    padding-bottom: calc(var(--sec-pad) + 36px);
+    text-align: center;
   }
-  .hero-copy { max-width: 640px; }
+  .hero-copy { max-width: 760px; margin-inline: auto; }
   .hero-kicker { font-family:var(--font-head); font-weight:700; font-size:clamp(20px,2.4vw,30px); color:var(--sub); margin:0 0 14px; letter-spacing:-0.01em; }
-  .hero .hero-title { font-size:var(--fs-h1); color:#fff; }
-  .hero .sub { color:rgba(255,255,255,.92); }
+  .hero .hero-title { font-size:var(--fs-h1); color:#fff; text-shadow:0 2px 28px rgba(0,0,0,.4); }
+  .hero .sub { color:rgba(255,255,255,.92); margin-inline:auto; text-shadow:0 1px 16px rgba(0,0,0,.35); }
+  .hero .hero-cta, .hero .pill-row { justify-content:center; }
   .hero .pill { background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.3); color:#fff; }
+  .hero .pill i[data-lucide] { color:var(--sub); }
   .video-embed { max-width:none; margin:48px auto 0; }
   .video-frame { position:relative; aspect-ratio:16/9; border-radius:var(--r-lg); overflow:hidden; border:1px solid var(--line-soft); box-shadow:var(--sh-md); background:var(--main-deeper); }
   .video-frame iframe { position:absolute; inset:0; width:100%; height:100%; border:0; display:block; }
