@@ -17,11 +17,30 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://esm.sh" crossorigin>
 <link rel="stylesheet" href="assets/site.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[
  {"@type":"ListItem","position":1,"name":"홈","item":"index.html"},
  {"@type":"ListItem","position":2,"name":"문의하기","item":"contact.html"}]}
 </script>
+<style id="page-style">
+  .map-wrap { border-radius: var(--r-lg); overflow: hidden; border: 1px solid var(--line-soft); box-shadow: var(--sh-sm); }
+  #osmMap { width: 100%; aspect-ratio: 4/3; background: var(--surface-2); }
+  .leaflet-container { font: inherit; }
+  /* 연락 수단 — 전화를 가장 큰 요소로 */
+  .contact-lead { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center;
+    background: var(--point-tint); border-radius: var(--r-xl); padding: 48px 44px; }
+  .cl-tel { display: block; font-family: var(--font-head); font-weight: 800; color: var(--ink);
+    font-size: clamp(36px, 5vw, 56px); line-height: 1.15; letter-spacing: -0.02em; margin-top: 12px; }
+  .cl-tel.sub { font-size: clamp(24px, 3.2vw, 34px); color: var(--ink-soft); margin-top: 4px; }
+  .cl-tel:hover { color: var(--olive-deep); }
+  .cl-side { display: flex; flex-direction: column; gap: 22px; }
+  .cl-row { display: flex; gap: 14px; align-items: flex-start; }
+  .cl-row i[data-lucide] { width: 22px; height: 22px; color: var(--olive-deep); flex-shrink: 0; margin-top: 3px; }
+  .cl-row b { display: block; margin-bottom: 3px; }
+  .cl-row p { margin: 0; color: var(--ink-mute); font-size: var(--fs-sm); line-height: 1.7; }
+  @media (max-width: 860px){ .contact-lead { grid-template-columns: 1fr; padding: 34px 26px; gap: 30px; } }
+</style>
 </head>
 <body data-page="contact">
 <header id="site-nav"></header>
@@ -35,35 +54,63 @@
   </div>
 </section>
 
+<!-- 연락 수단 — 이 연령대는 전화 문의 비중이 높아 전화를 가장 크게 -->
 <section class="section">
   <div class="wrap">
-    <!-- 연락처 -->
-    <div class="grid g-4 reveal">
-      <div class="card card-pad"><div class="icon-badge"><i data-lucide="phone"></i></div><h5 style="margin:16px 0 4px">전화</h5><p class="muted" style="margin:0">02-855-8806</p></div>
-      <div class="card card-pad"><div class="icon-badge point"><i data-lucide="mail"></i></div><h5 style="margin:16px 0 4px">이메일</h5><p class="muted" style="margin:0">kach5501@hanmail.net</p></div>
-      <div class="card card-pad"><div class="icon-badge oat"><i data-lucide="clock"></i></div><h5 style="margin:16px 0 4px">운영 시간</h5><p class="muted" style="margin:0">평일 09:00 – 18:00</p></div>
-      <div class="card card-pad"><div class="icon-badge"><i data-lucide="map-pin"></i></div><h5 style="margin:16px 0 4px">주소</h5><p class="muted" style="margin:0;font-size:14px">서울 구로구 구로동로 240,<br>세일빌딩 701호</p></div>
+    <div class="contact-lead reveal">
+      <div class="cl-main">
+        <span class="eyebrow">전화 문의</span>
+        <a class="cl-tel" href="tel:02-855-8806">02-855-8806</a>
+        <a class="cl-tel sub" href="tel:010-8768-9551">010-8768-9551</a>
+        <p class="muted" style="margin:14px 0 0">평일 09:00 – 18:00 · 점심시간 12:00 – 13:00</p>
+      </div>
+      <div class="cl-side">
+        <div class="cl-row"><i data-lucide="mail"></i><div><b>이메일</b><p>kach5501@hanmail.net</p></div></div>
+        <div class="cl-row"><i data-lucide="map-pin"></i><div><b>주소</b><p>서울특별시 구로구 구로동로 240,<br>세일빌딩 701호 (구로동)</p></div></div>
+        <div class="cl-row"><i data-lucide="navigation"></i><div><b>찾아오시는 길</b><p>NC신구로점 맞은편 쿠쿠대리점 건물 7층</p></div></div>
+      </div>
     </div>
+  </div>
+</section>
 
-    <!-- 문의 유형 -->
-    <div class="section-head reveal" style="margin-top:72px"><span class="eyebrow">문의 유형</span><h2>어떤 도움이 필요하신가요?</h2><p class="lede">유형을 선택하면 문의 양식이 바로 열립니다.</p></div>
-    <div class="grid g-4 reveal" style="margin-top:36px">
-      <button class="card card-pad card-hover" data-modal="inquiry" data-type="일반 문의" style="text-align:left;background:var(--surface);cursor:pointer;border:1px solid var(--line-soft);font:inherit">
-        <div class="icon-badge oat"><i data-lucide="message-circle"></i></div><h4 style="margin:16px 0 6px">일반 문의</h4><p class="muted" style="margin:0;font-size:14px">협동조합 전반에 대한 문의</p>
-      </button>
+<!-- 문의 유형 -->
+<section class="section band-oat">
+  <div class="wrap">
+    <div class="section-head center reveal"><span class="eyebrow center">온라인 문의</span><h2>어떤 도움이 필요하신가요?</h2><p class="lede">유형을 선택하면 문의 양식이 바로 열립니다. 연락처만 남겨주셔도 됩니다.</p></div>
+    <div class="grid g-4 reveal" style="margin-top:44px">
       <button class="card card-pad card-hover" data-modal="inquiry" data-type="교육 문의" style="text-align:left;background:var(--surface);cursor:pointer;border:1px solid var(--line-soft);font:inherit">
-        <div class="icon-badge"><i data-lucide="graduation-cap"></i></div><h4 style="margin:16px 0 6px">교육 문의</h4><p class="muted" style="margin:0;font-size:14px">체험지도사 과정·일정 문의</p>
+        <div class="icon-badge point"><i data-lucide="graduation-cap"></i></div><h4 style="margin:16px 0 6px">교육 문의</h4><p class="muted" style="margin:0;font-size:var(--fs-sm)">체험지도사 과정 · 다음 기수 일정 · 원데이 수업</p>
       </button>
       <button class="card card-pad card-hover" data-modal="inquiry" data-type="제품 문의" style="text-align:left;background:var(--surface);cursor:pointer;border:1px solid var(--line-soft);font:inherit">
-        <div class="icon-badge point"><i data-lucide="shopping-basket"></i></div><h4 style="margin:16px 0 6px">제품 문의</h4><p class="muted" style="margin:0;font-size:14px">주문·배송·씨장 분양 문의</p>
+        <div class="icon-badge olive"><i data-lucide="shopping-basket"></i></div><h4 style="margin:16px 0 6px">제품 · 주문 문의</h4><p class="muted" style="margin:0;font-size:var(--fs-sm)">식초 · 장류 가격 · 배송 · 선물세트 구성</p>
+      </button>
+      <button class="card card-pad card-hover" data-modal="seedjang" style="text-align:left;background:var(--surface);cursor:pointer;border:1px solid var(--line-soft);font:inherit">
+        <div class="icon-badge oat"><i data-lucide="sprout"></i></div><h4 style="margin:16px 0 6px">씨장 분양</h4><p class="muted" style="margin:0;font-size:var(--fs-sm)">전국민 씨장 갖기 운동 · 분양 상담</p>
       </button>
       <button class="card card-pad card-hover" data-modal="inquiry" data-type="제휴 문의" style="text-align:left;background:var(--surface);cursor:pointer;border:1px solid var(--line-soft);font:inherit">
-        <div class="icon-badge oat"><i data-lucide="handshake"></i></div><h4 style="margin:16px 0 6px">제휴 문의</h4><p class="muted" style="margin:0;font-size:14px">파트너십·납품·협력 제안</p>
+        <div class="icon-badge"><i data-lucide="handshake"></i></div><h4 style="margin:16px 0 6px">제휴 · 출강 문의</h4><p class="muted" style="margin:0;font-size:var(--fs-sm)">기관 출강 · 납품 · 협력 제안</p>
       </button>
     </div>
+    <div class="reveal" style="text-align:center;margin-top:44px">
+      <button class="btn btn-point btn-lg" data-modal="inquiry"><i data-lucide="edit-3"></i>문의 양식 바로 작성하기</button>
+    </div>
+  </div>
+</section>
 
-    <div class="reveal" style="text-align:center;margin-top:48px">
-      <button class="btn btn-point btn-lg" data-modal="inquiry"><i data-lucide="edit-3"></i>문의 양식 작성하기</button>
+<!-- 오시는 길 -->
+<section class="section" id="location">
+  <div class="wrap split" style="grid-template-columns:1.15fr 0.85fr;gap:48px">
+    <div class="reveal map-wrap"><div id="osmMap" role="img" aria-label="한국참전통발효식품협동조합 위치 지도"></div></div>
+    <div class="reveal">
+      <span class="eyebrow">오시는 길</span>
+      <h2 style="margin-top:14px">찾아오시는 길</h2>
+      <dl class="facts" style="margin-top:26px">
+        <div class="fact"><dt>주소</dt><dd>서울특별시 구로구 구로동로 240,<br>세일빌딩 701호 (구로동)</dd></div>
+        <div class="fact"><dt>가까운 곳</dt><dd>NC신구로점 맞은편 쿠쿠대리점 건물 7층</dd></div>
+        <div class="fact"><dt>전화</dt><dd><a href="tel:02-855-8806" style="text-decoration:underline">02-855-8806</a></dd></div>
+        <div class="fact"><dt>운영 시간</dt><dd>평일 09:00 – 18:00 (주말·공휴일 휴무)</dd></div>
+      </dl>
+      <p class="muted" style="margin-top:20px;font-size:var(--fs-sm)">교육 실습장(정선 만장대)은 별도 장소입니다. 방문 전 전화 주시면 안내해 드립니다.</p>
     </div>
   </div>
 </section>
@@ -71,5 +118,7 @@
 <footer id="site-footer"></footer>
 <script defer src="https://unpkg.com/lucide@1.17.0"></script>
 <script defer src="assets/site.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script defer src="assets/map.js"></script>
 </body>
 </html>

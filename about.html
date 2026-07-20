@@ -42,6 +42,19 @@
   </div>
 </section>
 
+
+<!-- 페이지 내 이동 -->
+<nav class="jump" aria-label="페이지 목차">
+  <div class="wrap"><div class="jump-inner">
+    <a href="#greeting">인사말</a>
+    <a href="#purpose">소셜미션</a>
+    <a href="#vision">비전·미션</a>
+    <a href="#people">조직·강사진</a>
+    <a href="#credentials">인증·사업자정보</a>
+    <a href="#partner">파트너</a>
+    <a href="#location">오시는 길</a>
+  </div></div>
+</nav>
 <!-- 인사말 -->
 <section class="section" id="greeting">
   <div class="wrap split" style="grid-template-columns:0.8fr 1.2fr">
@@ -201,28 +214,8 @@
 <footer id="site-footer"></footer>
 <script defer src="https://unpkg.com/lucide@1.17.0"></script>
 <script defer src="assets/site.js"></script>
+<script defer src="assets/jump.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-<script>
-  // OSM(OpenStreetMap) + Leaflet 약도. 좌표는 서울 구로구 구로동 인근 근사값으로,
-  // 정확한 핀 위치는 실제 측량 후 LAT/LNG 두 값만 교체하면 됩니다.
-  document.addEventListener('DOMContentLoaded', function () {
-    var mapEl = document.getElementById('osmMap');
-    if (!mapEl) return;
-    if (!window.L) {
-      mapEl.innerHTML = '<div style="display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center;height:100%;min-height:280px;padding:24px;text-align:center;color:var(--ink-mute);line-height:1.6">' +
-        '<b style="color:var(--ink)">지도를 불러올 수 없습니다</b><span>서울특별시 구로구 구로동로 240, 세일빌딩 701호</span></div>';
-      return;
-    }
-    var LAT = 37.50331, LNG = 126.88262;
-    var map = L.map('osmMap', { scrollWheelZoom: false, attributionControl: true }).setView([LAT, LNG], 16);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> 기여자'
-    }).addTo(map);
-    L.marker([LAT, LNG]).addTo(map)
-      .bindPopup('<b>한국참전통발효식품협동조합</b><br>서울 구로구 구로동로 240, 세일빌딩 701호')
-      .openPopup();
-    map.on('click', function () { map.scrollWheelZoom.enable(); });
-  });
-</script>
+<script defer src="assets/map.js"></script>
 </body>
 </html>
