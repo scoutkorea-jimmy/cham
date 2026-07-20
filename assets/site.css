@@ -73,16 +73,17 @@
   --fs-h3: 26px;
   --fs-h4: 21px;
   --fs-h5: 18px;
-  --fs-body-lg: 18px;
-  --fs-body: 16px;
-  --fs-sm: 14px;
-  --fs-caption: 13px;
-  --fs-micro: 11px;
+  /* 타깃 독자 30~50대 — 40대 이후 가독성을 고려해 본문 한 단계씩 키움 */
+  --fs-body-lg: 19px;
+  --fs-body: 17px;
+  --fs-sm: 15px;
+  --fs-caption: 14px;
+  --fs-micro: 12px;
 
   --lh-tight: 1.12;
-  --lh-snug: 1.3;
-  --lh-normal: 1.6;
-  --lh-relaxed: 1.8;
+  --lh-snug: 1.32;
+  --lh-normal: 1.72;
+  --lh-relaxed: 1.9;
   --tracking-kicker: 0.22em;
 
   /* ---- Spacing (4px grid) ---- */
@@ -451,7 +452,9 @@ p  { margin: 0 0 var(--s4); text-wrap: pretty; }
 /* ============================================================
    Footer
    ============================================================ */
-#site-footer { background: var(--main-deeper); color: rgba(255,255,255,0.75); margin-top: var(--s16); position: relative; }
+/* margin-top 없음 — 앞 섹션이 색상 밴드일 때 64px 흰 띠가 생겼음.
+   섹션은 이미 --sec-pad(80px) 하단 여백을 갖고 있어 별도 간격이 필요 없다. */
+#site-footer { background: var(--main-deeper); color: rgba(255,255,255,0.75); position: relative; }
 .footer-inner { width:100%; max-width: var(--maxw); margin-inline:auto; padding: var(--s20) var(--s8) var(--s10); }
 .footer-top { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: var(--s12); }
 .footer-brand img { width: 56px; height: 56px; background: var(--bg); border-radius: 12px; padding: 5px; }
@@ -529,6 +532,97 @@ body { background-image: var(--pat-dark); background-size: var(--pat-size); back
 .band-oat, .band-tint, .page-hero:not(.deep) { background-image: var(--pat-dark); background-size: var(--pat-size); }
 /* dark / brand backgrounds → light thread */
 .band-deep, .band-sage, .page-hero.deep, #site-footer { background-image: var(--pat-light); background-size: var(--pat-size); }
+
+/* ============================================================
+   섹션 아키타입 — 내용 성격별로 형태를 달리해 단조로움을 없앤다.
+   (기존 .card 그리드 하나로 모든 섹션을 찍어내던 문제 해결)
+   ============================================================ */
+
+/* 1. 사업 축 진입 — 사진 위 라벨. 홈에서 '무엇을 하는 곳인가'를 3초에 전달 */
+.pillars { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s5); }
+.pillar {
+  position: relative; display: block; overflow: hidden; border-radius: var(--r-lg);
+  min-height: 380px; color: #fff; isolation: isolate;
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.pillar:hover { transform: translateY(-4px); box-shadow: var(--sh-lg); }
+.pillar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; }
+.pillar::after {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(180deg, rgba(30,28,24,.15) 0%, rgba(30,28,24,.55) 52%, rgba(30,28,24,.88) 100%);
+}
+.pillar-body { position: absolute; inset: auto 0 0 0; padding: var(--s6) var(--s6) var(--s8); }
+.pillar .p-no { font-family: var(--font-head); font-weight: 800; font-size: 13px; color: var(--point); letter-spacing: .1em; }
+.pillar h3 { color: #fff; margin: 8px 0 10px; font-size: 25px; }
+.pillar p { color: rgba(255,255,255,.86); margin: 0 0 16px; font-size: var(--fs-sm); line-height: 1.65; }
+.pillar .p-go { display: inline-flex; align-items: center; gap: 7px; font-size: var(--fs-sm); font-weight: 700; color: var(--point); }
+.pillar:hover .p-go { gap: 11px; }
+@media (max-width: 900px){ .pillars { grid-template-columns: 1fr; } .pillar { min-height: 300px; } }
+
+/* 2. 공정 레일 — 순서가 핵심인 내용(식초 제조, 발효 단계)을 선으로 연결해 보여준다 */
+.rail { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s5); position: relative; counter-reset: rail; }
+.rail::before {
+  content: ""; position: absolute; top: 27px; left: 8%; right: 8%; height: 2px;
+  background: repeating-linear-gradient(90deg, var(--sub-deep) 0 8px, transparent 8px 16px);
+}
+.rail-step { position: relative; text-align: center; }
+.rail-step .r-no {
+  width: 54px; height: 54px; margin: 0 auto var(--s4); border-radius: 50%;
+  background: var(--point); color: var(--point-ink);
+  display: grid; place-items: center; font-family: var(--font-head); font-weight: 800; font-size: 19px;
+  border: 5px solid var(--bg); box-shadow: 0 0 0 1px var(--sub-deep);
+}
+.rail-step h4 { font-size: var(--fs-h5); margin-bottom: 8px; }
+.rail-step p { color: var(--ink-mute); font-size: var(--fs-sm); margin: 0; line-height: 1.7; }
+.rail-step .r-meta { display: inline-block; margin-top: 10px; font-size: var(--fs-caption); font-weight: 700; color: var(--olive-deep); background: var(--olive-tint); padding: 4px 10px; border-radius: var(--r-pill); }
+@media (max-width: 900px){
+  .rail { grid-template-columns: 1fr 1fr; gap: var(--s8) var(--s4); }
+  .rail::before { display: none; }
+}
+@media (max-width: 520px){ .rail { grid-template-columns: 1fr; } }
+
+/* 3. 인용 — 대표 말씀·브랜드 문장을 본문과 다른 무게로 */
+.quote { max-width: 30em; margin-inline: auto; text-align: center; }
+.quote blockquote {
+  margin: 0; font-family: var(--font-head); font-weight: 800;
+  font-size: clamp(22px, 2.6vw, 34px); line-height: 1.45; letter-spacing: -0.01em;
+}
+.quote .q-mark { display: block; font-size: 46px; line-height: 1; color: var(--point); margin-bottom: 10px; }
+.quote cite { display: block; margin-top: var(--s6); font-style: normal; font-size: var(--fs-sm); color: var(--ink-mute); }
+
+/* 4. 칩 그리드 — 항목이 많고 각각은 짧은 목록(강의처, 라인업) */
+.chips { display: flex; flex-wrap: wrap; gap: 10px; }
+.chips .chip {
+  padding: 9px 16px; border-radius: var(--r-pill); font-size: var(--fs-sm); font-weight: 600;
+  background: var(--surface); border: 1px solid var(--line); color: var(--ink-soft);
+}
+.chips .chip.on { background: var(--point); border-color: var(--point); color: var(--point-ink); font-weight: 700; }
+
+/* 5. 에디토리얼 블록 — 사진과 글을 좌우 교차 배치 (긴 설명형 내용) */
+.spec { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s16); align-items: center; }
+.spec + .spec { margin-top: var(--s16); }
+.spec:nth-child(even) .spec-media { order: -1; }
+.spec-media img { width: 100%; border-radius: var(--r-lg); display: block; }
+@media (max-width: 860px){
+  .spec { grid-template-columns: 1fr; gap: var(--s8); }
+  .spec:nth-child(even) .spec-media { order: 0; }
+  .spec + .spec { margin-top: var(--s12); }
+}
+
+/* 6. 페이지 내 섹션 이동 바 — 긴 페이지에서 현재 위치와 목차를 고정 노출 */
+.jump { position: sticky; top: var(--nav-h); z-index: 40; background: rgba(255,255,255,.94); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line-soft); }
+.jump-inner { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; padding: 10px 0; }
+.jump-inner::-webkit-scrollbar { display: none; }
+.jump a {
+  white-space: nowrap; padding: 9px 16px; border-radius: var(--r-pill);
+  font-size: var(--fs-sm); font-weight: 600; color: var(--ink-soft);
+}
+.jump a:hover { background: var(--main-tint); color: var(--ink); }
+.jump a.on { background: var(--point); color: var(--point-ink); font-weight: 700; }
+@media (max-width: 860px){ .jump { top: 80px; } }
+
+/* 확정 판매가가 없는 품목 — 숫자 대신 '가격 문의' */
+.price-ask { font-family: var(--font-head); font-weight: 800; font-size: 19px; color: var(--olive-deep); }
 
 /* 제품 실사(병 사진) — 세로로 긴 피사체라 잘라내지 않고 여백 위에 얹는다 */
 .prod-photo {

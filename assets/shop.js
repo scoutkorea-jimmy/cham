@@ -27,6 +27,12 @@
   }
 
   function priceHTML(p, compact) {
+    // 확정 판매가가 없는 품목은 숫자를 지어내지 않고 '가격 문의'로 표시한다
+    if (p.priceOnRequest) {
+      return compact
+        ? '<span class="price-ask">가격 문의</span>'
+        : '<span class="price-ask" style="font-size:24px">가격 문의</span><span class="muted" style="font-size:var(--fs-sm);margin-left:8px">전화 02-855-8806</span>';
+    }
     var now = p.salePrice != null && p.salePrice !== '' ? Number(p.salePrice) : Number(p.price);
     var hasDc = p.salePrice != null && p.salePrice !== '' && Number(p.salePrice) < Number(p.price);
     if (compact) {
@@ -110,6 +116,8 @@
       setM('meta[property="og:description"]', p.summary);
     } catch (e) {}
     var soldout = p.status === '품절';
+    // 확정가가 없는 품목은 수량·합계·주문 UI를 띄우지 않고 전화/문의로만 받는다
+    var ask = !!p.priceOnRequest;
     var basePrice = p.salePrice != null && p.salePrice !== '' ? Number(p.salePrice) : Number(p.price);
 
     /* --- JSON-LD (SEO) --- */
@@ -161,19 +169,24 @@
           '<h1>' + esc(p.name) + '</h1>' +
           '<p class="pd-summary">' + esc(p.summary || '') + '</p>' +
           '<div class="pd-price">' + priceHTML(p) + '</div>' +
-          '<div class="pd-opts">' + optHtml +
-            '<div class="pd-row"><label>수량</label><div class="stepper">' +
-              '<button type="button" id="pdMinus" aria-label="수량 줄이기">−</button>' +
-              '<input id="pdQty" type="number" value="1" min="1" inputmode="numeric">' +
-              '<button type="button" id="pdPlus" aria-label="수량 늘리기">+</button>' +
-            '</div></div>' +
-          '</div>' +
-          '<div class="pd-total"><span>총 상품 금액</span><b id="pdTotal">' + fmtWon(basePrice) + '원</b></div>' +
+          (ask ? '' :
+            '<div class="pd-opts">' + optHtml +
+              '<div class="pd-row"><label>수량</label><div class="stepper">' +
+                '<button type="button" id="pdMinus" aria-label="수량 줄이기">−</button>' +
+                '<input id="pdQty" type="number" value="1" min="1" inputmode="numeric">' +
+                '<button type="button" id="pdPlus" aria-label="수량 늘리기">+</button>' +
+              '</div></div>' +
+            '</div>' +
+            '<div class="pd-total"><span>총 상품 금액</span><b id="pdTotal">' + fmtWon(basePrice) + '원</b></div>') +
           '<div class="pd-cta">' +
-            '<button class="btn btn-point btn-lg" id="pdBuy"' + (soldout ? ' disabled' : '') + '><i data-lucide="shopping-basket"></i>' + (soldout ? '품절' : '구매하기') + '</button>' +
+            (ask
+              ? '<a class="btn btn-point btn-lg" href="tel:02-855-8806"><i data-lucide="phone"></i>02-855-8806</a>'
+              : '<button class="btn btn-point btn-lg" id="pdBuy"' + (soldout ? ' disabled' : '') + '><i data-lucide="shopping-basket"></i>' + (soldout ? '품절' : '구매하기') + '</button>') +
             '<button class="btn btn-ghost btn-lg" id="pdAsk"><i data-lucide="message-circle"></i>문의하기</button>' +
           '</div>' +
-          '<p class="pd-meta-note">· 회원가입 없이 <b>비회원 주문</b>이 가능합니다 (무통장입금)<br>· 주문 후 발급되는 주문번호로 <a href="#" data-modal="orderlookup" style="text-decoration:underline">주문 조회</a>를 할 수 있습니다</p>' +
+          (ask
+            ? '<p class="pd-meta-note">· 이 품목은 <b>가격이 변동될 수 있어</b> 전화·문의로 안내해 드립니다<br>· 수량과 배송지를 알려주시면 정확한 금액을 안내해 드립니다</p>'
+            : '<p class="pd-meta-note">· 회원가입 없이 <b>비회원 주문</b>이 가능합니다 (무통장입금)<br>· 주문 후 발급되는 주문번호로 <a href="#" data-modal="orderlookup" style="text-decoration:underline">주문 조회</a>를 할 수 있습니다</p>') +
         '</div>' +
       '</div>' +
       '<div class="wrap" style="padding-bottom:64px">' +
@@ -188,8 +201,11 @@
           '<div class="grid g-4" id="pdRelated" style="margin-top:28px"></div>' +
         '</div>' +
       '</div>' +
-      '<div class="buybar"><span class="bb-price" id="bbPrice">' + fmtWon(basePrice) + '원</span>' +
-        '<button class="btn btn-point" id="bbBuy"' + (soldout ? ' disabled' : '') + '>' + (soldout ? '품절' : '구매하기') + '</button></div>';
+      (ask
+        ? '<div class="buybar"><span class="bb-price">가격 문의</span>' +
+            '<a class="btn btn-point" href="tel:02-855-8806">전화 문의</a></div>'
+        : '<div class="buybar"><span class="bb-price" id="bbPrice">' + fmtWon(basePrice) + '원</span>' +
+            '<button class="btn btn-point" id="bbBuy"' + (soldout ? ' disabled' : '') + '>' + (soldout ? '품절' : '구매하기') + '</button></div>');
     document.body.classList.add('has-buybar');
     icons();
 
@@ -241,23 +257,26 @@
       return basePrice + (o ? Number(o.add) || 0 : 0);
     }
     function updateTotal() {
+      if (ask) return;
       var qty = Math.max(1, Number(document.getElementById('pdQty').value) || 1);
       var total = fmtWon(unitPrice() * qty) + '원';
       document.getElementById('pdTotal').textContent = total;
       var bb = document.getElementById('bbPrice');
       if (bb) bb.textContent = total;
     }
-    document.getElementById('pdMinus').addEventListener('click', function () {
-      var q = document.getElementById('pdQty');
-      q.value = Math.max(1, (Number(q.value) || 1) - 1); updateTotal();
-    });
-    document.getElementById('pdPlus').addEventListener('click', function () {
-      var q = document.getElementById('pdQty');
-      q.value = (Number(q.value) || 1) + 1; updateTotal();
-    });
-    document.getElementById('pdQty').addEventListener('input', updateTotal);
-    var optSel = document.getElementById('pdOpt');
-    if (optSel) optSel.addEventListener('change', updateTotal);
+    if (!ask) {
+      document.getElementById('pdMinus').addEventListener('click', function () {
+        var q = document.getElementById('pdQty');
+        q.value = Math.max(1, (Number(q.value) || 1) - 1); updateTotal();
+      });
+      document.getElementById('pdPlus').addEventListener('click', function () {
+        var q = document.getElementById('pdQty');
+        q.value = (Number(q.value) || 1) + 1; updateTotal();
+      });
+      document.getElementById('pdQty').addEventListener('input', updateTotal);
+      var optSel = document.getElementById('pdOpt');
+      if (optSel) optSel.addEventListener('change', updateTotal);
+    }
 
     /* --- 구매 / 문의 --- */
     function buy() {
@@ -272,7 +291,8 @@
         productId: p.id,
       });
     }
-    document.getElementById('pdBuy').addEventListener('click', buy);
+    var pdBuy = document.getElementById('pdBuy');
+    if (pdBuy) pdBuy.addEventListener('click', buy);
     var bbBuy = document.getElementById('bbBuy');
     if (bbBuy) bbBuy.addEventListener('click', buy);
     document.getElementById('pdAsk').addEventListener('click', function () {

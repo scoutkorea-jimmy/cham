@@ -28,6 +28,15 @@
       { label: '전통발효 과정', href: 'ferments.html#process' },
       { label: '발효식품의 효능', href: 'ferments.html#benefits' },
     ]},
+    { id: 'vinegar', label: '식초', href: 'vinegar.html', dd: [
+      { label: '서련(瑞蓮) 이야기', href: 'vinegar.html#brand' },
+      { label: '식초란 무엇인가', href: 'vinegar.html#what' },
+      { label: '만드는 과정', href: 'vinegar.html#process' },
+      { label: '식초 종류', href: 'vinegar.html#lineup' },
+      { label: '마시는 방법', href: 'vinegar.html#how' },
+      { label: '품질 · 시험성적', href: 'vinegar.html#quality' },
+      { label: '가격 · 구매', href: 'vinegar.html#buy' },
+    ]},
     { id: 'instructor', label: '체험지도사', href: 'instructor.html', dd: [
       { label: '교육안내', href: 'instructor.html#intro' },
       { label: '배우는 목적', href: 'instructor.html#purpose' },
@@ -125,6 +134,9 @@
     { id: 'about-fair',          page: '협동조합 소개', label: '조합 활동 — 박람회·현장' },
     { id: 'ferments-meju',       page: '전통발효식품', label: '전통 발효란 — 발효된 메주' },
     { id: 'ferments-seedjang',   page: '전통발효식품', label: '씨장 이야기 — 씨장 항아리' },
+    { id: 'vinegar-hero',        page: '식초',        label: '히어로 — 식초 대표 이미지' },
+    { id: 'vinegar-lineup',      page: '식초',        label: '식초 종류 — 라인업 전경' },
+    { id: 'vinegar-craft',       page: '식초',        label: '만드는 과정 — 작업 현장' },
     { id: 'inst-class-jang',     page: '체험지도사',   label: '수업 구분 — 장류반 수업' },
     { id: 'inst-class-vinegar',  page: '체험지도사',   label: '수업 구분 — 식초류반 수업' },
     { id: 'inst-field',          page: '체험지도사',   label: '지도사란 — 강의·실습 현장' },
@@ -453,27 +465,27 @@
       ship: SHIP_TPL, refund: REFUND_TPL, related: ['p_wine_grape', 'p_vin_citrus'] },
 
     /* ---- 장류 ---- */
-    { id: 'p_doenjang', name: '전통 된장', cat: '장류', price: 25000, salePrice: null, unit: '1kg', status: '판매중', stock: 50, option: null,
+    { priceOnRequest: true, id: 'p_doenjang', name: '전통 된장', cat: '장류', price: 25000, salePrice: null, unit: '1kg', status: '판매중', stock: 50, option: null,
       summary: '깊고 구수한 전통의 맛. 국산 콩 100%를 전통 씨장 방식으로 3년 이상 숙성했습니다.', icon: 'bean', tone: 'tone-oat',
       descHtml: '<h3>3년의 시간이 빚은 깊은 맛</h3><p>청정 정선의 장독대에서 자연의 속도로 익힌 전통 된장입니다. 국산 콩과 천일염만으로 담그고, 대를 이어온 씨장을 더해 깊은 풍미를 냅니다.</p><p>찌개·국은 물론 쌈장 베이스로도 좋습니다.</p>',
       gosi: gosiBase({ pname: '전통 된장 1kg', volume: '1kg', ingredients: '국산 콩 100%, 천일염, 씨장' }), ship: SHIP_TPL, refund: REFUND_TPL, related: ['p_gochujang', 'p_makjang', 'p_set3'] },
-    { id: 'p_gochujang', name: '태양초 고추장', cat: '장류', price: 28000, salePrice: null, unit: '1kg', status: '판매중', stock: 40, option: null,
+    { priceOnRequest: true, id: 'p_gochujang', name: '태양초 고추장', cat: '장류', price: 28000, salePrice: null, unit: '1kg', status: '판매중', stock: 40, option: null,
       summary: '매콤하고 감칠맛 가득. 햇볕에 말린 국산 태양초 고춧가루로 담갔습니다.', icon: 'flame', tone: 'tone-point',
       descHtml: '<h3>태양초의 매운맛, 발효의 단맛</h3><p>국산 태양초 고춧가루와 찹쌀, 전통 메주가루로 담가 장기 숙성한 고추장입니다. 인공 감미료 없이 발효가 만든 자연스러운 단맛이 특징입니다.</p>',
       gosi: gosiBase({ pname: '태양초 고추장 1kg', volume: '1kg', ingredients: '국산 고춧가루, 찹쌀, 메주가루, 천일염, 조청' }), ship: SHIP_TPL, refund: REFUND_TPL, related: ['p_doenjang', 'p_makjang', 'p_set3'] },
-    { id: 'p_makjang', name: '정선 막장', cat: '장류', price: 22000, salePrice: null, unit: '1kg', status: '판매중', stock: 45, option: null,
+    { priceOnRequest: true, id: 'p_makjang', name: '정선 막장', cat: '장류', price: 22000, salePrice: null, unit: '1kg', status: '판매중', stock: 45, option: null,
       summary: '구수하고 깊은 감칠맛. 강원도 전통 방식 그대로의 막장입니다.', icon: 'wheat', tone: 'tone-main',
       descHtml: '<h3>강원도 밥상의 비밀, 막장</h3><p>콩과 보리를 함께 띄워 담그는 강원도 전통 막장입니다. 된장보다 부드럽고 단맛이 돌아 쌈장·찌개에 두루 어울립니다.</p>',
       gosi: gosiBase({ pname: '정선 막장 1kg', volume: '1kg', ingredients: '국산 콩, 보리, 고춧가루, 천일염' }), ship: SHIP_TPL, refund: REFUND_TPL, related: ['p_doenjang', 'p_gochujang', 'p_set3'] },
-    { id: 'p_cheongguk', name: '전통 청국장', cat: '발효식품', price: 12000, salePrice: null, unit: '500g', status: '판매중', stock: 60, option: null,
+    { priceOnRequest: true, id: 'p_cheongguk', name: '전통 청국장', cat: '발효식품', price: 12000, salePrice: null, unit: '500g', status: '판매중', stock: 60, option: null,
       summary: '진하고 구수한 자연 발효 청국장. 국산 콩 100%.', icon: 'soup', tone: 'tone-deep',
       descHtml: '<h3>이틀의 기다림, 진한 구수함</h3><p>국산 콩을 삶아 볏짚으로 자연 발효시킨 전통 청국장입니다. 냉동 보관 후 끓이기만 하면 진한 청국장찌개가 완성됩니다.</p>',
       gosi: gosiBase({ pname: '전통 청국장 500g', volume: '500g', ingredients: '국산 콩 100%', storage: '냉동 보관 (-18℃ 이하)', expiry: '제조일로부터 6개월 (냉동 기준, 별도 표기)' }), ship: SHIP_TPL, refund: REFUND_TPL, related: ['p_doenjang', 'p_jangajji'] },
-    { id: 'p_jangajji', name: '제철 장아찌', cat: '발효식품', price: 15000, salePrice: null, unit: '500g', status: '판매중', stock: 30, option: null,
+    { priceOnRequest: true, id: 'p_jangajji', name: '제철 장아찌', cat: '발효식품', price: 15000, salePrice: null, unit: '500g', status: '판매중', stock: 30, option: null,
       summary: '전통 장으로 담근 짭조름한 밑반찬. 제철 채소로 담급니다.', icon: 'salad', tone: 'tone-oat',
       descHtml: '<h3>장이 익으면 반찬이 됩니다</h3><p>제철 채소를 3년 숙성 전통 장에 섞어 담근 장아찌입니다. 시기에 따라 구성 채소가 달라집니다.</p>',
       gosi: gosiBase({ pname: '제철 장아찌 500g', volume: '500g', ingredients: '제철 채소(깻잎·고추·무 등), 전통 간장·된장, 천일염', storage: '냉장 보관 (0~10℃)', expiry: '제조일로부터 6개월 (냉장 기준, 별도 표기)' }), ship: SHIP_TPL, refund: REFUND_TPL, related: ['p_cheongguk', 'p_meju'] },
-    { id: 'p_meju', name: '전통 메주', cat: '발효식품', price: 18000, salePrice: null, unit: '1개', status: '판매중', stock: 25,
+    { priceOnRequest: true, id: 'p_meju', name: '전통 메주', cat: '발효식품', price: 18000, salePrice: null, unit: '1개', status: '판매중', stock: 25,
       option: { name: '구성', values: [ { label: '1개', add: 0, stock: 25 }, { label: '3개 묶음 (5% 할인)', add: 33300, stock: 10 } ] },
       summary: '직접 장을 담그실 분들을 위한 자연 건조 메주.', icon: 'package', tone: 'tone-main',
       descHtml: '<h3>장 담그기의 시작</h3><p>국산 콩을 삶아 빚고 자연 바람에 말려 띄운 전통 메주입니다. 장 담그기 시기(정월)에 맞춰 예약 주문을 권장합니다.</p>',
@@ -485,12 +497,12 @@
       gosi: gosiBase({ pname: '서련 수제식초 선물상자 (500ml + 300ml)', volume: '500ml + 300ml', ingredients: '과일(사과·포도·오미자·감귤·매실·수박 중 택), 정제수, 설탕, 초산균',
         maker: '한국참전통발효식품협동조합 (제조: 정선다문화가정영농조합법인)', origin: '국산', expiry: '제조일로부터 2년 (제품 별도 표기)' }),
       ship: SHIP_TPL, refund: REFUND_TPL, related: ['p_vin_omija', 'p_wine_grape', 'p_set3'] },
-    { id: 'p_set3', name: '명절 장(醬) 3종 세트', cat: '선물세트', price: 45000, salePrice: 42000, unit: '세트', status: '판매중', stock: 30,
+    { priceOnRequest: true, id: 'p_set3', name: '명절 장(醬) 3종 세트', cat: '선물세트', price: 45000, salePrice: 42000, unit: '세트', status: '판매중', stock: 30,
       option: { name: '포장', values: [ { label: '전통 보자기 포장', add: 0, stock: 20 }, { label: '고급 한지 상자 포장', add: 5000, stock: 10 } ] },
       summary: '된장·고추장·막장 각 500g 정성 구성. 명절 선물로 가장 사랑받는 세트입니다.', icon: 'gift', tone: 'tone-point',
       descHtml: '<h3>마음을 담은 전통의 선물</h3><p>대표 장류 3종(된장·고추장·막장 각 500g)을 한 상자에 담았습니다. 전통 보자기 또는 고급 한지 상자 포장을 선택할 수 있습니다.</p>',
       gosi: gosiBase({ pname: '명절 장 3종 세트 (된장·고추장·막장 각 500g)', volume: '500g × 3', ingredients: '된장(국산 콩, 천일염), 고추장(국산 고춧가루, 찹쌀, 메주가루), 막장(국산 콩, 보리)' }), ship: SHIP_TPL, refund: REFUND_TPL, related: ['p_setprem', 'p_doenjang'] },
-    { id: 'p_setprem', name: '프리미엄 발효 선물세트', cat: '선물세트', price: 59000, salePrice: null, unit: '세트', status: '품절', stock: 0, option: null,
+    { priceOnRequest: true, id: 'p_setprem', name: '프리미엄 발효 선물세트', cat: '선물세트', price: 59000, salePrice: null, unit: '세트', status: '품절', stock: 0, option: null,
       summary: '장류 3종과 청국장을 한 상자에. 고급 한지 포장.', icon: 'gift', tone: 'tone-deep',
       descHtml: '<h3>발효의 정수를 한 상자에</h3><p>장 3종에 청국장을 더한 프리미엄 구성입니다. 고급 한지 상자에 담아 격식 있는 선물로 좋습니다.</p>',
       gosi: gosiBase({ pname: '프리미엄 발효 선물세트', volume: '500g × 4', ingredients: '된장·고추장·막장·청국장 (국산 콩, 고춧가루, 보리 등)' }), ship: SHIP_TPL, refund: REFUND_TPL, related: ['p_set3'] },
@@ -679,10 +691,13 @@
 
   /* ---------------- 지도사 모집 기수(期數) ---------------- */
   var COHORTS_KEY = 'kach_cohorts_v1';
+  /* 기수 일정은 관리자 > 지도사 신청에서 등록·수정한다.
+     확정 일정이 없는 동안 지난 날짜를 '모집중'으로 띄우면 잘못된 안내가 되므로,
+     기본값은 지난 과정(마감)과 상시 접수 창구만 둔다. */
   var COHORT_DEFAULTS = [
-    { id: 'c1', name: '2026년 1기', period: '2026.04.04 ~ 04.25', schedule: '토 10:00–16:00', place: '구로 본원', status: '모집중' },
-    { id: 'c2', name: '2026년 2기', period: '2026.06.06 ~ 06.27', schedule: '토 10:00–16:00', place: '구로 본원', status: '예정' },
-    { id: 'c3', name: '원데이 체험', period: '매월 셋째 주 토요일', schedule: '13:00–16:00', place: '구로 본원 / 정선', status: '상시' },
+    { id: 'c31', name: '31기', period: '2026.05.15 ~ 07.24', schedule: '금 14:00–15:00', place: '구로 본원', status: '마감' },
+    { id: 'c32', name: '32기', period: '일정 준비 중', schedule: '확정 후 안내', place: '구로 본원', status: '예정' },
+    { id: 'c_any', name: '원데이 수업', period: '수시 접수', schedule: '일정 협의', place: '구로 본원 / 정선', status: '상시' },
   ];
   function getCohorts(){ var c = getJSON(COHORTS_KEY, null); return (c && c.length != null) ? c : COHORT_DEFAULTS.slice(); }
   function setCohorts(list){ return setJSON(COHORTS_KEY, list); }

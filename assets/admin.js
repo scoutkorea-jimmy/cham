@@ -916,7 +916,7 @@
      페이지 이미지 관리 — 각 페이지의 사진 슬롯 교체
      ============================================================ */
   var imgPageTab = null;
-  var IMG_PAGE_FILES = { '홈': 'index.html', '협동조합 소개': 'about.html', '전통발효식품': 'ferments.html', '체험지도사': 'instructor.html', '누룩이야기': 'nuruk.html', '제품': 'products.html' };
+  var IMG_PAGE_FILES = { '홈': 'index.html', '협동조합 소개': 'about.html', '전통발효식품': 'ferments.html', '식초': 'vinegar.html', '체험지도사': 'instructor.html', '누룩이야기': 'nuruk.html', '제품': 'products.html' };
   function viewImages() {
     var slots = S.IMG_SLOTS || [];
     var pages = [], byPage = {};
