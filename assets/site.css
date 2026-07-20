@@ -383,6 +383,14 @@ p  { margin: 0 0 var(--s4); text-wrap: pretty; }
 .mm-body .mm-head { padding: 6px 0 14px; border-bottom: 1px solid var(--line-soft); margin-bottom: 10px; }
 .mm-body .mm-head b { color: var(--ink); }
 .mm-body .mm-head button { color: var(--ink); }
+/* 모바일 메뉴 최상단 전화 버튼 — 메뉴가 길어 스크롤 없이 닿는 위치에 둔다 */
+.mm-call {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+  padding: 14px 16px; border-radius: var(--r-md); background: var(--point-tint); border: 1px solid var(--point);
+}
+.mm-call i[data-lucide] { width: 22px; height: 22px; color: var(--point-ink); flex-shrink: 0; }
+.mm-call b { display: block; font-family: var(--font-head); font-size: 21px; color: var(--ink); line-height: 1.2; }
+.mm-call small { display: block; margin-top: 3px; font-size: var(--fs-caption); color: var(--ink-mute); }
 .mm-group { padding: 4px 0; }
 .mm-top { display:block; font-family: var(--font-head); font-weight:700; font-size:17px; color: var(--ink); padding: 10px 6px 6px; }
 .mm-top.active { color: var(--main); }

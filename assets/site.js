@@ -590,8 +590,11 @@
       return '<div class="mm-group"><a class="mm-top' + (n.id === cur ? ' active' : '') + '" href="' + n.href + '">' + n.label + '</a>' +
         (sub ? '<div class="mm-sub">' + sub + '</div>' : '') + '</div>';
     }).join('');
+    // 메뉴 항목이 많아 아래로 길다. 전화 문의는 스크롤 없이 닿도록 맨 위에 둔다.
     return '<div class="mobile-menu" id="mobileMenu">' +
-      '<div class="mm-body"><div class="mm-head"><b>메뉴</b><button id="mmClose" aria-label="닫기"><i data-lucide="x"></i></button></div>' + items +
+      '<div class="mm-body"><div class="mm-head"><b>메뉴</b><button id="mmClose" aria-label="닫기"><i data-lucide="x"></i></button></div>' +
+      '<a class="mm-call" href="tel:02-855-8806"><i data-lucide="phone"></i><span><b>02-855-8806</b><small>교육 · 제품 문의</small></span></a>' +
+      items +
       '<button class="btn btn-point btn-lg" data-modal="apply" style="margin-top:16px"><i data-lucide="sprout"></i>전통발효식품 체험지도사 신청</button>' +
       '</div></div>';
   }
