@@ -31,3 +31,9 @@ out/
 # Logs
 logs/
 *.log
+
+# 검증용 Playwright 가상환경 (skills/verify 참조)
+venv/
+
+# 고객사 원본 자료 (pptx·hwp·pdf 수백 MB) — 사이트에 쓸 파일만 assets/ 로 옮겨 커밋한다
+Basic_Infomation/

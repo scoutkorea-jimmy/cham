@@ -116,14 +116,19 @@
       '■ 디자인 룰북 — 디자인 표준 관리 · 기록',
       '모든 디자인 항목은 본 룰북 기준으로 관리한다. 변경 시 assets/site.css :root 토큰과 본 문서를 함께 갱신한다.',
       '',
-      '[1. 컬러 팔레트]',
-      '- 배경 --bg #FCFAF3(웜 페이퍼) / 표면 --surface #FFFEF9 / 인셋 --surface-2 #F3F0E2',
-      '- 메인 --main #6E8252(햇살 들녘 올리브그린) · deep #56683E · deeper #3D4A2C · tint #EAEDDF',
+      '[1. 컬러 팔레트] — KB금융그룹 톤앤매너 기반 + 전통 발효 보조색',
+      '- 배경 --bg #FFFFFF(화이트) / 표면 --surface #FFFFFF / 인셋 --surface-2 #F5F3EF',
+      '- 메인 --main #60584C(KB 그레이) · deep #4B443A · deeper #33302A · tint #F2F0EB',
+      '- 포인트 --point #FFBC00(KB 옐로우) · deep #EBA900 · tint #FFF3D2 · ink #33302A',
+      '- 보조 --olive #6E8252(올리브·발효) · deep #56683E · tint #EDF0E4',
       '- 서브 --sub #E2D9BE(오트밀) · soft #F0EBD7 · deep #CFC49E',
-      '- 포인트 --point #B0473A(대추) · deep #8F3329 · tint #F0DDD8',
-      '- 텍스트 --ink #2A2723 / soft #5C564C / mute #8C8576 / faint #B4AD9E',
+      '- 텍스트 --ink #2A2723 / soft #5C564C / mute #706859 / faint #B4AD9E',
+      '- 규칙 ⑤: 어두운 패널(.band-deep/.page-hero.deep) 위 라벨(.eyebrow)은 옐로우로 반전한다(올리브는 2.2:1로 판독 불가).',
       '- 시맨틱 ok #3E7D4F · warn #C9912F · danger #C0492E · info #4A6E86',
-      '- 규칙: 포인트(대추)는 CTA·강조 한정, 대면적 사용 금지',
+      '- 규칙 ①: 옐로우는 "면(배경)" 전용. 옐로우를 글자색으로 쓰지 않는다(흰 바탕 대비 1.7:1로 판독 불가).',
+      '- 규칙 ②: 옐로우 면 위 글자·아이콘은 반드시 --point-ink(#33302A) 사용.',
+      '- 규칙 ③: 강조 텍스트(링크·라벨·가격)는 --olive-deep 또는 --ink. 필수표시(*)만 --danger.',
+      '- 규칙 ④: 포인트는 CTA·강조 한정, 대면적 사용 금지.',
       '',
       '[2. 타이포그래피]',
       '- 제목·본문: PayboocFont(페이북) → Pretendard Variable 폴백 / 보조 손글씨: Gaegu',
@@ -366,7 +371,9 @@
       var priceTxt = p.salePrice != null && p.salePrice !== ''
         ? '<span style="text-decoration:line-through;color:var(--ink-faint);font-size:12px">' + fmtWon(p.price) + '</span> <b>' + fmtWon(p.salePrice) + '원</b>'
         : '<b>' + fmtWon(p.price) + '원</b>';
-      return '<tr><td style="width:64px"><div class="pthumb" data-pthumb="' + p.id + '"><i data-lucide="image"></i></div></td>' +
+      // 업로드 사진이 없으면 상품에 지정된 정적 사진(p.photo)을, 그것도 없으면 아이콘을 보여준다
+      var thumb = p.photo ? '<img src="' + esc(p.photo) + '" alt="">' : '<i data-lucide="image"></i>';
+      return '<tr><td style="width:64px"><div class="pthumb" data-pthumb="' + p.id + '">' + thumb + '</div></td>' +
         '<td><b>' + esc(p.name) + '</b><div class="pc-sub">' + esc(p.unit || '') + (p.option ? ' · 옵션 ' + p.option.values.length + '종' : '') + '</div></td>' +
         '<td><span class="tag">' + esc(p.cat) + '</span></td><td>' + priceTxt + '</td><td>' + stock + '</td>' +
         '<td><select class="st-sel" data-act="pstatus" data-id="' + p.id + '">' + ['판매중', '품절', '숨김'].map(function (s) { return '<option' + (p.status === s ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select></td>' +
@@ -410,7 +417,7 @@
       '<button class="btn btn-ghost" data-act="pback" style="padding:9px 16px"><i data-lucide="arrow-left"></i>목록으로</button></div>' +
       '<form class="admin-form" id="productForm" data-pid="' + (isEdit ? p.id : '') + '">' +
         '<div class="field"><label>상품명 <span style="color:var(--point)">*</span></label><input name="name" required value="' + esc(p ? p.name : '') + '"></div>' +
-        '<div class="field"><label>분류</label><select name="cat">' + ['장류', '발효식품', '선물세트'].map(function (c) { return '<option' + (p && p.cat === c ? ' selected' : '') + '>' + c + '</option>'; }).join('') + '</select></div>' +
+        '<div class="field"><label>분류</label><select name="cat">' + S.PRODUCT_CATS.map(function (c) { return '<option' + (p && p.cat === c.name ? ' selected' : '') + '>' + c.name + '</option>'; }).join('') + '</select></div>' +
         '<div class="field"><label>판매가 (원) <span style="color:var(--point)">*</span></label><input name="price" type="number" min="0" required value="' + (p ? p.price : '') + '"></div>' +
         '<div class="field"><label>할인가 (원 · 비우면 할인 없음)</label><input name="salePrice" type="number" min="0" value="' + (p && p.salePrice != null ? p.salePrice : '') + '"></div>' +
         '<div class="field"><label>단위 (예: 1kg, 세트)</label><input name="unit" value="' + esc(p ? p.unit : '') + '"></div>' +
@@ -908,24 +915,43 @@
   /* ============================================================
      페이지 이미지 관리 — 각 페이지의 사진 슬롯 교체
      ============================================================ */
+  var imgPageTab = null;
+  var IMG_PAGE_FILES = { '홈': 'index.html', '협동조합 소개': 'about.html', '전통발효식품': 'ferments.html', '체험지도사': 'instructor.html', '누룩이야기': 'nuruk.html', '제품': 'products.html' };
   function viewImages() {
     var slots = S.IMG_SLOTS || [];
     var pages = [], byPage = {};
     slots.forEach(function (s) { if (!byPage[s.page]) { byPage[s.page] = []; pages.push(s.page); } byPage[s.page].push(s); });
-    var html = pages.map(function (pg) {
-      var cells = byPage[pg].map(function (s) {
-        return '<div class="pcard">' +
-          '<div class="pc-logo" data-slot-cell="' + s.id + '" style="height:96px;background:var(--surface-2);border-radius:8px;display:grid;place-items:center;overflow:hidden"><span class="pc-sub">사진 없음</span></div>' +
-          '<div><div class="pc-name">' + esc(s.label) + '</div></div>' +
-          '<div class="pc-row">' +
-            '<label class="btn btn-ghost" style="padding:8px 14px;cursor:pointer"><i data-lucide="upload"></i>사진 올리기<input type="file" accept="image/*" data-simg-up="' + s.id + '" style="display:none"></label>' +
-            '<button class="btn btn-ghost" data-act="simgdel" data-id="' + s.id + '" style="padding:8px 14px;color:var(--point)"><i data-lucide="trash-2"></i>내리기</button>' +
-          '</div></div>';
-      }).join('');
-      return '<div class="panel" style="margin-bottom:24px"><div class="panel-head"><h3>' + esc(pg) + '</h3><span class="ph-sub">' + byPage[pg].length + '개 자리</span></div><div class="card-list">' + cells + '</div></div>';
+    if (!imgPageTab || !byPage[imgPageTab]) imgPageTab = pages[0];
+    var cells = (byPage[imgPageTab] || []).map(function (s) {
+      return '<div class="pcard">' +
+        '<div class="pc-logo" data-slot-cell="' + s.id + '" style="height:96px;background:var(--surface-2);border-radius:8px;display:grid;place-items:center;overflow:hidden"><span class="pc-sub">사진 없음</span></div>' +
+        '<div><div class="pc-name">' + esc(s.label) + '</div></div>' +
+        '<div class="pc-row">' +
+          '<label class="btn btn-ghost" style="padding:8px 14px;cursor:pointer"><i data-lucide="upload"></i>사진 올리기<input type="file" accept="image/*" data-simg-up="' + s.id + '" style="display:none"></label>' +
+          '<button class="btn btn-ghost" data-act="simgdel" data-id="' + s.id + '" style="padding:8px 14px;color:var(--point)"><i data-lucide="trash-2"></i>내리기</button>' +
+        '</div></div>';
     }).join('');
-    return '<div class="modal-note" style="margin-bottom:18px"><i data-lucide="image"></i><span>사진을 올리면 해당 페이지의 회색 자리표시가 <b>즉시 실제 사진으로</b> 바뀝니다. ‘내리기’를 누르면 다시 자리표시로 돌아갑니다. 사진은 이 브라우저에 저장되므로 <b>데이터 백업</b> 메뉴로 주기적으로 백업하세요.</span></div>' + html;
+    var file = IMG_PAGE_FILES[imgPageTab] || 'index.html';
+    return '<div class="modal-note" style="margin-bottom:18px"><i data-lucide="image"></i><span>사진을 올리면 오른쪽 <b>미리보기에 즉시 반영</b>됩니다. ‘내리기’를 누르면 다시 자리표시로 돌아갑니다. 사진은 이 브라우저에 저장되므로 <b>데이터 백업</b> 메뉴로 주기적으로 백업하세요.</span></div>' +
+      subtabs(pages.map(function (pg) { return { id: pg, label: pg }; }), imgPageTab) +
+      '<div class="simg-split">' +
+        '<div class="panel"><div class="panel-head"><h3>' + esc(imgPageTab) + '</h3><span class="ph-sub">' + (byPage[imgPageTab] || []).length + '개 자리</span></div><div class="card-list">' + cells + '</div></div>' +
+        '<div class="panel simg-preview">' +
+          '<div class="panel-head"><h3>실제 페이지 미리보기</h3><a class="btn btn-ghost" href="' + file + '" target="_blank" rel="noopener" style="padding:8px 14px"><i data-lucide="external-link"></i>새 탭에서 열기</a></div>' +
+          '<div class="simg-frame-wrap" id="simgFrameWrap"><iframe id="simgFrame" src="' + file + '" title="' + esc(imgPageTab) + ' 페이지 미리보기"></iframe></div>' +
+        '</div>' +
+      '</div>';
   }
+  // 미리보기 iframe을 데스크톱 폭(1280px)으로 렌더한 뒤 패널 폭에 맞춰 축소 표시
+  function fitSimgPreview() {
+    var wrap = document.getElementById('simgFrameWrap'), fr = document.getElementById('simgFrame');
+    if (!wrap || !fr) return;
+    var W = 1280, sc = Math.min(1, wrap.clientWidth / W);
+    fr.style.width = W + 'px';
+    fr.style.transform = 'scale(' + sc + ')';
+    fr.style.height = Math.round(wrap.clientHeight / sc) + 'px';
+  }
+  window.addEventListener('resize', fitSimgPreview);
   function fillSlotPreviews() {
     S.idb.all('simg').then(function (recs) {
       recs.forEach(function (r) {
@@ -1158,6 +1184,7 @@
 
     bindProductForm();
     if (document.querySelector('[data-slot-cell]')) fillSlotPreviews();
+    fitSimgPreview();
   }
 
   /* ---------- delegation ---------- */
@@ -1208,6 +1235,7 @@
       if (!confirmLeave()) return;
       if (current === 'kms') kmsTab = st.dataset.subtab;
       else if (current === 'consents') consentTab = st.dataset.subtab;
+      else if (current === 'images') imgPageTab = st.dataset.subtab;
       render(); return;
     }
     // 주문 드롭다운

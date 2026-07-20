@@ -38,11 +38,18 @@
       '<span class="now">' + fmtWon(now) + '원</span><span class="muted" style="font-size:14px">/ ' + esc(p.unit || '') + '</span>';
   }
 
+  /* 대표 비주얼 — 관리자 업로드 사진이 없을 때 쓰이는 기본 표시.
+     p.photo(정적 파일 경로)가 있으면 실사진을, 없으면 색면 자리표시를 낸다. */
+  function fallbackVisual(p) {
+    if (p.photo) return '<img class="prod-photo" src="' + esc(p.photo) + '" alt="' + esc(p.name) + '">';
+    return '<div class="ph ' + (p.tone || 'tone-oat') + ' ratio-1" data-label="제품 사진 — ' + esc(p.name) + '" style="border-radius:0;height:100%"><i data-lucide="' + (p.icon || 'package') + '"></i></div>';
+  }
+
   function cardHTML(p) {
     var soldout = p.status === '품절';
     return '<a class="card card-hover prod-link reveal" href="product.html?id=' + p.id + '" aria-label="' + esc(p.name) + ' 상세보기">' +
       '<div class="prod-img" data-pimg="' + p.id + '">' +
-        '<div class="ph ' + (p.tone || 'tone-oat') + ' ratio-1" data-label="제품 사진 — ' + esc(p.name) + '" style="border-radius:0;height:100%"><i data-lucide="' + (p.icon || 'package') + '"></i></div>' +
+        fallbackVisual(p) +
         (soldout ? '<div class="prod-soldout-veil">품절</div>' : '') +
       '</div>' +
       '<div style="padding:20px">' +
@@ -57,21 +64,21 @@
     (scope || document).querySelectorAll('[data-pimg]').forEach(function (box) {
       mainImage(box.dataset.pimg).then(function (url) {
         if (!url) return;
-        box.querySelector('.ph').outerHTML = '<img src="' + url + '" alt="">';
+        var cur = box.querySelector('.ph, img');
+        if (cur) cur.outerHTML = '<img src="' + url + '" alt="">';
       });
     });
   }
 
   /* ================= 제품 목록 페이지 ================= */
   function renderLists() {
-    var cats = { '장류': 'grid-jang', '발효식품': 'grid-ferment', '선물세트': 'grid-gift' };
     var any = false;
     var products = S.getProducts().filter(function (p) { return p.status !== '숨김'; });
-    Object.keys(cats).forEach(function (cat) {
-      var box = document.getElementById(cats[cat]);
+    S.PRODUCT_CATS.forEach(function (cat) {
+      var box = document.getElementById(cat.gridId);
       if (!box) return;
       any = true;
-      var list = products.filter(function (p) { return p.cat === cat; });
+      var list = products.filter(function (p) { return p.cat === cat.name; });
       box.innerHTML = list.length ? list.map(cardHTML).join('') : '<p class="muted">등록된 상품이 없습니다.</p>';
     });
     if (any) { icons(); fillCardImages(); if (S.revealScan) S.revealScan(); }
@@ -142,7 +149,7 @@
       '<div class="wrap pd-top">' +
         '<div class="pd-gallery">' +
           '<div class="pd-main" id="pdMain">' +
-            '<div class="pd-slide"><div class="ph ' + (p.tone || 'tone-oat') + '" data-label="제품 사진 — ' + esc(p.name) + '" style="width:100%;height:100%;border-radius:0"><i data-lucide="' + (p.icon || 'package') + '"></i></div></div>' +
+            '<div class="pd-slide">' + fallbackVisual(p) + '</div>' +
           '</div>' +
           '<div class="pd-thumbs" id="pdThumbs"></div>' +
         '</div>' +

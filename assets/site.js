@@ -13,23 +13,29 @@
   var NAV = [
     { id: 'about', label: '협동조합 소개', href: 'about.html', dd: [
       { label: '대표 인사말', href: 'about.html#greeting' },
-      { label: '설립 목적', href: 'about.html#purpose' },
+      { label: '소셜미션 · 설립 목적', href: 'about.html#purpose' },
       { label: '비전 · 미션', href: 'about.html#vision' },
+      { label: '조직 · 강사진', href: 'about.html#people' },
+      { label: '인증 · 사업자 정보', href: 'about.html#credentials' },
       { label: '파트너 · 정선만장대', href: 'about.html#partner' },
       { label: '오시는 길', href: 'about.html#location' },
     ]},
     { id: 'ferments', label: '전통발효식품', href: 'ferments.html', dd: [
       { label: '전통 발효란?', href: 'ferments.html#about' },
+      { label: '발효 미생물', href: 'ferments.html#microbes' },
       { label: '씨장 이야기', href: 'ferments.html#seedjang' },
       { label: '발효식품의 종류', href: 'ferments.html#types' },
       { label: '전통발효 과정', href: 'ferments.html#process' },
+      { label: '발효식품의 효능', href: 'ferments.html#benefits' },
     ]},
     { id: 'instructor', label: '체험지도사', href: 'instructor.html', dd: [
       { label: '교육안내', href: 'instructor.html#intro' },
       { label: '배우는 목적', href: 'instructor.html#purpose' },
+      { label: '교육 프로그램 12가지', href: 'instructor.html#programs' },
       { label: '과정 구성', href: 'instructor.html#curriculum' },
       { label: '수료 후 이어지는 길', href: 'instructor.html#benefit' },
       { label: '모집 기수', href: 'instructor.html#schedule' },
+      { label: '원데이 수업', href: 'instructor.html#oneday' },
       { label: '신청하기', href: 'instructor.html#apply' },
     ]},
     { id: 'nuruk', label: '누룩이야기', href: 'nuruk.html', dd: [
@@ -38,10 +44,12 @@
       { label: '수업 안내', href: 'nuruk.html#notice' },
     ]},
     { id: 'products', label: '제품', href: 'products.html', dd: [
+      { label: '식초 · 와인 (서련)', href: 'products.html#vinegar' },
       { label: '장류', href: 'products.html#jang' },
       { label: '발효식품', href: 'products.html#ferment' },
-      { label: '씨장 분양', href: 'products.html#seedjang' },
       { label: '선물세트', href: 'products.html#gift' },
+      { label: '가격 안내', href: 'products.html#price' },
+      { label: '씨장 분양', href: 'products.html#seedjang' },
       { label: '비회원 주문 조회', href: 'products.html#lookup' },
     ]},
     { id: 'news', label: '소식마당', href: 'news.html', dd: [
@@ -112,18 +120,22 @@
     { id: 'home-story-meju',     page: '홈',          label: '우리 이야기 — 발효된 메주' },
     { id: 'home-story-seedjang', page: '홈',          label: '우리 이야기 — 씨장 항아리' },
     { id: 'home-instructor',     page: '홈',          label: '체험지도사 강조 — 교육 현장' },
+    { id: 'home-vinegar',        page: '홈',          label: '제품 — 서련 수제식초 전경' },
     { id: 'about-ceo',           page: '협동조합 소개', label: '대표 인사말 — 대표 사진' },
+    { id: 'about-fair',          page: '협동조합 소개', label: '조합 활동 — 박람회·현장' },
     { id: 'ferments-meju',       page: '전통발효식품', label: '전통 발효란 — 발효된 메주' },
     { id: 'ferments-seedjang',   page: '전통발효식품', label: '씨장 이야기 — 씨장 항아리' },
     { id: 'inst-class-jang',     page: '체험지도사',   label: '수업 구분 — 장류반 수업' },
     { id: 'inst-class-vinegar',  page: '체험지도사',   label: '수업 구분 — 식초류반 수업' },
     { id: 'inst-field',          page: '체험지도사',   label: '지도사란 — 강의·실습 현장' },
+    { id: 'inst-oneday',         page: '체험지도사',   label: '원데이 수업 — 와인·식초 실습' },
     { id: 'nuruk-intro',         page: '누룩이야기',   label: '누룩이란 — 누룩 사진' },
     { id: 'nuruk-rice',          page: '누룩이야기',   label: '쌀누룩 만들기' },
     { id: 'nuruk-yogurt',        page: '누룩이야기',   label: '요거트 만들기' },
     { id: 'nuruk-gochujang',     page: '누룩이야기',   label: '저염 고추장 만들기' },
     { id: 'nuruk-makjang',       page: '누룩이야기',   label: '저염 막장 만들기' },
     { id: 'nuruk-ganjang',       page: '누룩이야기',   label: '저염 간장·소금 만들기' },
+    { id: 'prod-vinegar-line',   page: '제품',        label: '식초·와인 — 라인업 전경' },
     { id: 'prod-seedjang',       page: '제품',        label: '씨장 분양 — 장독대' },
     { id: 'prod-giftset',        page: '제품',        label: '명절선물세트' },
   ];
@@ -360,7 +372,8 @@
   }
 
   /* ---------------- 상품 (목록 · 상세 · 관리자 등록) ---------------- */
-  var PRODUCTS_KEY = 'kach_products_v2';
+  /* v3: 서련 식초·와인 라인업 도입으로 기본 카탈로그가 전면 교체됨 (v2 데이터는 갱신 대상) */
+  var PRODUCTS_KEY = 'kach_products_v3';
   var SHIP_TPL = '· 배송비: 3,500원 (5만원 이상 구매 시 무료)\n· 배송 방법: 택배 (CJ대한통운)\n· 출고: 결제(입금) 확인 후 2~3 영업일 이내\n· 제주 및 도서산간 지역은 추가 배송비가 발생할 수 있습니다.\n· 발효식품 특성상 기온이 높은 시기에는 아이스팩 포장으로 출고됩니다.';
   var REFUND_TPL = '· 단순 변심에 의한 교환·반품: 상품 수령 후 7일 이내 신청 가능 (왕복 배송비 구매자 부담)\n· 식품 특성상 개봉했거나 포장이 훼손된 경우 교환·반품이 불가합니다.\n· 상품 하자·오배송: 수령 후 30일 이내 무상 교환 또는 환불해 드립니다.\n· 환불은 반품 상품 확인 후 3영업일 이내 입금 계좌로 처리됩니다.\n· 기타 사항은 소비자분쟁해결기준(공정거래위원회 고시)에 따릅니다.';
   function gosiBase(over) {
@@ -372,7 +385,74 @@
     for (var k in over) g[k] = over[k];
     return g;
   }
+  /* 상품 분류 — 목록 페이지 앵커와 관리자 등록 폼이 함께 참조하는 단일 정의 */
+  var PRODUCT_CATS = [
+    { name: '장류', gridId: 'grid-jang' },
+    { name: '식초 · 와인', gridId: 'grid-vinegar' },
+    { name: '발효식품', gridId: 'grid-ferment' },
+    { name: '선물세트', gridId: 'grid-gift' },
+  ];
+
+  /* 서련(瑞蓮) 수제식초 — 용량 옵션과 고시 항목이 전 품목 동일하므로 한 곳에서 만든다.
+     가격 근거: 조합 가격표(300ml 25,000 / 500ml 35,000) */
+  var VINEGAR_ACID = '총산 4.7%(기준 4.00~20.00) — 강원특별자치도보건환경연구원 시험·검사 적합 (2025.04.30)';
+  function vinegarProduct(o) {
+    return {
+      id: o.id, name: o.name, cat: '식초 · 와인', price: 25000, salePrice: null, unit: '300ml',
+      status: '판매중', stock: o.stock == null ? 20 : o.stock, photo: o.photo,
+      option: { name: '용량', values: [ { label: '300ml (소)', add: 0, stock: 20 }, { label: '500ml (대)', add: 10000, stock: 20 } ] },
+      summary: o.summary, icon: 'wine', tone: 'tone-point',
+      descHtml: '<h3>' + o.name + '</h3><p>' + o.body + '</p>' +
+        '<h3>이렇게 만듭니다</h3><p>과일을 설탕과 섞어 청을 담아 3개월 숙성하고, 숙성한 청을 물과 섞어 16브릭스를 맞춥니다. 여기에 이스트를 넣어 25~30℃ 발효실에서 2~3주 발효시키면 와인이 됩니다. 이 와인을 6브릭스로 맞춘 뒤 초산균(종초)을 섞어 33℃에서 3주 정도 두면 초막이 끼면서 식초가 됩니다.</p>' +
+        '<h3>이렇게 드세요</h3><p>식초는 신맛이 강하므로 물이나 다른 음료에 희석해 드십시오. 식초 50㎖(소주잔 한 컵)에 물 6배를 희석하면 적당합니다. 단기간 많이 드시기보다 <b>꾸준히</b> 드시는 것이 효과적이며, 섭취 후에는 물을 충분히 마셔 주세요.</p>',
+      gosi: gosiBase({ pname: o.name, volume: '300ml / 500ml', ingredients: o.ingredients,
+        maker: '한국참전통발효식품협동조합 (제조: 정선다문화가정영농조합법인)',
+        origin: '국산', expiry: '제조일로부터 2년 (제품 별도 표기)',
+        storage: '직사광선을 피해 서늘한 곳에 보관, 개봉 후 냉장 보관' }),
+      ship: SHIP_TPL, refund: REFUND_TPL, related: o.related || [],
+    };
+  }
+
   var PRODUCT_DEFAULTS = [
+    /* ---- 식초 · 와인 (서련 瑞蓮) ---- */
+    vinegarProduct({ id: 'p_vin_omija', name: '오미자 식초', photo: 'assets/product-vinegar-omija.jpg',
+      summary: '다섯 가지 맛이 어우러진 오미자를 발효시킨 붉은빛 수제 식초.',
+      body: '오미자 청을 담가 숙성한 뒤 와인 단계를 거쳐 초산 발효시킨 식초입니다. 오미자 특유의 새콤하고 은은한 향이 남아 물에 희석해 마시기 좋습니다.',
+      ingredients: '오미자, 정제수, 설탕, 초산균', related: ['p_vin_grape', 'p_vin_citrus', 'p_set_vinegar'] }),
+    vinegarProduct({ id: 'p_vin_grape', name: '포도 식초', photo: 'assets/product-vinegar-grape.jpg',
+      summary: '잘 익은 포도를 와인으로 빚어 다시 초산 발효시킨 수제 식초.',
+      body: '포도를 청으로 담가 와인으로 발효시킨 뒤, 초산균을 더해 3주간 다시 발효시킨 식초입니다. 부드러운 산미와 포도 향이 특징입니다.',
+      ingredients: '포도, 정제수, 설탕, 초산균', related: ['p_vin_omija', 'p_wine_grape', 'p_set_vinegar'] }),
+    vinegarProduct({ id: 'p_vin_citrus', name: '감귤 식초', photo: 'assets/product-vinegar-citrus.jpg',
+      summary: '제철 감귤의 향을 그대로 담은 밝은 빛깔의 수제 식초.',
+      body: '감귤을 청으로 담가 숙성시킨 뒤 발효시킨 식초입니다. 상큼한 향이 살아 있어 음료나 드레싱으로 두루 어울립니다.',
+      ingredients: '감귤, 정제수, 설탕, 초산균', related: ['p_vin_plum', 'p_vin_omija', 'p_set_vinegar'] }),
+    vinegarProduct({ id: 'p_vin_plum', name: '매실 식초', photo: 'assets/product-vinegar-plum.jpg',
+      summary: '초여름 매실로 담근 청을 발효시킨 깔끔한 산미의 수제 식초.',
+      body: '매실 청을 충분히 숙성시켜 발효시킨 식초입니다. 군더더기 없는 산미로 여름철 희석 음료에 잘 맞습니다.',
+      ingredients: '매실, 정제수, 설탕, 초산균', related: ['p_vin_citrus', 'p_vin_watermelon', 'p_set_vinegar'] }),
+    vinegarProduct({ id: 'p_vin_watermelon', name: '수박 식초', photo: 'assets/product-vinegar-watermelon.jpg',
+      summary: '여름 수박을 발효시킨 연한 빛깔의 순한 수제 식초.',
+      body: '수박 과육으로 청을 담가 발효시킨 식초입니다. 산미가 순해 식초를 처음 접하는 분께 권합니다.',
+      ingredients: '수박, 정제수, 설탕, 초산균', related: ['p_vin_plum', 'p_vin_omija', 'p_set_vinegar'] }),
+    { id: 'p_wine_grape', name: '수제 포도 와인', cat: '식초 · 와인', price: 35000, salePrice: null, unit: '370ml',
+      status: '판매중', stock: 15, option: null, photo: 'assets/product-wine-grape.jpg',
+      summary: '전통 발효 기법으로 빚은 수제 포도 와인. 낱개 상자 포장.', icon: 'wine', tone: 'tone-point',
+      descHtml: '<h3>과일을 그대로 발효시킨 수제 와인</h3><p>포도를 설탕과 섞어 청으로 담가 3개월 숙성한 뒤, 16브릭스로 맞추고 이스트를 넣어 25~30℃ 발효실에서 2~3주 발효시켜 빚은 수제 와인입니다.</p><p>같은 방식으로 담근 와인이 식초의 원료가 되기도 합니다.</p>',
+      gosi: gosiBase({ pname: '수제 포도 와인 370ml', volume: '370ml', ingredients: '포도, 설탕, 정제수, 효모',
+        maker: '한국참전통발효식품협동조합 (제조: 정선다문화가정영농조합법인)', origin: '국산',
+        storage: '직사광선을 피해 서늘한 곳에 보관, 개봉 후 냉장 보관' }),
+      ship: SHIP_TPL, refund: REFUND_TPL, related: ['p_wine_pineapple', 'p_vin_grape'] },
+    { id: 'p_wine_pineapple', name: '수제 파인애플 와인', cat: '식초 · 와인', price: 35000, salePrice: null, unit: '370ml',
+      status: '판매중', stock: 12, option: null, photo: 'assets/product-wine-pineapple.jpg',
+      summary: '파인애플의 향을 살려 발효시킨 맑은 빛깔의 수제 와인.', icon: 'wine', tone: 'tone-point',
+      descHtml: '<h3>열대 과일의 향을 담은 수제 와인</h3><p>파인애플로 청을 담가 숙성시킨 뒤 효모로 발효시킨 수제 와인입니다. 향이 뚜렷해 선물용으로도 많이 찾으십니다.</p>',
+      gosi: gosiBase({ pname: '수제 파인애플 와인 370ml', volume: '370ml', ingredients: '파인애플, 설탕, 정제수, 효모',
+        maker: '한국참전통발효식품협동조합 (제조: 정선다문화가정영농조합법인)', origin: '국산',
+        storage: '직사광선을 피해 서늘한 곳에 보관, 개봉 후 냉장 보관' }),
+      ship: SHIP_TPL, refund: REFUND_TPL, related: ['p_wine_grape', 'p_vin_citrus'] },
+
+    /* ---- 장류 ---- */
     { id: 'p_doenjang', name: '전통 된장', cat: '장류', price: 25000, salePrice: null, unit: '1kg', status: '판매중', stock: 50, option: null,
       summary: '깊고 구수한 전통의 맛. 국산 콩 100%를 전통 씨장 방식으로 3년 이상 숙성했습니다.', icon: 'bean', tone: 'tone-oat',
       descHtml: '<h3>3년의 시간이 빚은 깊은 맛</h3><p>청정 정선의 장독대에서 자연의 속도로 익힌 전통 된장입니다. 국산 콩과 천일염만으로 담그고, 대를 이어온 씨장을 더해 깊은 풍미를 냅니다.</p><p>찌개·국은 물론 쌈장 베이스로도 좋습니다.</p>',
@@ -398,6 +478,13 @@
       summary: '직접 장을 담그실 분들을 위한 자연 건조 메주.', icon: 'package', tone: 'tone-main',
       descHtml: '<h3>장 담그기의 시작</h3><p>국산 콩을 삶아 빚고 자연 바람에 말려 띄운 전통 메주입니다. 장 담그기 시기(정월)에 맞춰 예약 주문을 권장합니다.</p>',
       gosi: gosiBase({ pname: '전통 메주', volume: '약 1.5kg/개', ingredients: '국산 콩 100%', storage: '통풍이 잘 되는 서늘한 곳' }), ship: SHIP_TPL, refund: REFUND_TPL, related: ['p_doenjang', 'p_jangajji'] },
+    { id: 'p_set_vinegar', name: '서련 수제식초 선물상자 (2본)', cat: '선물세트', price: 45000, salePrice: null, unit: '세트',
+      status: '판매중', stock: 25, option: null, photo: 'assets/product-giftbox.jpg',
+      summary: '수제식초 2본을 담은 선물상자. 명절·집들이 선물로 가장 많이 찾는 구성입니다.', icon: 'gift', tone: 'tone-point',
+      descHtml: '<h3>“식초는 신이 내린 선물, 자연이 준 기적의 물”</h3><p>서련(瑞蓮) 수제식초 2본(500ml·300ml)을 전용 선물상자에 담았습니다. 사과·포도·오미자·감귤·매실·수박 중 원하시는 종류로 구성해 드립니다.</p><p>구성 변경은 주문 시 요청사항에 남겨 주시거나 02-855-8806으로 문의해 주세요.</p>',
+      gosi: gosiBase({ pname: '서련 수제식초 선물상자 (500ml + 300ml)', volume: '500ml + 300ml', ingredients: '과일(사과·포도·오미자·감귤·매실·수박 중 택), 정제수, 설탕, 초산균',
+        maker: '한국참전통발효식품협동조합 (제조: 정선다문화가정영농조합법인)', origin: '국산', expiry: '제조일로부터 2년 (제품 별도 표기)' }),
+      ship: SHIP_TPL, refund: REFUND_TPL, related: ['p_vin_omija', 'p_wine_grape', 'p_set3'] },
     { id: 'p_set3', name: '명절 장(醬) 3종 세트', cat: '선물세트', price: 45000, salePrice: 42000, unit: '세트', status: '판매중', stock: 30,
       option: { name: '포장', values: [ { label: '전통 보자기 포장', add: 0, stock: 20 }, { label: '고급 한지 상자 포장', add: 5000, stock: 10 } ] },
       summary: '된장·고추장·막장 각 500g 정성 구성. 명절 선물로 가장 사랑받는 세트입니다.', icon: 'gift', tone: 'tone-point',
@@ -516,7 +603,7 @@
           '<span><b>대표</b> 김필연</span>' +
           '<span><b>사업자등록번호</b> 869-81-02406</span>' +
           '<span><b>통신판매업신고</b> 2025-서울구로-1345</span>' +
-          '<span><b>주소</b> 서울특별시 구로구 구로동 240,<br>세일빌딩 701호</span>' +
+          '<span><b>주소</b> 서울특별시 구로구 구로동로 240,<br>세일빌딩 701호</span>' +
           '<span><b>전화</b> 02-855-8806</span>' +
           '<span><b>이메일</b> kach5501@hanmail.net</span>' +
         '</div>' +
@@ -939,10 +1026,13 @@
 
   try { document.documentElement.classList.add('js'); } catch (e) {}
   function ready(fn){ if (document.readyState !== 'loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }
+  // 관리자 '페이지 이미지' 미리보기 iframe 안에서는 방문 집계·팝업을 건너뜀
+  var isPreviewFrame = false;
+  try { isPreviewFrame = window.self !== window.top; } catch (e) { isPreviewFrame = true; }
   ready(function () {
     seedPosts();
     seedProducts();
-    trackVisit();
+    if (!isPreviewFrame) trackVisit();
     mountChrome();
     enhanceSEO();
     initModalDelegation();
@@ -955,7 +1045,7 @@
     initNavScroll();
     icons();
     setTimeout(icons, 60);
-    setTimeout(showPopup, 700);
+    if (!isPreviewFrame) setTimeout(showPopup, 700);
   });
 
   /* expose for admin + page scripts */
@@ -971,7 +1061,7 @@
     POPUP_KEY: POPUP_KEY, getPopups: getPopups,
     POSTS_KEY: POSTS_KEY, getPosts: getPosts, setPosts: setPosts,
     CONSENT_KEY: CONSENT_KEY, getConsents: getConsents, consentDefaults: CONSENT_DEFAULTS,
-    PRODUCTS_KEY: PRODUCTS_KEY, getProducts: getProducts, setProducts: setProducts, getProduct: getProduct,
+    PRODUCTS_KEY: PRODUCTS_KEY, PRODUCT_CATS: PRODUCT_CATS, getProducts: getProducts, setProducts: setProducts, getProduct: getProduct,
     productDefaults: PRODUCT_DEFAULTS, SHIP_TPL: SHIP_TPL, REFUND_TPL: REFUND_TPL, gosiBase: gosiBase,
     OSTAT: OSTAT, stTag: stTag, ST_COLOR: ST_COLOR,
     VISITS_KEY: VISITS_KEY, SOURCES_KEY: SOURCES_KEY,

@@ -27,11 +27,11 @@ python3 -m http.server 8000
 
 ```
 /
-├─ index.html          메인 (Hero · 파트너 무한슬라이드 · 핵심가치 · 체험지도사 · 제품 · 소식)
-├─ about.html          협동조합 소개 (인사말 · 설립목적 · 비전 · 파트너 정선만장대 · 오시는 길)
-├─ ferments.html       전통발효식품 (발효 원리 · 씨장 · 종류 · 5단계 과정)
-├─ instructor.html     전통발효식품 체험지도사 과정 (커리큘럼 · 혜택 · 일정 · 신청)
-├─ products.html       제품 목록 (장류 · 발효식품 · 씨장 분양 · 선물세트 · 비회원 주문조회)
+├─ index.html          메인 (Hero · 퀵메뉴 · 조합 현황 · 파트너 · 소셜미션 · 경쟁력 · 체험지도사 · 제품 · 소식)
+├─ about.html          협동조합 소개 (인사말 · 소셜미션 · 비전 · 조직/강사진 · 인증/사업자정보 · 파트너 · 오시는 길)
+├─ ferments.html       전통발효식품 (발효 원리 · 발효 미생물/7가지 균주 · 씨장 · 종류 · 발효 과정 · 효능)
+├─ instructor.html     체험지도사 1급 과정 (교육안내 · 목적 · 프로그램 12가지 · 커리큘럼 · 혜택 · 기수일정 · 원데이 · 신청)
+├─ products.html       제품 목록 (식초·와인[서련 瑞蓮] · 장류 · 발효식품 · 선물세트 · 가격표 · 씨장 분양 · 비회원 주문조회)
 ├─ product.html        상품 상세페이지 (?id= 파라미터 — 갤러리 · 옵션 · 구매 · 상품정보고시)
 ├─ news.html           소식마당 (공지 · 교육 게시판 — Tiptap 에디터 · 현장 갤러리)
 ├─ contact.html        문의하기
@@ -104,11 +104,17 @@ python3 -m http.server 8000
 
 | 토큰 | 값 | 용도 |
 |---|---|---|
-| `--main` | `#6E8252` | 메인(햇살 들녘 올리브그린) |
+| `--main` | `#60584C` | 메인 — KB 그레이 (내비·푸터·구조) |
+| `--point` | `#FFBC00` | 포인트 — KB 옐로우 (**면 전용**, CTA·강조 마크) |
+| `--point-ink` | `#33302A` | 옐로우 면 위 글자·아이콘 (대비 9.6:1) |
+| `--olive` / `--olive-deep` | `#6E8252` / `#56683E` | 보조 — 올리브(발효·자연). 텍스트는 deep만 사용 |
 | `--sub` | `#E2D9BE` | 서브(오트밀) |
-| `--point` | `#B0473A` | 포인트(대추) |
-| `--bg` | `#FCFAF3` | 배경 |
+| `--bg` | `#FFFFFF` | 배경(화이트) |
 | `--font-body` / `--font-head` | PayboocFont | 본문/제목 글꼴 |
+
+> **팔레트 규칙**: KB 옐로우는 흰 바탕 대비가 1.7:1로 글자색으로 쓸 수 없습니다.
+> 옐로우는 배경(면)으로만 쓰고, 그 위 글자는 `--point-ink`를 씁니다.
+> 링크·라벨·가격 등 강조 **텍스트**는 `--olive-deep` 또는 `--ink`를 씁니다.
 
 배경 단색면의 **전통 칠보문(七寶紋) 패턴** 은 `--pat-dark` / `--pat-light` 변수로 제어하며, `<html class="pat-off">` 또는 `pat-strong` 으로 강도를 조절할 수 있습니다.
 
@@ -122,7 +128,7 @@ python3 -m http.server 8000
 | 체험지도사 신청 | localStorage | `kach_applications` |
 | 문의 | localStorage | `kach_inquiries` |
 | 게시글 | localStorage | `kach_posts_v1` |
-| 상품 | localStorage | `kach_products_v2` |
+| 상품 | localStorage | `kach_products_v3` |
 | 파트너 / 팝업 / 동의문 / KMS / 방문통계 | localStorage | `kach_partners_v1` `kach_popups_v1` `kach_consents_v1` `kach_kms_v1` `kach_visits_v1` |
 | 게시글 첨부 / 갤러리 사진 / 상품 이미지 | IndexedDB `kach_db` | `files` / `gallery` / `pimg` |
 
