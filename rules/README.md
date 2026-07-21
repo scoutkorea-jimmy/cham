@@ -7,10 +7,14 @@
 
 | 문서 | 내용 |
 |---|---|
+| [workflow.md](workflow.md) | **작업 절차** — 외부 변경 감지 · 조사 · 변경 계획 · 검증 · 완료 보고 · 중단 조건 |
+| [code-quality.md](code-quality.md) | 구조 · 중복 · 책임 분리 · 타입 · 오류 처리 · 의존성 · 네이밍 |
 | [design-tokens.md](design-tokens.md) | 컬러 · 타이포그래피 · 모서리 · 그림자 · 모션 토큰과 사용 규칙 |
 | [spacing-rhythm.md](spacing-rhythm.md) | 세로 리듬 — 섹션 여백, 섹션 내부 간격, 허용 값 |
 | [responsive.md](responsive.md) | 브레이크포인트, 모바일 기준, 터치 영역 |
 | [components.md](components.md) | 버튼 · 카드 · 표 · 폼 · 밴드 등 컴포넌트 표준 |
+
+저장소 전체 구조와 절대 규칙 요약은 [CLAUDE.md](../CLAUDE.md) 에 있습니다.
 
 ## 운용 규칙
 

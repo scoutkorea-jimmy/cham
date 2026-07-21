@@ -1,831 +1,100 @@
-# CLAUDE.md — Strict Code Change and Architecture Control Rules
+# CLAUDE.md — 저장소 지도
 
-## 0. HIGHEST-PRIORITY RULE: DETECT EXTERNAL CHANGES BEFORE EDITING
+한국참전통발효식품협동조합 공식 홈페이지. **순수 HTML · CSS · 바닐라 JS**, 빌드 도구 없음.
+정적 서버에 그대로 올라갑니다(GitHub Pages). 데이터는 현재 localStorage + IndexedDB 데모.
 
-This project is being developed by multiple people and multiple AI development tools.
+이 문서는 **지도**입니다. 상세 규칙은 [`rules/`](rules/) 에 있습니다.
 
-The codebase may have changed since:
+---
 
-* the previous conversation,
-* the previous task,
-* your last code analysis,
-* your last implementation,
-* or the user's last instruction.
+## 저장소 구조
 
-**Never assume that your previous understanding of the codebase is still current.**
+```
+index.html          홈
+about.html          협동조합 소개        ferments.html   전통발효식품
+vinegar.html        식초(서련 瑞蓮)      nuruk.html      누룩이야기
+instructor.html     체험지도사 과정      products.html   제품 목록
+product.html        상품 상세(?id=)      news.html       소식마당
+contact.html        문의                admin.html      관리자 콘솔
+terms.html / privacy.html                robots.txt / sitemap.xml / llms.txt
 
-Before modifying any existing file, inspect the current code and compare it with the structure and behavior you previously understood.
+assets/
+  site.css   디자인 시스템 + 전 컴포넌트 스타일 (모든 색·간격·글꼴 토큰의 원본)
+  site.js    공통 셸(내비/푸터 주입) · 모달 · 스토어 · 비회원 주문 · 동의 게이팅 · reveal
+  shop.js    제품 목록 · 상품 상세     board.js  게시판(Tiptap) · 첨부 · 갤러리
+  admin.js   관리자 콘솔 로직          jump.js   긴 페이지 목차 바
+  *.jpg      실사 사진                 logo.png
 
-If you detect code that appears to have been added, removed, rewritten, moved, renamed, or structurally changed by another person or tool:
-
-1. **Stop before editing the affected code.**
-2. Clearly tell the user what changed.
-3. Identify the affected files, functions, components, routes, schemas, or dependencies.
-4. Explain why the detected change matters.
-5. Explain how it may conflict with the current request or your planned implementation.
-6. Present specific integration options.
-7. Ask the user how the detected changes should be handled before continuing.
-
-Do not silently overwrite, revert, merge, reinterpret, or discard another person's changes.
-
-Do not assume that newer code is correct.
-
-Do not assume that your previous version is correct.
-
-Do not resolve conflicting implementations based only on your own preference.
-
-Use this reporting format:
-
-```text
-External changes detected
-
-Affected files:
-- path/to/file
-- path/to/another-file
-
-What changed:
-- Clear description of the detected change
-
-Why this matters:
-- Effect on architecture, behavior, data flow, or the requested task
-
-Possible actions:
-1. Keep the new implementation and adapt the requested work to it
-2. Restore the previous implementation
-3. Merge selected parts of both implementations
-4. Review the conflicting code before deciding
-
-Please confirm which option should be applied.
+rules/       규칙집 (아래 참조)
+Basic_Infomation/   고객사 원본 자료(pptx·jpg) — 콘텐츠 근거. 편집하지 않음
+.claude/skills/verify/   브라우저 검증 레시피
 ```
 
-This rule overrides all instructions to proceed immediately, minimize questions, or complete the task without confirmation.
+내비게이션·푸터는 `site.js` 가 각 페이지의 `<header id="site-nav">` / `<footer id="site-footer">`
+자리에 주입합니다. 메뉴는 `site.js` 상단 `NAV` 배열에서 고칩니다.
 
-However, do not stop for harmless differences such as formatting, comments, generated metadata, or unrelated content. Stop only when the change may affect behavior, architecture, data, dependencies, or the requested implementation.
+## 규칙집 — 무엇을 할 때 무엇을 읽는가
 
----
-
-# 1. CORE OPERATING PRINCIPLE
-
-Do not merely make the requested feature work.
-
-Make the requested change without increasing structural complexity, duplication, ambiguity, or maintenance cost.
-
-You must protect the integrity of the codebase.
-
-You must not:
-
-* copy an existing bad pattern,
-* add another workaround to an existing workaround,
-* create duplicate implementations,
-* hide errors,
-* bypass the intended data flow,
-* or make unrelated changes without a clear reason.
-
-If the existing implementation is structurally poor, do not extend it blindly.
-
-Perform the smallest necessary refactor required to add the requested feature safely.
+| 상황 | 문서 |
+|---|---|
+| **모든 작업 시작 전** | [rules/workflow.md](rules/workflow.md) — 외부 변경 감지 · 조사 · 계획 · 검증 · 보고 |
+| 코드를 쓰거나 고칠 때 | [rules/code-quality.md](rules/code-quality.md) — 중복 · 책임 분리 · 타입 · 오류 · 네이밍 |
+| 색 · 글꼴 · 그림자 · 모션 | [rules/design-tokens.md](rules/design-tokens.md) |
+| 여백 · 간격 · 리듬 | [rules/spacing-rhythm.md](rules/spacing-rhythm.md) |
+| 모바일 · 브레이크포인트 | [rules/responsive.md](rules/responsive.md) |
+| 버튼 · 카드 · 표 · 섹션 형태 | [rules/components.md](rules/components.md) |
 
 ---
 
-# 2. INSPECT BEFORE YOU EDIT
+## 절대 규칙
 
-Before writing or modifying code, inspect the current implementation.
+1. **편집 전에 현재 코드를 확인한다.** 여러 사람과 AI 도구가 같은 저장소를 고칩니다.
+   이전 이해가 아직 유효하다고 가정하지 않습니다.
+2. **다른 사람의 변경을 말없이 덮어쓰거나 되돌리지 않는다.** 동작·구조·데이터·의존성에
+   영향을 주는 외부 변경을 발견하면 멈추고 보고합니다 → [workflow.md](rules/workflow.md) 1절
+3. **나쁜 구조를 확장하지 않는다.** "기존이 이래서 따랐다"는 이유가 되지 않습니다.
+4. **중복은 결함이다.** 새로 만들기 전에 같은 역할의 기존 구현을 찾습니다.
+5. **증상을 패치하지 않는다.** 하드코딩된 예외, 예외 삼키기, 우회 경로를 만들지 않습니다.
+6. **오류·타입·린트를 숨기지 않는다.** `any` · `@ts-ignore` · 빈 catch 금지.
+7. **값을 하드코딩하지 않는다.** 색·간격·글꼴은 `site.css` 의 `:root` 토큰만 씁니다.
+   HTML에 인라인 `margin` 을 쓰지 않습니다 — 미디어쿼리를 이겨 반응형을 막습니다.
+8. **범위를 넘지 않는다.** 요청하지 않은 재디자인·이름변경·의존성 업그레이드를 하지 않습니다.
+9. **작은 수정에 파일 전체를 다시 쓰지 않는다.**
+10. **하지 않은 테스트를 했다고 하지 않는다.** 검증하지 못했으면 그 사실을 밝힙니다.
+11. **`new` · `v2` · `final` · `copy` · `temp` 같은 이름을 쓰지 않는다.**
 
-You must identify:
+## 멈추고 물어봐야 하는 때
 
-* the feature entry point,
-* related routes and pages,
-* imported components,
-* shared components,
-* state ownership,
-* API request locations,
-* database access locations,
-* validation logic,
-* business rules,
-* shared types and interfaces,
-* utility functions,
-* environment variables,
-* configuration files,
-* related tests,
-* and similar existing implementations.
+타인의 변경과 충돌 · 같은 기능의 구현이 둘 · 데이터 손실 가능 · 인증/인가 동작 변경 ·
+공개 API 계약 파손 · 주요 의존성 교체 · 광범위한 구조 재작성 필요
 
-Do not create a new function, component, service, hook, utility, type, or API client until you have searched for an existing equivalent.
+멈출 때는 막연히 묻지 말고 **구체적인 충돌과 선택지**를 제시합니다.
 
-Do not rely only on filenames. Search by behavior, imported symbols, endpoint names, UI text, data fields, and domain terminology.
+## 판단이 갈릴 때의 우선순위
 
----
+사용자 데이터·기존 동작 보호 → 외부 변경 보존 → 명시적 요구사항 충족 → 단일 원본 유지 →
+아키텍처 일관성 → 중복 제거 → 책임 분리 → 타입 안전성 → 테스트 가능성 →
+최소한의 올바른 변경 범위 → 컨텍스트 절약 → 구현 속도
 
-# 3. VERIFY THE CURRENT CODEBASE STATE
-
-At the beginning of every task, treat the repository as an unfamiliar and potentially changed codebase.
-
-Verify:
-
-* whether files have changed since your last task,
-* whether new files were added,
-* whether existing files were moved or renamed,
-* whether dependencies changed,
-* whether routes changed,
-* whether database schemas changed,
-* whether environment variables changed,
-* whether duplicated implementations now exist,
-* and whether another implementation already addresses the request.
-
-Do not apply an old plan to a changed codebase.
-
-Do not regenerate code from memory when the current file can be inspected.
-
-The repository is the current source of truth, but not every implementation inside it should be assumed to be correct.
+**속도는 구조적 부채를 만들 이유가 되지 않습니다.**
 
 ---
 
-# 4. PRESENT A CHANGE PLAN BEFORE IMPLEMENTATION
+## 검증
 
-Before making non-trivial changes, provide a concise implementation plan.
+정적 사이트라 실제 브라우저 구동이 주 검증 수단입니다.
 
-Include:
-
-```text
-Current structure:
-- Relevant existing implementation
-
-Root issue:
-- Actual cause of the problem
-
-Files to modify:
-- Exact file paths
-
-Files to create:
-- Exact file paths and why they are necessary
-
-Code to reuse:
-- Existing functions, components, types, or services
-
-Code to remove or consolidate:
-- Duplicate, obsolete, or conflicting code
-
-Potential impact:
-- Existing behavior that may be affected
-
-Validation:
-- Tests, type checks, builds, and manual checks to perform
+```bash
+python3 -m http.server 8777 --bind 127.0.0.1     # 서버
+./venv/bin/python <script>.py                     # Playwright (venv에 설치돼 있음)
 ```
 
-Do not begin a broad multi-file change without first establishing this plan.
-
-Small, isolated, low-risk edits may proceed without a long explanation, but the relevant code must still be inspected first.
-
----
-
-# 5. DO NOT EXPAND SPAGHETTI CODE
-
-If existing code contains tangled responsibilities, repeated conditions, duplicated logic, or unclear data flow, do not add more logic to the same structure by default.
-
-Do not say:
-
-> The existing code already works this way, so I followed the same pattern.
-
-A bad pattern does not become acceptable because it already exists.
-
-When the requested work touches spaghetti code:
-
-1. Identify the specific structural problem.
-2. Determine the minimum safe refactoring boundary.
-3. Refactor only the directly affected area.
-4. Preserve existing behavior.
-5. Add the requested feature through the cleaned structure.
-6. Remove code made obsolete by the change.
-7. Validate all affected paths.
-
-Do not rewrite the entire application unless the user explicitly requests it.
-
----
-
-# 6. KEEP RESPONSIBILITIES SEPARATE
-
-A single file, component, or function must not unnecessarily combine:
-
-* rendering,
-* state management,
-* API requests,
-* database access,
-* data transformation,
-* business rules,
-* validation,
-* authorization,
-* persistence,
-* analytics,
-* and error reporting.
-
-Separate responsibilities when they are independently reusable, testable, or changeable.
-
-Do not split code into many tiny files without a clear architectural reason.
-
-The goal is clear responsibility, not maximum file count.
-
----
-
-# 7. FUNCTION RULES
-
-Each function must have one clear purpose.
-
-Refactor a function when it:
-
-* performs unrelated operations,
-* contains deeply nested conditions,
-* changes several independent states,
-* returns inconsistent result shapes,
-* depends heavily on hidden external state,
-* duplicates logic from another function,
-* or cannot be clearly named.
-
-Avoid meaningless names such as:
-
-* `handleData`
-* `processAll`
-* `doSomething`
-* `runLogic`
-* `tempFix`
-* `newHandler`
-* `finalFunction`
-* `fixIssue`
-* `helper2`
-
-Use names that describe the actual responsibility, such as:
-
-* `validateParticipantRegistration`
-* `fetchEventAttendance`
-* `calculateCheckInCount`
-* `normalizeParticipantRecord`
-* `authorizeEventManager`
-
-Do not use comments to compensate for unclear function names or unclear structure.
-
----
-
-# 8. COMPONENT RULES
-
-Before creating a component, search for an existing component with the same responsibility.
-
-Prefer extending or composing an existing component when appropriate.
-
-Do not create near-duplicate components because modifying the existing one appears inconvenient.
-
-Do not place all of the following inside one page component:
-
-* API calls,
-* data transformation,
-* form validation,
-* business rules,
-* loading state,
-* permissions,
-* and complete UI rendering.
-
-Use the project's existing component hierarchy and design system.
-
-Do not introduce a second UI pattern when the project already has an established one.
-
-Do not duplicate visual elements with slightly different names.
-
----
-
-# 9. DUPLICATION IS A DEFECT
-
-Before implementing new logic, search for similar logic across the project.
-
-Check for duplication in:
-
-* API calls,
-* validation,
-* formatting,
-* error handling,
-* permission checks,
-* state transitions,
-* data transformation,
-* constants,
-* types,
-* schemas,
-* and UI components.
-
-When meaningful duplication exists, reuse or consolidate it.
-
-Do not copy code and change a few lines.
-
-Do not create a generic abstraction before real duplication exists.
-
-Do not merge unrelated business rules into one overly configurable function merely to reduce line count.
-
----
-
-# 10. DO NOT PATCH SYMPTOMS
-
-Do not add conditional exceptions simply to make one reported case pass.
-
-Before fixing a bug, identify:
-
-* the expected behavior,
-* the actual behavior,
-* the first point where they diverge,
-* the responsible state or data transformation,
-* and the root cause.
-
-Forbidden symptom patches include:
-
-* adding repeated null checks without fixing invalid state,
-* hardcoding a specific user, identifier, route, date, or value,
-* adding another boolean to bypass broken logic,
-* introducing an alternate execution path around the real flow,
-* swallowing an exception,
-* retrying indefinitely,
-* or returning an empty object to prevent a crash.
-
-Fix the source of the invalid state or behavior.
-
----
-
-# 11. CONTROL THE CHANGE SCOPE
-
-Modify only what is necessary for the requested task.
-
-Do not make unrelated changes such as:
-
-* redesigning unrelated pages,
-* renaming large parts of the codebase,
-* replacing the framework,
-* replacing state management,
-* changing the database architecture,
-* restructuring all routes,
-* reformatting the entire project,
-* upgrading unrelated packages,
-* or refactoring unrelated modules.
-
-If a larger change is genuinely required, explain why before implementing it.
-
-Minimal change does not mean adding the smallest possible patch.
-
-It means making the smallest complete and structurally correct change.
-
----
-
-# 12. DO NOT OVERWRITE WHOLE FILES UNNECESSARILY
-
-When only a small section requires modification, edit only that section.
-
-Do not regenerate an entire file merely because it is easier.
-
-Full-file replacement can:
-
-* delete another developer's work,
-* remove comments and edge-case handling,
-* create unnecessary merge conflicts,
-* increase review difficulty,
-* and consume unnecessary context and tokens.
-
-Preserve unaffected code.
-
-Before replacing a file, confirm that a full rewrite is technically necessary.
-
----
-
-# 13. TOKEN AND CONTEXT CONTROL
-
-Do not read the entire repository for every task.
-
-Narrow the search in this order:
-
-1. Search for the requested feature or error.
-2. Find the route, page, component, or service responsible.
-3. Trace its imports and direct dependencies.
-4. Inspect related types, schemas, and tests.
-5. Expand the search only when necessary.
-
-Do not inspect or output irrelevant generated content such as:
-
-* `node_modules`,
-* `.next`,
-* `dist`,
-* `build`,
-* cache directories,
-* coverage output,
-* binary files,
-* media assets,
-* large logs,
-* database dumps,
-* generated bundles,
-* and complete lockfiles unless dependency resolution requires it.
-
-Do not repeatedly reread files already inspected during the same task unless they changed.
-
-Do not repeatedly restate the same architectural analysis.
-
-Maintain a concise working summary of confirmed facts.
-
----
-
-# 14. TYPE SAFETY IS REQUIRED
-
-Do not use `any` to silence type errors.
-
-Do not weaken types merely to make compilation succeed.
-
-Prefer:
-
-* explicit domain types,
-* shared interfaces,
-* discriminated unions,
-* `unknown` with type guards,
-* schema validation,
-* and precise return types.
-
-Do not define the same data structure independently in multiple files.
-
-Use a single source of truth for shared types.
-
-If `any` is genuinely unavoidable, limit its scope and explain:
-
-* why it is necessary,
-* where it is used,
-* and how it should eventually be removed.
-
----
-
-# 15. KEEP DATA TRANSFORMATION CONSISTENT
-
-Do not transform the same API response differently in multiple components.
-
-Normalize external data in a consistent layer.
-
-Do not mix raw API data, normalized domain data, and UI display data without clear boundaries.
-
-Do not change a shared data shape without checking every consumer.
-
-If a schema or type changes, search for all references before editing.
-
----
-
-# 16. API AND SERVICE RULES
-
-Do not scatter direct API calls across UI components if the project already uses a service or client layer.
-
-Before creating a new request, check for:
-
-* an existing API client,
-* an existing endpoint wrapper,
-* shared authentication handling,
-* error normalization,
-* caching behavior,
-* retry behavior,
-* and response types.
-
-Do not call the same endpoint through multiple inconsistent implementations.
-
-Do not hardcode URLs, secrets, tokens, account IDs, or environment-specific values.
-
-Use existing environment and configuration patterns.
-
----
-
-# 17. STATE MANAGEMENT RULES
-
-Do not create duplicate sources of truth.
-
-Before introducing new state, identify:
-
-* who owns the state,
-* who reads it,
-* who changes it,
-* whether it is local, shared, server, cached, or persisted state,
-* and whether an existing source already represents it.
-
-Do not synchronize two copies of the same state through effects unless unavoidable.
-
-Do not add state for values that can be derived safely from existing state.
-
-Do not use global state for data that belongs to one component.
-
-Do not use local state for data that must remain consistent across the application.
-
----
-
-# 18. ERROR HANDLING RULES
-
-Never hide errors.
-
-Forbidden examples:
-
-```ts
-try {
-  await executeTask();
-} catch {
-  // Ignore
-}
-```
-
-```ts
-// @ts-ignore
-```
-
-```ts
-// eslint-disable-next-line
-```
-
-```ts
-const result = response || {};
-```
-
-Do not suppress type, lint, or runtime errors without resolving or documenting the cause.
-
-Distinguish between:
-
-* user-facing errors,
-* validation errors,
-* authorization errors,
-* network errors,
-* recoverable errors,
-* and developer-facing failures.
-
-Provide useful context in errors without exposing sensitive information.
-
----
-
-# 19. DEPENDENCY CONTROL
-
-Do not install a package before checking whether:
-
-* the project already contains an equivalent dependency,
-* the existing framework provides the feature,
-* a small local implementation is sufficient,
-* the package is actively maintained,
-* the package is compatible,
-* and the package introduces unnecessary bundle or security cost.
-
-Do not install a large library for a minor utility.
-
-Before adding a dependency, state:
-
-* why it is needed,
-* where it will be used,
-* why existing dependencies are insufficient,
-* and what alternatives were considered.
-
-Do not update unrelated dependencies.
-
----
-
-# 20. REMOVE OBSOLETE CODE
-
-When a new implementation replaces existing code, remove code that is no longer used.
-
-Check for:
-
-* unused imports,
-* unused functions,
-* unused components,
-* unused types,
-* unused styles,
-* unused API wrappers,
-* obsolete routes,
-* temporary logging,
-* commented-out legacy code,
-* backup files,
-* and unused packages.
-
-Do not delete code based on assumption.
-
-Search all static and dynamic references first.
-
-Be especially careful with dynamically imported modules, route conventions, configuration-based loading, and reflection.
-
----
-
-# 21. DO NOT CREATE VERSION-SUFFIX FILES
-
-Do not create files or symbols named with suffixes such as:
-
-* `new`
-* `old`
-* `final`
-* `final2`
-* `copy`
-* `backup`
-* `v2`
-* `latest`
-* `fixed`
-* `temp`
-
-Examples of prohibited names:
-
-* `DashboardNew.tsx`
-* `authServiceV2.ts`
-* `finalHandler.ts`
-* `UserCardCopy.tsx`
-* `api-fixed.ts`
-
-If an implementation replaces another, update the correct implementation and remove the obsolete one after verifying references.
-
-If two versions must coexist for a valid product reason, name them by their actual role, not by chronology.
-
----
-
-# 22. COMMENTS MUST EXPLAIN WHY
-
-Do not write comments that merely restate the code.
-
-Bad:
-
-```ts
-// Set the user name
-setUserName(name);
-```
-
-Write comments only when they explain:
-
-* a non-obvious design decision,
-* an external system limitation,
-* a business rule,
-* a compatibility requirement,
-* a security concern,
-* or why a seemingly simpler implementation is unsafe.
-
-Temporary code must include a clear reason and removal condition.
-
-Do not leave vague TODO comments.
-
----
-
-# 23. VALIDATE EVERY CHANGE
-
-After implementation, run every validation available and relevant to the project.
-
-At minimum, consider:
-
-* type checking,
-* linting,
-* formatting checks,
-* unit tests,
-* integration tests,
-* build verification,
-* route verification,
-* database migration validation,
-* and manual behavior checks.
-
-Validate:
-
-* the requested behavior,
-* existing related behavior,
-* empty states,
-* invalid input,
-* loading states,
-* error states,
-* permissions,
-* mobile layout,
-* desktop layout,
-* and relevant accessibility behavior.
-
-Do not claim that something was tested unless it was actually tested.
-
-If validation cannot be performed, state exactly:
-
-* what was not tested,
-* why it could not be tested,
-* and how the user should verify it.
-
----
-
-# 24. REQUIRED COMPLETION REPORT
-
-After completing the work, report using this format:
-
-```text
-Change objective
-- What problem was solved
-
-Files modified
-- path/to/file: exact change
-- path/to/file: exact change
-
-Files created
-- path/to/file: reason for creation
-
-Files removed
-- path/to/file: reason for removal
-
-Existing code reused
-- Components, functions, types, or services reused
-
-Structural decisions
-- Why this implementation was selected
-
-External changes handled
-- Any changes from other developers that were preserved, merged, or excluded
-
-Validation performed
-- Type check:
-- Lint:
-- Tests:
-- Build:
-- Manual verification:
-
-Known risks or follow-up items
-- Only unresolved items that genuinely remain
-```
-
-Keep the report factual.
-
-Do not include validation steps that were not performed.
-
----
-
-# 25. STOP CONDITIONS
-
-Stop and ask the user before continuing when:
-
-* another developer's changes conflict with the requested task,
-* two different implementations provide the same feature,
-* it is unclear which implementation is active,
-* a database migration is required,
-* data could be lost,
-* authentication or authorization behavior may change,
-* public API contracts may break,
-* a major dependency must be replaced,
-* the requested change requires a broad architectural rewrite,
-* or preserving existing behavior is not possible without a product decision.
-
-When stopping, explain the concrete conflict and provide specific options.
-
-Do not ask broad or vague questions such as:
-
-> What would you like me to do?
-
-Ask a decision-focused question such as:
-
-> The current branch contains two participant validation flows. The new flow in `src/services/registration.ts` rejects incomplete records, while the older flow in `src/pages/register.tsx` allows partial drafts. Should I preserve draft registration, enforce strict validation everywhere, or merge the two behaviors by validating only on final submission?
-
----
-
-# 26. NON-NEGOTIABLE PROHIBITIONS
-
-Never:
-
-* edit before inspecting the current code,
-* assume the repository is unchanged,
-* silently overwrite another developer's work,
-* silently revert unfamiliar code,
-* extend a known bad architecture,
-* duplicate an existing feature,
-* create parallel API clients,
-* create parallel sources of truth,
-* patch symptoms with hardcoded conditions,
-* hide exceptions,
-* use `any` to avoid proper typing,
-* disable lint or type checks without a documented technical reason,
-* install unnecessary packages,
-* replace entire files for small changes,
-* perform unrelated refactors,
-* delete code without checking references,
-* claim unperformed tests,
-* or report success when validation failed.
-
----
-
-# 27. DECISION PRIORITY
-
-When several implementation choices are possible, use this priority order:
-
-1. Protect user data and existing behavior.
-2. Detect and preserve intentional external changes.
-3. Satisfy the explicit requirement.
-4. Maintain one source of truth.
-5. Preserve architectural consistency.
-6. Eliminate duplication.
-7. Keep responsibilities separate.
-8. Maintain type safety.
-9. Keep the implementation testable.
-10. Minimize the correct change scope.
-11. Reduce token and context waste.
-12. Optimize implementation speed.
-
-Speed is never a valid reason to create structural debt.
-
----
-
-# 28. EXECUTION SEQUENCE FOR EVERY TASK
-
-For every development request, follow this exact sequence:
-
-1. Inspect the current repository state.
-2. Detect changes made since your previous understanding.
-3. Stop and report any relevant external changes.
-4. Search for existing implementations.
-5. Trace the relevant data and control flow.
-6. Identify the root cause or required extension point.
-7. Present the change plan.
-8. Modify only the necessary code.
-9. Remove newly obsolete code.
-10. Run validation.
-11. Review the final diff for unrelated changes.
-12. Report the result using the required completion format.
-
-Do not skip steps because the requested change appears simple.
-
-A simple request can still damage a codebase when multiple people and AI tools are editing it.
+최소 확인: **390px · 1280px** 두 폭 / 가로 스크롤 0건 / 표의 마지막 열이 화면 안에 있을 것 /
+간격이 허용 값(8 · 16 · 24 · 44 · 64px)을 벗어나지 않을 것.
+자세한 절차는 [.claude/skills/verify](.claude/skills/verify/SKILL.md) 와
+[rules/responsive.md](rules/responsive.md) 4절.
+
+## 운영 전 남은 항목
+
+무통장입금 실제 계좌번호(`site.js` 의 `PAY_BANK`) · 도메인 확정 후 SEO 파일 URL 교체 ·
+관리자 인증을 서버 세션/토큰으로 · 샘플 데이터를 실데이터로 · 약관·개인정보처리방침 법무 검토
