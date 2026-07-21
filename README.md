@@ -102,7 +102,9 @@ python3 -m http.server 8000
 
 ## 디자인 시스템
 
-모든 색·간격·폰트는 `assets/site.css` 상단 `:root` 의 CSS 변수로 관리되며, 상세 기준은 **관리자 > KMS > 디자인 룰북** 에 기록·관리됩니다.
+모든 색·간격·폰트는 `assets/site.css` 상단 `:root` 의 CSS 변수로 관리됩니다.
+규칙의 원본은 **[`rules/`](rules/)** 디렉토리입니다 — [디자인 토큰](rules/design-tokens.md) · [세로 리듬](rules/spacing-rhythm.md) · [반응형](rules/responsive.md) · [컴포넌트](rules/components.md).
+**관리자 > KMS > 디자인 룰북** 은 고객사 열람용 사본이며 `rules/` 를 따라 갱신합니다.
 
 | 토큰 | 값 | 용도 |
 |---|---|---|
