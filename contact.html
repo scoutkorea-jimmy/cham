@@ -31,12 +31,12 @@
   .contact-lead { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center;
     background: var(--point-tint); border-radius: var(--r-xl); padding: 48px 44px; }
   .cl-tel { display: block; font-family: var(--font-head); font-weight: 800; color: var(--ink);
-    font-size: clamp(36px, 5vw, 56px); line-height: 1.15; letter-spacing: -0.02em; margin-top: 12px; }
-  .cl-tel.sub { font-size: clamp(24px, 3.2vw, 34px); color: var(--ink-soft); margin-top: 4px; }
+    font-size: clamp(36px, 5vw, 56px); line-height: 1.15; letter-spacing: -0.02em; }
+  .cl-tel.sub { font-size: clamp(24px, 3.2vw, 34px); color: var(--ink-soft); }
   .cl-tel:hover { color: var(--olive-deep); }
   .cl-side { display: flex; flex-direction: column; gap: 22px; }
   .cl-row { display: flex; gap: 14px; align-items: flex-start; }
-  .cl-row i[data-lucide] { width: 22px; height: 22px; color: var(--olive-deep); flex-shrink: 0; margin-top: 3px; }
+  .cl-row i[data-lucide] { width: 22px; height: 22px; color: var(--olive-deep); flex-shrink: 0; }
   .cl-row b { display: block; margin-bottom: 3px; }
   .cl-row p { margin: 0; color: var(--ink-mute); font-size: var(--fs-sm); line-height: 1.7; }
   @media (max-width: 860px){ .contact-lead { grid-template-columns: 1fr; padding: 34px 26px; gap: 30px; } }
@@ -49,7 +49,7 @@
   <div class="wrap">
     <div class="crumb reveal"><a href="index.html">홈</a><i data-lucide="chevron-right"></i><span>문의하기</span></div>
     <span class="eyebrow reveal">Contact</span>
-    <h1 class="reveal" style="margin-top:14px">무엇이든 편히 물어보세요</h1>
+    <h1 class="reveal">무엇이든 편히 물어보세요</h1>
     <p class="lede reveal">교육·제품·제휴 등 궁금하신 점을 남겨주시면 담당자가 빠르게 답변드립니다.</p>
   </div>
 </section>
@@ -77,21 +77,21 @@
 <section class="section band-oat">
   <div class="wrap">
     <div class="section-head center reveal"><span class="eyebrow center">온라인 문의</span><h2>어떤 도움이 필요하신가요?</h2><p class="lede">유형을 선택하면 문의 양식이 바로 열립니다. 연락처만 남겨주셔도 됩니다.</p></div>
-    <div class="grid g-4 reveal" style="margin-top:44px">
+    <div class="grid g-4 reveal">
       <button class="card card-pad card-hover" data-modal="inquiry" data-type="교육 문의" style="text-align:left;background:var(--surface);cursor:pointer;border:1px solid var(--line-soft);font:inherit">
-        <div class="icon-badge point"><i data-lucide="graduation-cap"></i></div><h4 style="margin:16px 0 6px">교육 문의</h4><p class="muted" style="margin:0;font-size:var(--fs-sm)">체험지도사 과정 · 다음 기수 일정 · 원데이 수업</p>
+        <div class="icon-badge point"><i data-lucide="graduation-cap"></i></div><h4>교육 문의</h4><p class="muted" style="margin:0;font-size:var(--fs-sm)">체험지도사 과정 · 다음 기수 일정 · 원데이 수업</p>
       </button>
       <button class="card card-pad card-hover" data-modal="inquiry" data-type="제품 문의" style="text-align:left;background:var(--surface);cursor:pointer;border:1px solid var(--line-soft);font:inherit">
-        <div class="icon-badge olive"><i data-lucide="shopping-basket"></i></div><h4 style="margin:16px 0 6px">제품 · 주문 문의</h4><p class="muted" style="margin:0;font-size:var(--fs-sm)">식초 · 장류 가격 · 배송 · 선물세트 구성</p>
+        <div class="icon-badge olive"><i data-lucide="shopping-basket"></i></div><h4>제품 · 주문 문의</h4><p class="muted" style="margin:0;font-size:var(--fs-sm)">식초 · 장류 가격 · 배송 · 선물세트 구성</p>
       </button>
       <button class="card card-pad card-hover" data-modal="seedjang" style="text-align:left;background:var(--surface);cursor:pointer;border:1px solid var(--line-soft);font:inherit">
-        <div class="icon-badge oat"><i data-lucide="sprout"></i></div><h4 style="margin:16px 0 6px">씨장 분양</h4><p class="muted" style="margin:0;font-size:var(--fs-sm)">전국민 씨장 갖기 운동 · 분양 상담</p>
+        <div class="icon-badge oat"><i data-lucide="sprout"></i></div><h4>씨장 분양</h4><p class="muted" style="margin:0;font-size:var(--fs-sm)">전국민 씨장 갖기 운동 · 분양 상담</p>
       </button>
       <button class="card card-pad card-hover" data-modal="inquiry" data-type="제휴 문의" style="text-align:left;background:var(--surface);cursor:pointer;border:1px solid var(--line-soft);font:inherit">
-        <div class="icon-badge"><i data-lucide="handshake"></i></div><h4 style="margin:16px 0 6px">제휴 · 출강 문의</h4><p class="muted" style="margin:0;font-size:var(--fs-sm)">기관 출강 · 납품 · 협력 제안</p>
+        <div class="icon-badge"><i data-lucide="handshake"></i></div><h4>제휴 · 출강 문의</h4><p class="muted" style="margin:0;font-size:var(--fs-sm)">기관 출강 · 납품 · 협력 제안</p>
       </button>
     </div>
-    <div class="reveal" style="text-align:center;margin-top:44px">
+    <div class="reveal" style="text-align:center">
       <button class="btn btn-point btn-lg" data-modal="inquiry"><i data-lucide="edit-3"></i>문의 양식 바로 작성하기</button>
     </div>
   </div>
@@ -103,14 +103,14 @@
     <div class="reveal map-wrap"><div id="osmMap" role="img" aria-label="한국참전통발효식품협동조합 위치 지도"></div></div>
     <div class="reveal">
       <span class="eyebrow">오시는 길</span>
-      <h2 style="margin-top:14px">찾아오시는 길</h2>
-      <dl class="facts" style="margin-top:26px">
+      <h2>찾아오시는 길</h2>
+      <dl class="facts">
         <div class="fact"><dt>주소</dt><dd>서울특별시 구로구 구로동로 240,<br>세일빌딩 701호 (구로동)</dd></div>
         <div class="fact"><dt>가까운 곳</dt><dd>NC신구로점 맞은편 쿠쿠대리점 건물 7층</dd></div>
         <div class="fact"><dt>전화</dt><dd><a href="tel:02-855-8806" style="text-decoration:underline">02-855-8806</a></dd></div>
         <div class="fact"><dt>운영 시간</dt><dd>평일 09:00 – 18:00 (주말·공휴일 휴무)</dd></div>
       </dl>
-      <p class="muted" style="margin-top:20px;font-size:var(--fs-sm)">교육 실습장(정선 만장대)은 별도 장소입니다. 방문 전 전화 주시면 안내해 드립니다.</p>
+      <p class="muted" style="font-size:var(--fs-sm)">교육 실습장(정선 만장대)은 별도 장소입니다. 방문 전 전화 주시면 안내해 드립니다.</p>
     </div>
   </div>
 </section>

@@ -34,9 +34,9 @@
     font-size: clamp(52px, 8vw, 96px); line-height: 1; letter-spacing: .12em;
     text-shadow: 0 4px 30px rgba(0,0,0,.5);
   }
-  .vin-logo small { display: block; font-size: 15px; letter-spacing: .5em; color: rgba(255,255,255,.8); margin-top: 14px; font-weight: 600; }
-  .vin-hero h1 { color: #fff; margin-top: 34px; font-size: clamp(26px, 3.2vw, 40px); text-shadow: 0 2px 24px rgba(0,0,0,.45); }
-  .vin-hero .sub { color: rgba(255,255,255,.9); max-width: 34em; margin: 18px auto 0; font-size: var(--fs-body-lg); line-height: 1.85; }
+  .vin-logo small { display: block; font-size: 15px; letter-spacing: .5em; color: rgba(255,255,255,.8); font-weight: 600; }
+  .vin-hero h1 { color: #fff; font-size: clamp(26px, 3.2vw, 40px); text-shadow: 0 2px 24px rgba(0,0,0,.45); }
+  .vin-hero .sub { color: rgba(255,255,255,.9); max-width: 34em; margin: var(--gap-related) auto 0; font-size: var(--fs-body-lg); line-height: 1.85; }
 
   /* 장류/식초 대비 — 두 발효식품의 성격 차이를 나란히 */
   .vs { display: grid; grid-template-columns: 1fr auto 1fr; gap: var(--s8); align-items: stretch; }
@@ -50,7 +50,7 @@
   .lineup-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--s5); }
   .lineup-item { text-align: center; }
   .lineup-item img { border-radius: var(--r-md); }
-  .lineup-item b { display: block; margin-top: 12px; font-size: var(--fs-sm); }
+  .lineup-item b { display: block; font-size: var(--fs-sm); }
   @media (max-width: 900px){ .lineup-grid { grid-template-columns: repeat(3, 1fr); } }
   @media (max-width: 560px){ .lineup-grid { grid-template-columns: repeat(2, 1fr); } }
 </style>
@@ -88,21 +88,21 @@
       <p class="lede">우리 조상들은 기원전 6000년부터 곰팡이와 초산균을 이용해 식초를 만들어 먹었습니다. 발효식품은 크게 장류와 식초류로 나뉘는데, 두 가지는 걸리는 시간이 다릅니다.</p>
     </div>
 
-    <div class="vs reveal" style="margin-top:52px">
+    <div class="vs reveal">
       <div class="vs-card">
         <span class="tag">장류</span>
-        <div class="vs-time" style="margin-top:18px">1<em>년</em></div>
+        <div class="vs-time">1<em>년</em></div>
         <p class="muted" style="margin:14px 0 0">된장·간장·고추장은 1년이라는 숙성 과정을 거쳐야 제 맛이 납니다. 메주를 띄우고, 장을 가르고, 장독대에서 계절을 넘깁니다.</p>
       </div>
       <div class="vs-mid">VS</div>
       <div class="vs-card on">
         <span class="tag point">식초</span>
-        <div class="vs-time" style="margin-top:18px">40<em>일</em></div>
+        <div class="vs-time">40<em>일</em></div>
         <p class="muted" style="margin:14px 0 0">식초는 40일 정도면 완성됩니다. 비교적 짧은 기간에도 발효의 변화를 경험할 수 있는, 그래서 더 매력적인 식품입니다.</p>
       </div>
     </div>
 
-    <div class="card card-pad reveal" style="margin-top:32px;background:var(--olive-tint);border:none">
+    <div class="card card-pad reveal" style="background:var(--olive-tint);border:none">
       <p style="margin:0;color:var(--ink)"><b>다만 중요한 것은 빠르게 만드는 일이 아닙니다.</b> 좋은 재료와 바른 방법, 충분한 기다림과 정성을 지키는 일 — 조합이 식초를 만들 때 가장 먼저 두는 기준입니다.</p>
     </div>
   </div>
@@ -117,7 +117,7 @@
       <p class="lede">설탕에 재운 과일이 청이 되고, 청이 와인이 되고, 와인이 다시 식초가 됩니다. 각 단계마다 정해진 당도와 온도, 그리고 기다리는 시간이 있습니다.</p>
     </div>
 
-    <div class="rail reveal" style="margin-top:56px">
+    <div class="rail reveal">
       <div class="rail-step">
         <div class="r-no">1</div>
         <h4>청 담그기</h4>
@@ -144,7 +144,7 @@
       </div>
     </div>
 
-    <div class="card card-pad reveal" style="margin-top:48px;max-width:760px;margin-inline:auto;text-align:center">
+    <div class="card card-pad reveal" style="max-width:760px;margin-inline:auto;text-align:center">
       <p class="muted" style="margin:0">완성된 식초는 산도를 재어 확인합니다. <b style="color:var(--ink)">산도 6~7 정도</b>가 되면 식초로 완성된 것입니다.</p>
     </div>
   </div>
@@ -159,7 +159,7 @@
       <p class="lede">계절에 나는 과일로 그때그때 담그기 때문에, 시기에 따라 만나실 수 있는 종류가 달라집니다.</p>
     </div>
 
-    <div class="lineup-grid reveal" style="margin-top:44px">
+    <div class="lineup-grid reveal">
       <div class="lineup-item"><img class="prod-photo" src="assets/product-vinegar-omija.jpg" alt="오미자 식초"><b>오미자 식초</b></div>
       <div class="lineup-item"><img class="prod-photo" src="assets/product-vinegar-grape.jpg" alt="포도 식초"><b>포도 식초</b></div>
       <div class="lineup-item"><img class="prod-photo" src="assets/product-vinegar-citrus.jpg" alt="감귤 식초"><b>감귤 식초</b></div>
@@ -167,14 +167,14 @@
       <div class="lineup-item"><img class="prod-photo" src="assets/product-vinegar-watermelon.jpg" alt="수박 식초"><b>수박 식초</b></div>
     </div>
 
-    <p class="reveal" style="margin-top:36px;font-weight:700;color:var(--ink)">이 외에 이런 식초도 담급니다</p>
-    <div class="chips reveal" style="margin-top:14px">
+    <p class="reveal" style="font-weight:700;color:var(--ink)">이 외에 이런 식초도 담급니다</p>
+    <div class="chips reveal">
       <span class="chip">사과 식초</span><span class="chip">솔잎 식초</span><span class="chip">파인애플 식초</span>
       <span class="chip">모과 식초</span><span class="chip">고욤 식초</span><span class="chip">생강 식초</span>
       <span class="chip">와송 식초</span><span class="chip">머루 식초</span>
     </div>
 
-    <div class="card card-pad reveal" style="margin-top:40px;display:flex;gap:22px;align-items:center;flex-wrap:wrap">
+    <div class="card card-pad reveal" style="display:flex;gap:22px;align-items:center;flex-wrap:wrap">
       <div class="icon-badge point"><i data-lucide="wine"></i></div>
       <div style="flex:1;min-width:240px">
         <h4 style="margin:0 0 6px">수제 와인도 함께 만듭니다</h4>
@@ -194,21 +194,21 @@
       <p class="lede">식초는 신맛이 강하기 때문에 그대로 드시기보다 희석해서 드시는 것이 좋습니다.</p>
     </div>
 
-    <div class="grid g-2" style="margin-top:44px;gap:24px">
+    <div class="grid g-2" style="gap:24px">
       <div class="card card-pad reveal">
         <span class="num-chip">01</span>
-        <h4 style="margin:16px 0 8px">희석해서 드세요</h4>
+        <h4>희석해서 드세요</h4>
         <p class="muted" style="margin:0">식초는 신맛이 강하기 때문에 물이나 다른 음료에 희석하여 섭취하는 것이 좋습니다.</p>
-        <div style="margin-top:18px;padding:16px;background:var(--point-tint);border-radius:var(--r-md)">
+        <div style="padding:16px;background:var(--point-tint);border-radius:var(--r-md)">
           <b style="color:var(--ink)">식초 50㎖ (소주잔 한 컵) : 물 6배</b>
           <p class="muted" style="margin:6px 0 0;font-size:var(--fs-caption)">경우에 따라 조금 더 추가해도 되고, 물을 더 타서 드셔도 됩니다.</p>
         </div>
       </div>
       <div class="card card-pad reveal">
         <span class="num-chip">02</span>
-        <h4 style="margin:16px 0 8px">꾸준히 드세요</h4>
+        <h4>꾸준히 드세요</h4>
         <p class="muted" style="margin:0">식초는 단기간에 많이 섭취하기보다, <b style="color:var(--ink)">꾸준히 섭취하는 것</b>이 효과적입니다.</p>
-        <h4 style="margin:26px 0 8px">섭취 후에는 물을 충분히</h4>
+        <h4>섭취 후에는 물을 충분히</h4>
         <p class="muted" style="margin:0">식초는 땀을 흘리게 하는 효과가 있어, 섭취 후 물을 충분히 마시는 것이 좋습니다. 물을 충분히 마시면 탈수 증상이 예방되고, 체내 노폐물을 배출하는 데 도움이 됩니다.</p>
       </div>
     </div>
@@ -221,9 +221,9 @@
     <div class="spec reveal">
       <div>
         <span class="eyebrow">품질 · 시험성적</span>
-        <h2 style="margin-top:14px">숫자로 확인한 산도</h2>
-        <p class="lede" style="margin-top:18px">조합의 발효식초는 공인 기관의 시험·검사를 거쳐 <b>적합</b> 판정을 받았습니다. 아래는 실제 시험성적서에 기재된 내용입니다.</p>
-        <dl class="facts" style="margin-top:26px">
+        <h2>숫자로 확인한 산도</h2>
+        <p class="lede">조합의 발효식초는 공인 기관의 시험·검사를 거쳐 <b>적합</b> 판정을 받았습니다. 아래는 실제 시험성적서에 기재된 내용입니다.</p>
+        <dl class="facts">
           <div class="fact"><dt>검사 항목</dt><dd>총산 (w/v%)</dd></div>
           <div class="fact"><dt>검사 기준</dt><dd>4.00 이상 20.00 이하</dd></div>
           <div class="fact"><dt>검사 결과</dt><dd><b style="color:var(--ink);font-size:19px">4.7</b> — 판정 <b style="color:var(--olive-deep)">적합</b> (단서조항: 초산으로서)</dd></div>
@@ -238,7 +238,7 @@
           <img class="slot-photo" src="assets/edu-vinegar.jpg" alt="식초 만들기 수업 현장">
           <i data-lucide="flask-conical"></i>
         </div>
-        <div class="card card-pad" style="margin-top:20px;background:var(--main-tint);border:none">
+        <div class="card card-pad" style="background:var(--main-tint);border:none">
           <h4 style="margin:0 0 8px;font-size:var(--fs-h5)">천연 재료 · 위생 관리</h4>
           <p class="muted" style="margin:0;font-size:var(--fs-sm)">천연 재료를 사용하고 철저한 위생 관리를 통해 고품질의 수제 식초와 와인을 만듭니다. 다양한 과일과 청을 활용해 독특한 맛과 향을 가진 제품을 개발합니다.</p>
         </div>
@@ -267,7 +267,7 @@
       <p class="lede">회원가입 없이 <b>비회원 주문</b>이 가능합니다. 선물상자는 원하시는 식초 종류로 구성해 드립니다.</p>
     </div>
 
-    <div class="card reveal table-scroll" style="margin-top:32px;padding:8px 8px 0">
+    <div class="card reveal table-scroll" style="padding:8px 8px 0">
       <table class="ptable">
         <caption>부가세 포함가 · 배송비 별도(5만원 이상 무료)</caption>
         <colgroup><col class="c-item"><col class="c-vol"><col class="c-price"></colgroup>
@@ -281,11 +281,11 @@
       </table>
     </div>
 
-    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:32px" class="reveal">
+    <div style="display:flex;gap:12px;flex-wrap:wrap" class="reveal">
       <a class="btn btn-point btn-lg" href="products.html#vinegar"><i data-lucide="shopping-basket"></i>제품 보고 주문하기</a>
       <button class="btn btn-ghost btn-lg" data-modal="inquiry" data-type="제품 문의"><i data-lucide="message-circle"></i>구매 문의</button>
     </div>
-    <p class="muted reveal" style="margin-top:20px;font-size:var(--fs-sm)">대량 · 도매 주문은 별도 단가로 안내드립니다. <b style="color:var(--ink)">02-855-8806</b> / <b style="color:var(--ink)">010-8768-9551</b></p>
+    <p class="muted reveal" style="font-size:var(--fs-sm)">대량 · 도매 주문은 별도 단가로 안내드립니다. <b style="color:var(--ink)">02-855-8806</b> / <b style="color:var(--ink)">010-8768-9551</b></p>
   </div>
 </section>
 
@@ -294,8 +294,8 @@
   <div class="wrap split" style="align-items:center;gap:40px">
     <div class="reveal">
       <span class="eyebrow">직접 만들어 보기</span>
-      <h2 style="color:#fff;margin-top:14px">식초, 배워서 직접 담가보세요</h2>
-      <p style="color:rgba(255,255,255,.9);margin-top:14px;font-size:var(--fs-body-lg);line-height:1.8">체험지도사 과정에서 와인·식초 만들기를 직접 실습합니다. 하루짜리 원데이 수업으로 먼저 경험해 보실 수도 있습니다.</p>
+      <h2 style="color:#fff">식초, 배워서 직접 담가보세요</h2>
+      <p style="color:rgba(255,255,255,.9);font-size:var(--fs-body-lg);line-height:1.8">체험지도사 과정에서 와인·식초 만들기를 직접 실습합니다. 하루짜리 원데이 수업으로 먼저 경험해 보실 수도 있습니다.</p>
     </div>
     <div class="reveal" style="display:flex;gap:12px;flex-wrap:wrap">
       <a class="btn btn-point btn-lg" href="instructor.html#oneday"><i data-lucide="calendar-days"></i>원데이 수업 보기</a>

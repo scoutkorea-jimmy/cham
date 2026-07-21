@@ -23,7 +23,8 @@
  {"@type":"ListItem","position":2,"name":"제품","item":"products.html"}]}
 </script>
 <style id="page-style">
-  .cat-bar { display:flex; gap:10px; flex-wrap:wrap; margin-top:28px; }
+  .cat-bar { display:flex; gap:10px; flex-wrap:wrap; }
+  .page-hero .wrap > .cat-bar { margin-top:var(--gap-block); }
   .cat-bar a, .cat-bar button { padding:9px 18px; border-radius:var(--r-pill); background:var(--surface); border:1px solid var(--line-soft); font-size:var(--fs-sm); font-weight:600; color:var(--ink-soft); cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:6px; }
   .cat-bar a:hover, .cat-bar button:hover { border-color:var(--main); color:var(--main); background:var(--main-tint); }
   .cat-bar i[data-lucide]{ width:15px; height:15px; }
@@ -41,7 +42,7 @@
   <div class="wrap">
     <div class="crumb reveal"><a href="index.html">홈</a><i data-lucide="chevron-right"></i><span>제품</span></div>
     <span class="eyebrow reveal">제품</span>
-    <h1 class="reveal" style="margin-top:14px">수제 발효식초 서련(瑞蓮),<br>그리고 전통의 장(醬)</h1>
+    <h1 class="reveal">수제 발효식초 서련(瑞蓮),<br>그리고 전통의 장(醬)</h1>
     <p class="lede reveal">과일을 청으로 담가 와인으로 빚고, 다시 초산 발효시킨 수제 식초와 와인. 그리고 정선에서 익힌 전통 장류를 소개합니다. 회원가입 없이 <b>비회원 주문</b>이 가능합니다.</p>
     <div class="cat-bar reveal" id="lookup">
       <a href="#vinegar">식초 · 와인</a><a href="#jang">장류</a><a href="#ferment">발효식품</a><a href="#gift">선물세트</a><a href="#price">가격 안내</a><a href="#seedjang">씨장 분양</a>
@@ -70,16 +71,16 @@
       <h2>수제로 만든 전통 자연식초</h2>
       <p class="lede">과일(사과·포도·감귤·오미자 등)을 설탕과 섞어 청으로 담가 3개월 숙성하고, 16브릭스로 맞춰 발효시켜 와인을 만듭니다. 이 와인을 6브릭스로 맞춘 뒤 초산균을 더해 33℃에서 3주 두면 초막이 끼면서 식초가 됩니다.</p>
     </div>
-    <div class="reveal ph tone-oat ratio-169 has-img" data-img-slot="prod-vinegar-line" data-label="서련 수제식초 라인업" style="margin-top:32px">
+    <div class="reveal ph tone-oat ratio-169 has-img" data-img-slot="prod-vinegar-line" data-label="서련 수제식초 라인업">
       <img class="slot-photo" src="assets/product-vinegar-lineup.jpg" alt="사과·포도·오미자·수박·감귤·매실 등 서련 수제식초 라인업">
       <i data-lucide="wine"></i>
     </div>
-    <div class="prod-grid" id="grid-vinegar" style="margin-top:40px"></div>
+    <div class="prod-grid" id="grid-vinegar"></div>
 
-    <div class="grid g-2" style="margin-top:48px;gap:24px">
+    <div class="grid g-2" style="gap:24px">
       <div class="card card-pad reveal">
         <div class="icon-badge point"><i data-lucide="cup-soda"></i></div>
-        <h4 style="margin:18px 0 12px">식초 복용법</h4>
+        <h4>식초 복용법</h4>
         <ul class="muted" style="margin:0;padding-left:1.1em;line-height:1.9">
           <li>식초는 신맛이 강하므로 <b>물이나 다른 음료에 희석</b>해 드시는 것이 좋습니다.</li>
           <li>식초 50㎖(소주잔 한 컵)에 <b>물 6배</b>를 희석해 드시면 됩니다. 경우에 따라 조금 더 추가해도, 물을 더 타서 드셔도 됩니다.</li>
@@ -89,8 +90,8 @@
       </div>
       <div class="card card-pad reveal">
         <div class="icon-badge olive"><i data-lucide="clipboard-check"></i></div>
-        <h4 style="margin:18px 0 12px">품질 · 시험 검사</h4>
-        <dl class="facts" style="margin-top:4px">
+        <h4>품질 · 시험 검사</h4>
+        <dl class="facts">
           <div class="fact"><dt>총산</dt><dd>4.7% (기준 4.00 이상 20.00 이하) — <b>적합</b></dd></div>
           <div class="fact"><dt>검사 기관</dt><dd>강원특별자치도보건환경연구원</dd></div>
           <div class="fact"><dt>검사 완료일</dt><dd>2025년 4월 30일</dd></div>
@@ -107,7 +108,7 @@
     <div class="section-head reveal"><span class="eyebrow">장류</span><h2>정선만장대 전통 장(醬)</h2>
       <p class="lede">황국균·백국균·고초균·낫또균·젓산균·누룩균·효모균 — 7가지 미생물을 증식시켜 만든 기능성 메주로 담급니다.</p>
     </div>
-    <div class="prod-grid" id="grid-jang" style="margin-top:40px"></div>
+    <div class="prod-grid" id="grid-jang"></div>
   </div>
 </section>
 
@@ -115,7 +116,7 @@
 <section class="section" id="ferment">
   <div class="wrap">
     <div class="section-head reveal"><span class="eyebrow">발효식품</span><h2>밥상을 채우는 발효의 맛</h2></div>
-    <div class="prod-grid" id="grid-ferment" style="margin-top:40px"></div>
+    <div class="prod-grid" id="grid-ferment"></div>
   </div>
 </section>
 
@@ -124,8 +125,8 @@
   <div class="wrap split">
     <div class="reveal">
       <span class="eyebrow">전국민 씨장 갖기 운동</span>
-      <h2 style="margin-top:16px">씨장 분양 신청</h2>
-      <p class="lede" style="margin-top:18px">사라져가는 씨장을 지키고 전통의 맛을 나누기 위한 전국민 씨장 갖기 운동에 함께해 주세요.</p>
+      <h2>씨장 분양 신청</h2>
+      <p class="lede">사라져가는 씨장을 지키고 전통의 맛을 나누기 위한 전국민 씨장 갖기 운동에 함께해 주세요.</p>
       <div style="display:flex;flex-direction:column;gap:12px;margin:24px 0 30px">
         <div style="display:flex;gap:12px;align-items:center"><i data-lucide="check" style="width:20px;height:20px;color:var(--point);flex-shrink:0"></i><span>대를 이어온 <b style="color:#fff">발효 원종(原種)</b>을 나눠 드립니다</span></div>
         <div style="display:flex;gap:12px;align-items:center"><i data-lucide="check" style="width:20px;height:20px;color:var(--point);flex-shrink:0"></i><span>분양 수량과 조건은 <b style="color:#fff">상담 후 안내</b>해 드립니다</span></div>
@@ -144,9 +145,9 @@
 <section class="section" id="gift">
   <div class="wrap">
     <div class="section-head reveal"><span class="eyebrow">선물세트</span><h2>명절 선물세트</h2></div>
-    <div class="prod-grid" id="grid-gift" style="margin-top:40px"></div>
+    <div class="prod-grid" id="grid-gift"></div>
     <!-- 참고: '교육하는 모습' 사진 슬롯은 instructor.html 수료 후 이어지는 길(C-4)에 배치함 -->
-    <div class="card reveal" style="margin-top:24px;background:var(--main-tint);border:none;text-align:center;padding:32px">
+    <div class="card reveal" style="background:var(--main-tint);border:none;text-align:center;padding:32px">
       <h4 style="margin:0 0 8px">대량 · 기업 주문</h4>
       <p class="muted" style="margin:0 0 18px;font-size:14px">명절 단체 선물, 답례품은 별도 견적으로 안내드립니다. 선물상자 구성(식초 종류·용량)도 원하시는 대로 맞춰 드립니다.</p>
       <button class="btn btn-ghost" data-modal="inquiry" data-type="제품 문의"><i data-lucide="message-circle"></i>주문 문의</button>
@@ -160,7 +161,7 @@
     <div class="section-head reveal"><span class="eyebrow">가격 안내</span><h2>제품 가격표</h2>
       <p class="lede">아래는 소비자 판매가입니다. 도매·대량 주문 단가는 별도로 안내드리니 전화(02-855-8806)로 문의해 주세요.</p>
     </div>
-    <div class="card reveal table-scroll" style="margin-top:32px;padding:8px 8px 0">
+    <div class="card reveal table-scroll" style="padding:8px 8px 0">
       <table class="ptable">
         <caption>부가세 포함가 · 배송비 별도(5만원 이상 무료)</caption>
         <colgroup><col class="c-cat"><col class="c-item"><col class="c-vol"><col class="c-price"></colgroup>
@@ -175,7 +176,7 @@
         </tbody>
       </table>
     </div>
-    <p class="muted reveal" style="margin-top:18px;font-size:var(--fs-sm)">
+    <p class="muted reveal" style="font-size:var(--fs-sm)">
       식초 종류: 사과 · 포도 · 오미자 · 감귤 · 매실 · 수박 · 솔잎 · 파인애플 · 모과 · 고욤 (계절과 재고에 따라 구성이 달라집니다)<br>
       와인 종류: 포도 · 파인애플 · 사과 · 감귤 · 오미자
     </p>

@@ -96,6 +96,14 @@
   /* 좌우 지면 여백 — 모바일에서 32px는 본문 폭을 과하게 깎는다 */
   --gutter: clamp(18px, 4.2vw, 32px);
 
+  /* 블록 사이 세로 간격 — 이 5개만 쓴다 (rules/spacing-rhythm.md).
+     같은 역할의 간격이 페이지마다 다른 값으로 들어가 리듬이 어긋나던 문제를 막는다. */
+  --gap-tight:   8px;                      /* 라벨↔값, 아이콘↔글자 */
+  --gap-related: 16px;                     /* 제목↔문단, 문단↔문단 */
+  --gap-block:   24px;                     /* 카드 안 요소, 목록 항목 사이 */
+  --gap-group:   clamp(28px, 3.4vw, 44px); /* 섹션 헤드↔본문, 서로 다른 덩어리 */
+  --gap-sub:     clamp(40px, 5vw, 64px);   /* 섹션 안 h3 소제목 앞 */
+
   /* ---- Radii (tweakable corner style) ---- */
   --r-xs: 4px;
   --r-sm: 8px;
@@ -187,8 +195,31 @@ p  { margin: 0 0 var(--s4); text-wrap: pretty; }
 }
 .section-head { max-width: 720px; }
 .section-head.center { margin-inline: auto; text-align: center; }
-.section-head h2 { margin-top: var(--s4); }
-.section-head .lede { margin-top: var(--s4); color: var(--ink-soft); font-size: var(--fs-body-lg); }
+.section-head h2 { margin-top: var(--gap-related); }
+.section-head .lede { margin-top: var(--gap-related); color: var(--ink-soft); font-size: var(--fs-body-lg); }
+
+/* 세로 리듬 컨테이너 — 직계 블록 사이 간격을 CSS가 책임진다.
+   HTML에서 인라인 margin으로 다시 지정하지 않는다
+   (인라인 스타일은 미디어쿼리를 이겨서 반응형 조정을 원천 차단한다).
+   .wrap 은 섹션 본문 컨테이너라 기본 적용하고, .wrap.split 은 2열 레이아웃이라 제외한다.
+   2단 안의 글 기둥처럼 .wrap 이 아닌 덩어리에는 .stack 을 붙인다. */
+.wrap:not(.split) > * + *,  .stack > * + *  { margin-top: var(--gap-group); }
+.wrap:not(.split) > h3,     .stack > h3     { margin-top: var(--gap-sub); }
+.wrap:not(.split) > h3 + *, .stack > h3 + * { margin-top: var(--gap-block); }
+.section-head + * { margin-top: var(--gap-group); }
+
+/* 키커 → 제목 → 리드문. 리듬 컨테이너(.wrap/.stack) 안에서는 이 묶음을 반드시
+   .section-head 로 감싼다 — 감싸지 않으면 낱개 블록으로 취급돼 44px씩 벌어진다. */
+.eyebrow + :is(h1, h2, h3) { margin-top: var(--gap-related); }
+:is(h1, h2, h3) + .lede    { margin-top: var(--gap-related); }
+
+/* 각주·부연 — 바로 앞 요소에 붙여 읽는다 */
+.note { margin: var(--gap-tight) 0 0; font-size: var(--fs-sm); color: var(--ink-mute); line-height: var(--lh-normal); }
+/* 표·이미지 등 블록 아래에 올 때는 한 단계 띄운다 */
+.wrap > .note, .stack > .note { margin-top: var(--gap-related); }
+
+/* 섹션 헤드와 '전체 보기' 링크를 한 줄에 두는 머리 행 */
+.sec-row > .section-head { margin-top: 0; }
 
 .lede { font-size: var(--fs-body-lg); color: var(--ink-soft); line-height: var(--lh-relaxed); }
 .muted { color: var(--ink-mute); }
@@ -228,6 +259,10 @@ p  { margin: 0 0 var(--s4); text-wrap: pretty; }
   transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease), border-color var(--dur) var(--ease);
 }
 .card-pad { padding: clamp(20px, 3vw, 32px); }
+/* 카드 내부 리듬 — 제목 뒤는 붙이고, 나머지 블록은 한 단계 띄운다 */
+.card-pad > * + *              { margin-top: var(--gap-related); }
+.card-pad > :is(h3,h4,h5) + *  { margin-top: var(--gap-tight); }
+.card-pad > :last-child        { margin-bottom: 0; }
 .card-hover:hover { transform: translateY(-3px); box-shadow: var(--sh-md); border-color: var(--line); }
 
 .icon-badge {
@@ -417,6 +452,7 @@ p  { margin: 0 0 var(--s4); text-wrap: pretty; }
 .hero h1 { font-size: var(--fs-display); line-height: 1.08; letter-spacing: -0.02em; }
 .hero .sub { margin-top: var(--s6); font-size: var(--fs-body-lg); color: var(--ink-soft); line-height: var(--lh-relaxed); max-width: 30em; }
 .hero-cta { display: flex; gap: var(--s3); margin-top: var(--s10); flex-wrap: wrap; }
+.hero .pill-row { margin-top: var(--gap-group); }
 .hero-logo { display: grid; place-items: center; }
 .hero-logo img { width: min(380px, 90%); mix-blend-mode: multiply; }
 @media (max-width: 900px){ .hero-grid { grid-template-columns: 1fr; gap: var(--s8); } .hero-logo { order: -1; } .hero-logo img{ width: 240px; } }
@@ -432,6 +468,9 @@ p  { margin: 0 0 var(--s4); text-wrap: pretty; }
 .band-sage .eyebrow { color: #fff; }
 .band-sage .eyebrow::before, .band-sage .eyebrow.center::after { background: var(--point); }
 .band-sage { background: var(--olive); color: #fff; }
+.band-sage h2, .band-sage h3 { color: #fff; }
+.band-sage .lede { color: rgba(255,255,255,0.92); }
+.band-sage .note { color: rgba(255,255,255,0.82); }
 .band-oat { background: var(--sub-soft); }
 .band-tint { background: var(--surface-2); }
 
@@ -519,11 +558,14 @@ p  { margin: 0 0 var(--s4); text-wrap: pretty; }
 .page-hero.deep { background: var(--main-deeper); color: #EAEFEA; border-bottom: none; }
 .page-hero.deep h1 { color: #fff; }
 .page-hero.deep .lede { color: rgba(255,255,255,0.78); }
-.crumb { font-size: var(--fs-caption); color: var(--ink-mute); display: flex; gap: 8px; align-items: center; margin-bottom: var(--s4); }
+/* 페이지 헤더는 제목 묶음이라 본문 리듬(--gap-group)이 아니라 '관련' 간격을 쓴다 */
+.page-hero .wrap > * + * { margin-top: var(--gap-related); }
+.page-hero .wrap > .lede { margin-top: var(--gap-related); }
+.crumb { font-size: var(--fs-caption); color: var(--ink-mute); display: flex; gap: 8px; align-items: center; margin-bottom: 0; }
 .page-hero.deep .crumb { color: rgba(255,255,255,0.6); }
 .crumb i[data-lucide]{ width: 13px; height: 13px; }
-.page-hero h1 { margin-top: var(--s2); }
-.page-hero .lede { margin-top: var(--s4); max-width: 46em; }
+.page-hero h1 { margin-top: var(--gap-related); }
+.page-hero .lede { max-width: 46em; }
 
 /* divider */
 .hr { height: 1px; background: var(--line-soft); border: none; margin: var(--s12) 0; }
@@ -627,6 +669,7 @@ body { background-image: var(--pat-dark); background-size: var(--pat-size); back
 .spec { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(28px, 4.6vw, 64px); align-items: center; }
 .spec + .spec { margin-top: clamp(36px, 4.6vw, 64px); }
 .spec:nth-child(even) .spec-media { order: -1; }
+.spec-media > * + * { margin-top: var(--gap-block); }
 .spec-media img { width: 100%; border-radius: var(--r-lg); display: block; }
 @media (max-width: 860px){
   .spec { grid-template-columns: 1fr; gap: var(--s8); }
@@ -648,6 +691,11 @@ body { background-image: var(--pat-dark); background-size: var(--pat-size); back
 
 /* 확정 판매가가 없는 품목 — 숫자 대신 '가격 문의' */
 .price-ask { font-family: var(--font-head); font-weight: 800; font-size: 19px; color: var(--olive-deep); }
+
+/* 제품 카드 본문 — 사진 아래 태그·품명·가격 */
+.prod-card-body { padding: var(--s5); }
+.prod-card-body h3 { margin: var(--gap-tight) 0 4px; font-size: var(--fs-h5); font-weight: 700; }
+.prod-card-body p { margin: 0; font-size: var(--fs-sm); }
 
 /* 제품 실사(병 사진) — 세로로 긴 피사체라 잘라내지 않고 여백 위에 얹는다 */
 .prod-photo {
@@ -736,7 +784,8 @@ body { background-image: var(--pat-dark); background-size: var(--pat-size); back
 .partners { padding-block: var(--s12); border-block: 1px solid var(--line-soft); background: var(--surface); }
 .partners-head { text-align: center; margin-bottom: var(--s8); }
 .partners-head .eyebrow { justify-content: center; }
-.partners-head p { margin: 10px 0 0; color: var(--ink-mute); font-size: var(--fs-sm); }
+.partners-head h2 { margin-top: var(--gap-related); }
+.partners-head p { margin: var(--gap-tight) 0 0; color: var(--ink-mute); font-size: var(--fs-sm); }
 .partners-marquee {
   overflow: hidden; position: relative;
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
