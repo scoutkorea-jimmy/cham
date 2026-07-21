@@ -120,7 +120,7 @@
 
   --maxw: 1200px;
   --maxw-narrow: 880px;
-  --nav-h: 146px; /* 2단 헤더: 브랜드(로고 58 + 상하여백) 92px + 메뉴 54px (모바일에선 80px로 재정의) */
+  --nav-h: 162px; /* 2단 헤더: 브랜드(로고 58 + 상하여백 24·20) 102px + 메뉴 60px (모바일에선 88px로 재정의) */
 
   /* ---- Shadows (soft, offset-y only) ---- */
   --sh-xs: 0 1px 2px rgba(42,39,35,0.05);
@@ -179,8 +179,12 @@ p  { margin: 0 0 var(--s4); text-wrap: pretty; }
 
 /* 배경이 같은 섹션이 연달아 오면 앞 섹션의 아래 패딩과 뒤 섹션의 위 패딩이 겹쳐
    경계도 없는 2배 높이의 빈 띠가 된다 → 뒤 섹션의 위 패딩을 제거해 1배로 맞춘다.
-   (색 밴드가 붙은 경우는 배경 전환 자체가 경계이므로 그대로 둔다) */
-:is(.hero, .partners) + :is(.section, .section-sm):not([class*="band-"]),
+   (색 밴드가 붙은 경우는 배경 전환 자체가 경계이므로 그대로 둔다)
+
+   .partners 는 흰 면이라 뒤따르는 흰 섹션과 배경이 같다 → 겹침 대상.
+   .hero 는 짙은 사진 패널이라 배경이 바뀐다 → 대상이 아니다. 여기에 넣으면
+   히어로 바로 아래 섹션만 위 여백 0이 되어, --sec-pad 를 키워도 그 자리만 붙어 있는다. */
+.partners + :is(.section, .section-sm):not([class*="band-"]),
 :is(.section, .section-sm):not([class*="band-"]) + :is(.section, .section-sm):not([class*="band-"]) {
   padding-top: 0;
 }
@@ -384,11 +388,12 @@ p  { margin: 0 0 var(--s4); text-wrap: pretty; }
 }
 .nav-inner { width:100%; max-width: var(--maxw); margin-inline:auto; padding-inline: var(--s8);
   display:flex; align-items:center; gap: var(--s6); }
-.nav-top .nav-inner { height: auto; padding-top: 20px; padding-bottom: 14px; justify-content: center; position: relative; }
+/* 브랜드 줄은 로고(58px)가 위아래로 숨 쉴 자리를 갖는다 — 20/14는 로고가 커진 뒤로 빡빡하다 */
+.nav-top .nav-inner { height: auto; padding-top: var(--s6); padding-bottom: var(--s5); justify-content: center; position: relative; }
 .nav-top .nav-cta { position: absolute; right: var(--s8); top: 50%; transform: translateY(-50%); }
 /* 메뉴 줄 — 딥그린 반전으로 존재감 부여 (칠보문 라이트 패턴) */
 .nav-bar { background: var(--main-deeper); background-image: var(--pat-light); background-size: var(--pat-size); }
-.nav-bar .nav-inner { height: 54px; justify-content: center; }
+.nav-bar .nav-inner { height: 60px; justify-content: center; }
 .brand { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
 .brand img { width: 58px; height: 58px; mix-blend-mode: multiply; }
 .brand .bt { display: flex; align-items: center; line-height: 1.12; }
@@ -472,7 +477,7 @@ p  { margin: 0 0 var(--s4); text-wrap: pretty; }
   .nav-item > a { padding: 10px 10px; font-size: 14px; }  /* 좁은 데스크톱: 7개 메뉴 한 줄 유지 */
 }
 @media (max-width: 900px){
-  :root { --nav-h: 80px; }        /* 하단 메뉴줄이 사라지므로 헤더 높이 재정의 */
+  :root { --nav-h: 88px; }        /* 하단 메뉴줄이 사라지므로 헤더 높이 재정의 */
   .nav-bar { display: none; }
   .nav-toggle { display: inline-flex; }
   .nav { border-bottom: 1px solid var(--line-soft); }  /* 짙은 메뉴줄이 없어 경계가 필요하다 */

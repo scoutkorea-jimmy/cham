@@ -41,7 +41,7 @@
 → 뒤 섹션의 위 패딩을 제거해 1배로 맞춥니다.
 
 ```css
-:is(.hero, .partners) + :is(.section, .section-sm):not([class*="band-"]),
+.partners + :is(.section, .section-sm):not([class*="band-"]),
 :is(.section, .section-sm):not([class*="band-"]) + :is(.section, .section-sm):not([class*="band-"]) {
   padding-top: 0;
 }
@@ -49,6 +49,11 @@
 
 색 밴드(`.band-oat` / `.band-tint` / `.band-deep` / `.band-sage`)가 바뀌는 경계는
 **배경 전환 자체가 구분선**이므로 양쪽 패딩을 그대로 둡니다.
+
+> **`.hero` 는 이 규칙의 대상이 아닙니다.** 짙은 사진 패널이라 다음 섹션과 배경이 바뀝니다.
+> 한때 선택자에 들어가 있었는데, 그 탓에 히어로 바로 아래 섹션만 위 여백이 0이 되어
+> `--sec-pad` 를 키워도 홈 첫 화면의 여백은 그대로였습니다.
+> **선택자에 새 요소를 넣기 전에 그 요소의 배경이 실제로 뒤 섹션과 같은지 확인합니다.**
 
 ## 3. 섹션 내부 리듬
 
