@@ -32,7 +32,8 @@
     background: var(--point-tint); border-radius: var(--r-xl); padding: 48px 44px; }
   .cl-tel { display: block; font-family: var(--font-head); font-weight: 800; color: var(--ink);
     font-size: clamp(36px, 5vw, 56px); line-height: 1.15; letter-spacing: -0.02em; }
-  .cl-tel.sub { font-size: clamp(24px, 3.2vw, 34px); color: var(--ink-soft); }
+  /* 줄 높이 1.4 — 모바일(24px)에서도 터치 높이가 32px를 넘도록 */
+  .cl-tel.sub { font-size: clamp(24px, 3.2vw, 34px); line-height: 1.4; color: var(--ink-soft); }
   .cl-tel:hover { color: var(--olive-deep); }
   @media (max-width: 860px){ .contact-lead { grid-template-columns: 1fr; padding: 34px 26px; gap: 30px; } }
 </style>
