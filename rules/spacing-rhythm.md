@@ -25,8 +25,11 @@
 ## 2. 섹션 상하 여백
 
 ```css
---sec-pad: clamp(46px, 5.6vw, 80px);   /* 390px→46 · 1280px→72 · 1440px 이상→80 */
+--sec-pad: clamp(58px, 7vw, 116px);   /* 390px→58 · 1280px→90 · 1660px 이상→116 */
 ```
+
+섹션 사이가 좁으면 페이지 전체가 답답하게 읽힙니다. 위 값은 실측으로 정한 하한이며,
+**줄이지 않습니다.**
 
 - `.section` — `padding-block: var(--sec-pad)`
 - `.section-sm` — `var(--sec-pad) * 0.62` (CTA·신뢰 스트립처럼 밀도 높은 섹션)
@@ -72,8 +75,12 @@
 .wrap:not(.split) > * + *,  .stack > * + *  { margin-top: var(--gap-group); }
 .wrap:not(.split) > h3,     .stack > h3     { margin-top: var(--gap-sub); }
 .wrap:not(.split) > h3 + *, .stack > h3 + * { margin-top: var(--gap-block); }
+.wrap:not(.split) > p + p,  .stack > p + p  { margin-top: var(--gap-related); }
 .section-head + *                           { margin-top: var(--gap-group); }
 ```
+
+**이어지는 문단끼리는 `--gap-related`(16px)** 입니다. 여러 문단이 이어지는 글기둥
+(인사말·파트너 소개)에서 문단마다 44px씩 벌어지면 한 편의 글이 아니라 낱개 조각으로 읽힙니다.
 
 **키커 → 제목 → 리드문 묶음은 `.section-head` 로 감쌉니다.**
 리듬 컨테이너 안에서 감싸지 않으면 낱개 블록으로 취급돼 44px씩 벌어집니다.

@@ -34,11 +34,6 @@
     font-size: clamp(36px, 5vw, 56px); line-height: 1.15; letter-spacing: -0.02em; }
   .cl-tel.sub { font-size: clamp(24px, 3.2vw, 34px); color: var(--ink-soft); }
   .cl-tel:hover { color: var(--olive-deep); }
-  .cl-side { display: flex; flex-direction: column; gap: 22px; }
-  .cl-row { display: flex; gap: 14px; align-items: flex-start; }
-  .cl-row i[data-lucide] { width: 22px; height: 22px; color: var(--olive-deep); flex-shrink: 0; }
-  .cl-row b { display: block; margin-bottom: 3px; }
-  .cl-row p { margin: 0; color: var(--ink-mute); font-size: var(--fs-sm); line-height: 1.7; }
   @media (max-width: 860px){ .contact-lead { grid-template-columns: 1fr; padding: 34px 26px; gap: 30px; } }
 </style>
 </head>
@@ -48,7 +43,6 @@
 <section class="page-hero deep">
   <div class="wrap">
     <div class="crumb reveal"><a href="index.html">홈</a><i data-lucide="chevron-right"></i><span>문의하기</span></div>
-    <span class="eyebrow reveal">Contact</span>
     <h1 class="reveal">무엇이든 편히 물어보세요</h1>
     <p class="lede reveal">교육·제품·제휴 등 궁금하신 점을 남겨주시면 담당자가 빠르게 답변드립니다.</p>
   </div>
@@ -62,12 +56,12 @@
         <span class="eyebrow">전화 문의</span>
         <a class="cl-tel" href="tel:02-855-8806">02-855-8806</a>
         <a class="cl-tel sub" href="tel:010-8768-9551">010-8768-9551</a>
-        <p class="muted" style="margin:14px 0 0">평일 09:00 – 18:00 · 점심시간 12:00 – 13:00</p>
+        <p class="note">평일 09:00 – 18:00 · 점심시간 12:00 – 13:00</p>
       </div>
-      <div class="cl-side">
-        <div class="cl-row"><i data-lucide="mail"></i><div><b>이메일</b><p>kach5501@hanmail.net</p></div></div>
-        <div class="cl-row"><i data-lucide="map-pin"></i><div><b>주소</b><p>서울특별시 구로구 구로동로 240,<br>세일빌딩 701호 (구로동)</p></div></div>
-        <div class="cl-row"><i data-lucide="navigation"></i><div><b>찾아오시는 길</b><p>NC신구로점 맞은편 쿠쿠대리점 건물 7층</p></div></div>
+      <div class="iconlist">
+        <div class="il"><i data-lucide="mail"></i><div><b>이메일</b><p>kach5501@hanmail.net</p></div></div>
+        <div class="il"><i data-lucide="map-pin"></i><div><b>주소</b><p>서울특별시 구로구 구로동로 240,<br>세일빌딩 701호 (구로동)</p></div></div>
+        <div class="il"><i data-lucide="navigation"></i><div><b>찾아오시는 길</b><p>NC신구로점 맞은편 쿠쿠대리점 건물 7층</p></div></div>
       </div>
     </div>
   </div>

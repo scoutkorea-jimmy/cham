@@ -558,20 +558,28 @@
     });
   }
 
-  /* ---------------- Chrome (nav / footer / mobile) ---------------- */
+  /* ---------------- Chrome (nav / footer / mobile) ----------------
+     법인명은 '참'(한국참전통…) 한 글자가 조합 이름의 핵심이라 색으로 집어낸다.
+     내비·푸터 두 곳에서 쓰므로 표기를 여기 한 곳에서만 만든다. */
+  var BRAND_NAME = '한국참전통발효식품협동조합';
+  function brandMarkup() {
+    return BRAND_NAME.replace('참', '<em class="cham">참</em>');
+  }
   function buildNav() {
     var cur = currentPage();
     var links = NAV.map(function (n) {
       var active = n.id === cur ? ' active' : '';
-      var dd = n.dd ? '<div class="nav-dd">' + n.dd.map(function (d) { return '<a href="' + d.href + '">' + d.label + '</a>'; }).join('') + '</div>' : '';
+      var ddHead = '<span class="dd-head">' + n.label + '</span>';
+      var dd = n.dd ? '<div class="nav-dd">' + ddHead + n.dd.map(function (d) { return '<a href="' + d.href + '">' + d.label + '</a>'; }).join('') + '</div>' : '';
       var caret = n.dd ? ' <i data-lucide="chevron-down" style="width:14px;height:14px;opacity:.6"></i>' : '';
-      return '<div class="nav-item' + active + '"><a href="' + n.href + '">' + n.label + caret + '</a>' + dd + '</div>';
+      var currentAttr = n.id === cur ? ' aria-current="page"' : '';
+      return '<div class="nav-item' + active + '"><a href="' + n.href + '"' + currentAttr + '>' + n.label + caret + '</a>' + dd + '</div>';
     }).join('');
     return '<div class="nav">' +
         '<div class="nav-top"><div class="nav-inner">' +
           '<a class="brand" href="index.html" aria-label="홈으로">' +
-            '<img src="assets/logo.png" alt="한국참전통발효식품협동조합 로고">' +
-            '<span class="bt"><b>한국참전통발효식품협동조합</b></span>' +
+            '<img src="assets/logo.png" alt="' + BRAND_NAME + ' 로고">' +
+            '<span class="bt"><b>' + brandMarkup() + '</b></span>' +
           '</a>' +
           '<div class="nav-cta">' +
             '<button class="btn btn-point" data-modal="apply"><i data-lucide="sprout"></i>지도사 신청</button>' +
@@ -602,8 +610,8 @@
     return '<div class="footer-inner">' +
       '<div class="footer-top">' +
         '<div class="footer-brand">' +
-          '<img src="assets/logo.png" alt="한국참전통발효식품협동조합 로고">' +
-          '<b>한국참전통발효식품협동조합</b>' +
+          '<img src="assets/logo.png" alt="' + BRAND_NAME + ' 로고">' +
+          '<b>' + brandMarkup() + '</b>' +
           '<p>전통 발효식품의 보급과 교육을 통해 건강한 식문화를 만들어갑니다. 전통의 깊이, 발효의 가치를 다음 세대로 이어갑니다.</p>' +
         '</div>' +
         '<div class="footer-col">' +
@@ -624,7 +632,7 @@
         '</div>' +
       '</div>' +
       '<div class="footer-bottom">' +
-        '<span>© 2026 한국참전통발효식품협동조합. All rights reserved.</span>' +
+        '<span>© 2026 ' + BRAND_NAME + '. 모든 권리를 보유합니다.</span>' +
         '<span class="foot-meta"><a href="terms.html">이용약관</a> · <a href="privacy.html"><b>개인정보처리방침</b></a> · <a href="admin.html" class="admin-link" title="관리자 페이지">관리자</a></span>' +
       '</div>' +
     '</div>';

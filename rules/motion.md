@@ -42,6 +42,11 @@
 | 카드 상승 | `.card-hover` | `translateY(-3px)` + 그림자, 아이콘 배지 `scale(1.08) rotate(-3deg)` |
 | 내비 그림자 | `#site-nav .nav.scrolled` | 스크롤 8px 이상에서 그림자·반투명 배경 |
 | 파트너 마키 | `.partners-track` | 무한 슬라이드, 호버 시 정지, reduced-motion에서는 줄바꿈 정렬로 대체 |
+| 2열 좌우 등장 | `.split > .reveal` 첫/마지막 열 | 좌우 26px에서 모여든다. **861px 이상에서만** — 1열로 접히면 방향이 의미를 잃고 가로 스크롤을 만든다 |
+| 서브페이지 히어로 문양 | `.page-hero.deep::before` | 30초에 걸쳐 `scale(1.07)→1`. 홈·식초 히어로와 같은 결 |
+| 정보표 순차 등장 | `.facts.reveal .fact` | 행이 위에서부터 60ms 간격으로. 항목이 많아 통째로 뜨면 읽는 순서를 잃는다 |
+| 모바일 메뉴 슬라이드 | `.mobile-menu.open .mm-body` | 오른쪽에서 밀려 들어온다 — 햄버거를 누른 방향과 같다 |
+| 메뉴 캐럿 회전 | `.nav-item:hover > a i` | 하위 목록이 열리는 방향 |
 
 ## 4. 새 연출을 추가하기 전에
 
@@ -58,5 +63,7 @@
 - prefers-reduced-motion: reduce 로 전환 후 전 페이지 확인 — 모션 없이도 완전할 것
 - JS를 끈 상태에서 .reveal 요소가 보일 것
 - 스크롤 중 프레임 드랍이 없을 것 (transform/opacity 외 속성을 애니메이션하지 않았는지)
+- **시작 위치의 transform 이 지면 밖으로 나가 가로 스크롤을 만들지 않을 것**
+  (translateX 계열은 전 폭에서 `scrollWidth - innerWidth == 0` 을 실측해 확인한다)
 - 모바일에서 배경 드리프트가 발열/배터리 문제를 일으키지 않을 것 — 1회 재생만, 무한 반복 금지
 ```
