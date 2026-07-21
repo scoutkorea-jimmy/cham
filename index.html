@@ -269,15 +269,30 @@
 <footer id="site-footer"></footer>
 
 <style id="page-style">
-  /* 히어로 — 정선 장독대 전경 사진 배경, 카피 가운데 정렬 (서브카피 > 메인카피 > 설명문) */
+  /* 히어로 — 정선 장독대 전경 사진 배경, 카피 가운데 정렬 (서브카피 > 메인카피 > 설명문)
+     사진은 별도 레이어(::before)로 분리한다 — transform으로 천천히 밀어야 하기 때문. */
   .hero {
-    background:
-      linear-gradient(rgba(28,32,22,.62) 0%, rgba(28,32,22,.44) 45%, rgba(28,32,22,.58) 100%),
-      url('assets/hero-bg.jpg') center 60% / cover no-repeat;
+    background: var(--main-deeper);
     padding-top: calc(var(--s20) + 24px);
     padding-bottom: calc(var(--sec-pad) + 36px);
     text-align: center;
   }
+  .hero::before {
+    content:""; position:absolute; inset:-3%; z-index:0;
+    background: url('assets/hero-bg.jpg') center 60% / cover no-repeat;
+  }
+  .hero::after {
+    content:""; position:absolute; inset:0; z-index:0;
+    background: linear-gradient(rgba(28,32,22,.62) 0%, rgba(28,32,22,.44) 45%, rgba(28,32,22,.58) 100%);
+  }
+  .hero > .wrap { position:relative; z-index:1; }
+  /* 장독대 전경이 아주 느리게 밀려 들어온다 — 첫 화면에만 쓰는 연출 */
+  @media (prefers-reduced-motion: no-preference){
+    .hero::before { animation: heroDrift 26s var(--ease-soft) both; }
+    .hero .reveal.in { animation-duration: 820ms; }
+  }
+  @keyframes heroDrift { from { transform: scale(1.08); } to { transform: scale(1); } }
+
   .hero-copy { max-width: 780px; margin-inline: auto; }
   .hero-kicker {
     display:inline-block; font-family:var(--font-body); font-weight:700; font-size:14px;

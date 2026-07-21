@@ -41,6 +41,7 @@ Basic_Infomation/   고객사 원본 자료(pptx·jpg) — 콘텐츠 근거. 편
 | 코드를 쓰거나 고칠 때 | [rules/code-quality.md](rules/code-quality.md) — 중복 · 책임 분리 · 타입 · 오류 · 네이밍 |
 | 색 · 글꼴 · 그림자 · 모션 | [rules/design-tokens.md](rules/design-tokens.md) |
 | 여백 · 간격 · 리듬 | [rules/spacing-rhythm.md](rules/spacing-rhythm.md) |
+| 애니메이션 · 인터랙션 | [rules/motion.md](rules/motion.md) |
 | 모바일 · 브레이크포인트 | [rules/responsive.md](rules/responsive.md) |
 | 버튼 · 카드 · 표 · 섹션 형태 | [rules/components.md](rules/components.md) |
 

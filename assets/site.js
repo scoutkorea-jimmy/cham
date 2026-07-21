@@ -1042,6 +1042,62 @@
     onScroll();
   }
 
+  /* ---------------- 읽기 진행 바 ----------------
+     긴 페이지가 많아 '얼마나 남았는지'를 상단 3px 막대로 보여준다.
+     scaleX만 갱신해 레이아웃 재계산을 일으키지 않는다. */
+  function initReadBar() {
+    if (prefersReducedMotion()) return;
+    var bar = document.createElement('div');
+    bar.className = 'read-bar';
+    bar.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(bar);
+    var ticking = false;
+    function update() {
+      ticking = false;
+      var doc = document.documentElement;
+      var max = (document.body.scrollHeight || 0) - window.innerHeight;
+      var p = max > 0 ? Math.min(1, (window.scrollY || doc.scrollTop) / max) : 0;
+      bar.style.setProperty('--p', p.toFixed(4));
+    }
+    window.addEventListener('scroll', function () {
+      if (!ticking) { ticking = true; requestAnimationFrame(update); }
+    }, { passive: true });
+    window.addEventListener('resize', update, { passive: true });
+    update();
+  }
+
+  /* ---------------- 숫자 카운트업 ----------------
+     조합 현황(12가지 · 31기 · 100세)이 올라가며 세어진다.
+     연도(2021년)처럼 1000 이상인 값은 0부터 세면 어색해서 건너뛴다. */
+  function initCountUp() {
+    if (prefersReducedMotion() || !('IntersectionObserver' in window)) return;
+    var els = document.querySelectorAll('.t-num');
+    if (!els.length) return;
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        io.unobserve(en.target);
+        var node = en.target.firstChild;          // 단위(<em>) 앞의 숫자 텍스트 노드
+        if (!node || node.nodeType !== 3) return;
+        var target = parseInt(node.nodeValue.replace(/[^0-9]/g, ''), 10);
+        if (!target || target >= 1000) return;
+        var start = null, dur = 1000;
+        node.nodeValue = '0';
+        requestAnimationFrame(function step(ts) {
+          if (start === null) start = ts;
+          var p = Math.min(1, (ts - start) / dur);
+          node.nodeValue = String(Math.round(target * (1 - Math.pow(1 - p, 3))));
+          if (p < 1) requestAnimationFrame(step);
+        });
+      });
+    }, { threshold: 0.5 });
+    els.forEach(function (e) { io.observe(e); });
+  }
+
+  function prefersReducedMotion() {
+    return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  }
+
   try { document.documentElement.classList.add('js'); } catch (e) {}
   function ready(fn){ if (document.readyState !== 'loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }
   // 관리자 '페이지 이미지' 미리보기 iframe 안에서는 방문 집계·팝업을 건너뜀
@@ -1061,6 +1117,7 @@
     revealScan();
     initToTop();
     initNavScroll();
+    if (!isPreviewFrame) { initReadBar(); initCountUp(); }
     icons();
     setTimeout(icons, 60);
     if (!isPreviewFrame) setTimeout(showPopup, 700);

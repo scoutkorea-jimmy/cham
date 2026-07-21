@@ -26,9 +26,22 @@
   .vin-hero {
     position: relative; overflow: hidden; color: #fff;
     padding-block: clamp(72px, 9vw, 132px);
-    background: linear-gradient(rgba(28,26,22,.72), rgba(28,26,22,.58)), url('assets/product-vinegar-lineup.jpg') center 62% / cover no-repeat;
+    background: var(--main-deeper);
   }
-  .vin-hero .wrap { position: relative; text-align: center; }
+  /* 사진은 별도 레이어로 — transform으로 천천히 밀기 위해 */
+  .vin-hero::before {
+    content:""; position:absolute; inset:-3%; z-index:0;
+    background: url('assets/product-vinegar-lineup.jpg') center 62% / cover no-repeat;
+  }
+  .vin-hero::after {
+    content:""; position:absolute; inset:0; z-index:0;
+    background: linear-gradient(rgba(28,26,22,.72), rgba(28,26,22,.58));
+  }
+  @media (prefers-reduced-motion: no-preference){
+    .vin-hero::before { animation: vinDrift 26s var(--ease-soft) both; }
+  }
+  @keyframes vinDrift { from { transform: scale(1.08); } to { transform: scale(1); } }
+  .vin-hero .wrap { position: relative; z-index: 1; text-align: center; }
   .vin-logo {
     font-family: var(--font-head); font-weight: 800; color: var(--point);
     font-size: clamp(52px, 8vw, 96px); line-height: 1; letter-spacing: .12em;

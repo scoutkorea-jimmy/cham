@@ -540,11 +540,9 @@ p  { margin: 0 0 var(--s4); text-wrap: pretty; }
 /* ============================================================
    Reveal on scroll
    ============================================================ */
-.reveal { opacity: 1; transform: none; }  /* always visible — fallback for no-JS / throttled tabs */
-@media (prefers-reduced-motion: no-preference){
-  .reveal.in { animation: revealIn var(--dur-slow) var(--ease) both; }
-}
-@keyframes revealIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+/* JS가 없거나 탭이 throttle될 때를 대비한 기본값 — 항상 보인다.
+   실제 등장 연출은 파일 하단 '리치 reveal' 블록에서 html.js 조건으로 켠다. */
+.reveal { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto;} }
 
 /* 화면에는 감추고 스크린리더에만 읽히는 제목 — 섹션 랜드마크 라벨용 */
@@ -1052,10 +1050,11 @@ button[type=submit]:disabled, .btn:disabled { opacity: 0.45; cursor: not-allowed
 #site-nav .nav { transition: box-shadow var(--dur) var(--ease), background var(--dur) var(--ease); }
 #site-nav .nav.scrolled { box-shadow: 0 4px 20px rgba(42,39,35,0.07); background: rgba(251,249,244,0.94); }
 
-/* JS 활성 시: reveal 요소는 처음 보일 때 1회만 등장 (깜빡임 방지) */
-html.js .reveal:not(.in) { opacity: 0; }
+/* JS 활성 시: reveal 요소는 처음 보일 때 1회만 등장 (깜빡임 방지).
+   opacity:0 도 반드시 no-preference 안에 둔다 — 밖에 두면 모션을 끈 사용자에게
+   아직 관찰되지 않은 요소가 투명한 채로 남아 내용이 사라진 것처럼 보인다. */
 @media (prefers-reduced-motion: no-preference) {
-  html.js .reveal:not(.in) { transform: translateY(22px) scale(0.99); }
+  html.js .reveal:not(.in) { opacity: 0; transform: translateY(22px) scale(0.99); }
   .reveal.in { animation: revealIn var(--dur-slow) var(--ease) both; }
   html.js .reveal[data-reveal="left"]:not(.in)  { transform: translateX(-26px); }
   html.js .reveal[data-reveal="right"]:not(.in) { transform: translateX(26px); }
@@ -1066,10 +1065,64 @@ html.js .reveal:not(.in) { opacity: 0; }
 @keyframes revealGeneric { from { opacity: 0; } to { opacity: 1; transform: none; } }
 html.js .reveal.in { opacity: 1; }
 
-/* 미세 인터랙션 — 아이콘 배지 호버 */
+/* ============================================================
+   모션 — 규칙과 목록은 rules/motion.md
+   전부 prefers-reduced-motion 아래에서만 동작하고, transform/opacity만 쓴다.
+   ============================================================ */
 @media (prefers-reduced-motion: no-preference) {
+
+  /* 1. 미세 인터랙션 — 아이콘 배지 · 번호 칩 */
   .card-hover .icon-badge { transition: transform var(--dur) var(--ease); }
   .card-hover:hover .icon-badge { transform: scale(1.08) rotate(-3deg); }
   .num-chip { transition: transform var(--dur) var(--ease), background var(--dur-fast); }
   .card-hover:hover .num-chip { transform: translateY(-2px); }
+
+  /* 2. 사진 줌 — 사진이 주인공인 카드는 호버 시 프레임 안에서 천천히 확대된다 */
+  .card-hover img, .pillar img, .lineup-item img {
+    transition: transform 620ms var(--ease-soft);
+  }
+  .card-hover:hover img, .pillar:hover img, .lineup-item:hover img { transform: scale(1.06); }
+  /* 필러는 사진 위에 흰 글자가 얹히므로, 확대와 함께 사진을 조금 눌러 대비를 지킨다 */
+  .pillar img { transition: transform 620ms var(--ease-soft), filter var(--dur) var(--ease); }
+  .pillar:hover img { filter: brightness(0.9); }
+
+  /* 3. 키커의 노란 막대가 좌→우로 그어진다 — 섹션이 열리는 신호 */
+  .reveal .eyebrow::before, .reveal.eyebrow::before,
+  .reveal .eyebrow.center::after, .reveal.eyebrow.center::after {
+    transform: scaleX(0); transform-origin: left center;
+    transition: transform 520ms var(--ease) 120ms;
+  }
+  .reveal.in .eyebrow::before, .reveal.eyebrow.in::before,
+  .reveal.in .eyebrow.center::after, .reveal.eyebrow.in.center::after { transform: scaleX(1); }
+
+  /* 4. 공정 레일 — 점선이 그어지고 번호가 차례로 올라온다 */
+  .rail::before { transform: scaleX(0); transform-origin: left center; transition: transform 900ms var(--ease) 180ms; }
+  .rail.in::before { transform: scaleX(1); }
+  .rail:not(.in) .r-no { transform: scale(0.4); opacity: 0; }
+  .rail .r-no { transition: transform 460ms var(--ease), opacity 320ms linear; }
+  .rail.in .rail-step:nth-child(1) .r-no { transition-delay: 260ms; }
+  .rail.in .rail-step:nth-child(2) .r-no { transition-delay: 420ms; }
+  .rail.in .rail-step:nth-child(3) .r-no { transition-delay: 580ms; }
+  .rail.in .rail-step:nth-child(4) .r-no { transition-delay: 740ms; }
+  .rail.in .rail-step:nth-child(5) .r-no { transition-delay: 900ms; }
+
+  /* 5. 핵심 CTA 광택 스윕 — 호버 때 한 번 지나간다 */
+  .btn-point { position: relative; overflow: hidden; }
+  .btn-point::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(105deg, transparent 38%, rgba(255,255,255,0.55) 50%, transparent 62%);
+    transform: translateX(-130%);
+  }
+  .btn-point:hover::after { transform: translateX(130%); transition: transform 760ms var(--ease-soft); }
+
+  /* 6. 목차 바 현재 위치 */
+  .jump a { transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease); }
 }
+
+/* 7. 읽기 진행 바 — 긴 페이지에서 어디쯤 왔는지 (site.js 가 --p 를 갱신) */
+.read-bar {
+  position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 150;
+  background: var(--point); transform: scaleX(var(--p, 0)); transform-origin: left center;
+  will-change: transform; pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce){ .read-bar { display: none; } }

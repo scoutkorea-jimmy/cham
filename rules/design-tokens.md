@@ -61,10 +61,11 @@
 
 ## 4. 모션
 
-- 기본 `--dur 240ms` / 빠름 `--dur-fast 150ms`
-- 이징 `--ease cubic-bezier(0.22, 0.61, 0.36, 1)`
-- `.reveal` — 요소가 처음 보일 때 1회만 등장. 동적 요소는 `revealScan()` 으로 등록
+- 기본 `--dur 240ms` / 빠름 `--dur-fast 150ms` / 등장 `--dur-slow 420ms`
+- 이징 `--ease cubic-bezier(0.22, 0.61, 0.36, 1)` / 느린 것 `--ease-soft cubic-bezier(0.4, 0, 0.2, 1)`
 - `prefers-reduced-motion` 을 반드시 존중한다
+
+연출 목록과 추가 기준은 → **[motion.md](motion.md)**
 
 ## 5. 전통 문양
 
