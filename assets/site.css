@@ -1225,8 +1225,9 @@ html.js .reveal.in { opacity: 1; }
   /* 8. 서브페이지 히어로 문양이 아주 느리게 물러난다 — 홈(.hero)·식초(.vin-hero)와 같은 결 */
   .page-hero.deep::before { animation: heroPatDrift 30s var(--ease-soft) both; }
 
-  /* 9. 정보표는 위에서부터 한 줄씩 — 항목이 많아 통째로 나타나면 어디부터 읽을지 알 수 없다 */
-  .facts.reveal:not(.in) .fact { opacity: 0; transform: translateY(10px); }
+  /* 9. 정보표는 위에서부터 한 줄씩 — 항목이 많아 통째로 나타나면 어디부터 읽을지 알 수 없다.
+        html.js 로 가드해 스크립트가 실패해도 사업자정보 등 표 내용이 숨지 않게 한다. */
+  html.js .facts.reveal:not(.in) .fact { opacity: 0; transform: translateY(10px); }
   .facts.reveal .fact { transition: opacity 320ms linear, transform 360ms var(--ease); }
   .facts.reveal.in .fact:nth-child(1) { transition-delay: 60ms; }
   .facts.reveal.in .fact:nth-child(2) { transition-delay: 120ms; }
