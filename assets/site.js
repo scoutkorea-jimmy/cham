@@ -597,6 +597,46 @@
   function brandMarkup() {
     return BRAND_NAME.replace('참', '<em class="cham">참</em>');
   }
+
+  /* ---------------- 사이트 운영 정보 (관리자 '설정'에서 편집) ----------------
+     무통장입금 계좌·연락처·사업자정보·약도 좌표를 코드가 아니라 localStorage 로 관리한다.
+     기본값은 현재 값 그대로라, 설정을 건드리지 않으면 화면은 종전과 동일하다.
+     반영 지점: 전 페이지 푸터 · 결제 안내(무통장입금) · 모바일 메뉴 전화 · 약도(map.js). */
+  var SETTINGS_KEY = 'kach_settings_v1';
+  var SETTINGS_DEFAULTS = {
+    bank: '농협 000-0000-0000-00',        // 무통장입금 계좌
+    holder: '한국참전통발효식품협동조합',    // 예금주
+    phone: '02-855-8806',
+    email: 'kach5501@hanmail.net',
+    address: '서울특별시 구로구 구로동로 240, 세일빌딩 701호',
+    ceo: '김필연',
+    bizNo: '869-81-02406',                 // 사업자등록번호
+    mailOrderNo: '2025-서울구로-1345',      // 통신판매업 신고번호
+    lat: 37.50331, lng: 126.88262,         // 약도 핀 좌표
+  };
+  function getSettings() {
+    var s = getJSON(SETTINGS_KEY, {}) || {};
+    var out = {};
+    for (var k in SETTINGS_DEFAULTS) {
+      out[k] = (s[k] != null && s[k] !== '') ? s[k] : SETTINGS_DEFAULTS[k];
+    }
+    return out;
+  }
+  function setSettings(obj) { return setJSON(SETTINGS_KEY, obj); }
+  // 정적 HTML(문의·소개 페이지)에 흩어진 값을 설정으로 채운다 — [data-site="키"]
+  function applySiteSettings() {
+    var st = getSettings();
+    var nodes = document.querySelectorAll('[data-site]');
+    for (var i = 0; i < nodes.length; i++) {
+      var elx = nodes[i], key = elx.getAttribute('data-site'), val = st[key];
+      if (val == null) continue;
+      var href = elx.getAttribute('href');
+      if (href && href.indexOf('tel:') === 0) elx.setAttribute('href', 'tel:' + String(val).replace(/[^0-9+]/g, ''));
+      else if (href && href.indexOf('mailto:') === 0) elx.setAttribute('href', 'mailto:' + val);
+      if (key === 'address') elx.innerHTML = esc(String(val)).replace(/,\s*/, ',<br>');
+      else elx.textContent = val;
+    }
+  }
   function buildNav() {
     var cur = currentPage();
     var links = NAV.map(function (n) {
@@ -633,12 +673,14 @@
     // 메뉴 항목이 많아 아래로 길다. 전화 문의는 스크롤 없이 닿도록 맨 위에 둔다.
     return '<div class="mobile-menu" id="mobileMenu">' +
       '<div class="mm-body"><div class="mm-head"><b>메뉴</b><button id="mmClose" aria-label="닫기"><i data-lucide="x"></i></button></div>' +
-      '<a class="mm-call" href="tel:02-855-8806"><i data-lucide="phone"></i><span><b>02-855-8806</b><small>교육 · 제품 문의</small></span></a>' +
+      '<a class="mm-call" href="tel:' + getSettings().phone.replace(/[^0-9+]/g, '') + '"><i data-lucide="phone"></i><span><b>' + esc(getSettings().phone) + '</b><small>교육 · 제품 문의</small></span></a>' +
       items +
       '<button class="btn btn-point btn-lg" data-modal="apply" style="margin-top:16px"><i data-lucide="sprout"></i>전통발효식품 체험지도사 신청</button>' +
       '</div></div>';
   }
   function buildFooter() {
+    var st = getSettings();
+    var addr = esc(st.address).replace(/,\s*/, ',<br>');
     return '<div class="footer-inner">' +
       '<div class="footer-top">' +
         '<div class="footer-brand">' +
@@ -655,12 +697,12 @@
         '</div>' +
         '<div class="footer-col footer-info">' +
           '<h6>사업자 정보</h6>' +
-          '<span><b>대표</b> 김필연</span>' +
-          '<span><b>사업자등록번호</b> 869-81-02406</span>' +
-          '<span><b>통신판매업신고</b> 2025-서울구로-1345</span>' +
-          '<span><b>주소</b> 서울특별시 구로구 구로동로 240,<br>세일빌딩 701호</span>' +
-          '<span><b>전화</b> 02-855-8806</span>' +
-          '<span><b>이메일</b> kach5501@hanmail.net</span>' +
+          '<span><b>대표</b> ' + esc(st.ceo) + '</span>' +
+          '<span><b>사업자등록번호</b> ' + esc(st.bizNo) + '</span>' +
+          '<span><b>통신판매업신고</b> ' + esc(st.mailOrderNo) + '</span>' +
+          '<span><b>주소</b> ' + addr + '</span>' +
+          '<span><b>전화</b> ' + esc(st.phone) + '</span>' +
+          '<span><b>이메일</b> ' + esc(st.email) + '</span>' +
         '</div>' +
       '</div>' +
       '<div class="footer-bottom">' +
@@ -729,8 +771,9 @@
   }
 
   /* ---------------- Modals (신청 · 주문 · 문의) ---------------- */
-  var PAY_BANK = '농협 000-0000-0000-00';
-  var PAY_HOLDER = '한국참전통발효식품협동조합';
+  // 무통장입금 계좌·예금주는 관리자 '설정'에서 편집(getSettings). 페이지 로드 시점 값 사용.
+  var PAY_BANK = getSettings().bank;
+  var PAY_HOLDER = getSettings().holder;
 
   /* ---------------- 지도사 모집 기수(期數) ---------------- */
   var COHORTS_KEY = 'kach_cohorts_v1';
@@ -1148,6 +1191,7 @@
     seedProducts();
     if (!isPreviewFrame) trackVisit();
     mountChrome();
+    applySiteSettings();
     enhanceSEO();
     initModalDelegation();
     renderPartnersStrip();
@@ -1182,5 +1226,6 @@
     VISITS_KEY: VISITS_KEY, SOURCES_KEY: SOURCES_KEY,
     COHORTS_KEY: COHORTS_KEY, getCohorts: getCohorts, setCohorts: setCohorts, cohortDefaults: COHORT_DEFAULTS,
     PAY_BANK: PAY_BANK, PAY_HOLDER: PAY_HOLDER,
+    SETTINGS_KEY: SETTINGS_KEY, SETTINGS_DEFAULTS: SETTINGS_DEFAULTS, getSettings: getSettings, setSettings: setSettings, applySiteSettings: applySiteSettings,
   };
 })();

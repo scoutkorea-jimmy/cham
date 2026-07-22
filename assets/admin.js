@@ -709,7 +709,7 @@
         '<td>' + delBtn(K.orders, o.id) + '</td></tr>';
     }).join('') : emptyRow(11, '해당 상태의 주문이 없습니다.');
 
-    return '<div class="panel" style="max-width:none"><div class="panel-head"><h3>주문 관리</h3><span class="ph-sub">주문을 선택한 뒤 단계 버튼으로 처리 · 자동 알림(메일/SMS)은 운영 연동 시 발송</span></div>' +
+    return '<div class="panel" style="max-width:none"><div class="panel-head"><h3>주문 관리</h3><span class="ph-sub">주문을 선택한 뒤 단계 버튼으로 처리 · 자동 알림(메일/SMS)은 운영 연동 시 발송</span><div class="panel-tools">' + csvBtn('orders') + '</div></div>' +
       '<div style="padding:16px 22px 0">' + orderGuide() + tabHtml + bar +
         '<div style="margin-top:12px"><input id="oSearch" type="search" autocomplete="off" placeholder="주문번호 · 주문자 · 연락처 · 입금자명 · 상품 검색" style="width:380px;max-width:100%;padding:12px 15px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:16px;background:var(--surface)"></div>' +
       '</div>' +
@@ -835,22 +835,71 @@
         '<div class="field full"><button class="btn btn-point" type="submit" style="padding:10px 18px"><i data-lucide="plus"></i>기수 추가</button></div>' +
       '</form></div>';
   }
+  // 목록 검색창 — 해당 테이블 행을 클라이언트에서 즉시 필터(input 위임 처리)
+  function listSearch(targetId, ph) {
+    return '<input class="list-search" data-target="' + targetId + '" type="search" autocomplete="off" placeholder="' + ph + '">';
+  }
+  // 처리 상태 뱃지(관리자 메모가 있으면 '처리됨' 표시)
+  function handledMark(r) {
+    return r.adminMemo ? '<span class="hd-dot" title="처리 메모 있음 · ' + esc(fmtDate(r.handledAt)) + '"></span>' : '';
+  }
   function viewApps() {
     var a = gj(K.apps, []);
     var rows = a.length ? a.map(function(r){
-      return '<tr><td class="dt">' + fmtDate(r.at) + '</td><td>' + esc(r.name||'-') + '</td><td>' + esc(r.phone||'-') + '</td><td>' + esc(r.region||'-') + '</td><td>' + esc(r.course||'-') + '</td><td style="max-width:200px">' + esc(r.memo||'-') + '</td><td>' + statusSelect(K.apps,'apps',r) + '</td><td>' + delBtn(K.apps, r.id) + '</td></tr>';
+      return '<tr><td class="dt">' + fmtDate(r.at) + '</td><td>' + handledMark(r) + esc(r.name||'-') + '</td><td>' + esc(r.phone||'-') + '</td><td>' + esc(r.region||'-') + '</td><td>' + esc(r.course||'-') + '</td><td>' + statusSelect(K.apps,'apps',r) + '</td>' +
+        '<td><button class="btn btn-ghost" data-detail="apps" data-id="' + r.id + '" style="padding:7px 12px"><i data-lucide="pen-line"></i>상세·처리</button></td><td>' + delBtn(K.apps, r.id) + '</td></tr>';
     }).join('') : emptyRow(8, '신청 내역이 없습니다.');
     return cohortPanel() +
-      '<div class="panel" style="margin-top:24px"><div class="panel-head"><h3>전통발효식품 체험지도사 신청 관리</h3><span class="ph-sub">총 ' + a.length + '명</span></div>' +
-      '<div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>일시</th><th>이름</th><th>연락처</th><th>지역</th><th>신청 기수</th><th>비고</th><th>상태</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
+      '<div class="panel" style="margin-top:24px"><div class="panel-head"><h3>전통발효식품 체험지도사 신청 관리</h3><span class="ph-sub">총 ' + a.length + '명</span>' +
+        '<div class="panel-tools">' + listSearch('appsTable', '이름 · 연락처 · 지역 검색') + csvBtn('apps') + '</div></div>' +
+      '<div style="overflow-x:auto"><table class="admin-table" id="appsTable"><thead><tr><th>일시</th><th>이름</th><th>연락처</th><th>지역</th><th>신청 기수</th><th>상태</th><th>처리</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
   }
   function viewInq() {
     var a = gj(K.inq, []);
     var rows = a.length ? a.map(function(r){
-      return '<tr><td class="dt">' + fmtDate(r.at) + '</td><td>' + esc(r.name||'-') + '</td><td>' + esc(r.phone||'-') + '</td><td><span class="tag">' + esc(r.type||'문의') + '</span></td><td style="max-width:280px">' + esc(r.memo||'-') + '</td><td>' + statusSelect(K.inq,'inq',r) + '</td><td>' + delBtn(K.inq, r.id) + '</td></tr>';
-    }).join('') : emptyRow(7, '문의 내역이 없습니다.');
-    return '<div class="panel"><div class="panel-head"><h3>문의 내역 관리</h3><span class="ph-sub">총 ' + a.length + '건</span></div>' +
-      '<div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>일시</th><th>이름</th><th>연락처</th><th>유형</th><th>내용</th><th>상태</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
+      return '<tr><td class="dt">' + fmtDate(r.at) + '</td><td>' + handledMark(r) + esc(r.name||'-') + '</td><td>' + esc(r.phone||'-') + '</td><td><span class="tag">' + esc(r.type||'문의') + '</span></td><td class="cell-clip">' + esc(r.memo||'-') + '</td><td>' + statusSelect(K.inq,'inq',r) + '</td>' +
+        '<td><button class="btn btn-ghost" data-detail="inq" data-id="' + r.id + '" style="padding:7px 12px"><i data-lucide="pen-line"></i>상세·답변</button></td><td>' + delBtn(K.inq, r.id) + '</td></tr>';
+    }).join('') : emptyRow(8, '문의 내역이 없습니다.');
+    return '<div class="panel"><div class="panel-head"><h3>문의 내역 관리</h3><span class="ph-sub">총 ' + a.length + '건</span>' +
+        '<div class="panel-tools">' + listSearch('inqTable', '이름 · 연락처 · 내용 검색') + csvBtn('inq') + '</div></div>' +
+      '<div style="overflow-x:auto"><table class="admin-table" id="inqTable"><thead><tr><th>일시</th><th>이름</th><th>연락처</th><th>유형</th><th>내용</th><th>상태</th><th>처리</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
+  }
+
+  /* ---------- 신청·문의 상세·처리 모달 (전체 내용 열람 + 관리자 처리 메모·상태) ---------- */
+  var DETAIL_META = {
+    apps: { sk: 'apps', title: '지도사 신청 상세', memoLabel: '관리자 처리 메모', fields: [['이름','name'],['연락처','phone'],['지역','region'],['신청 기수','course']], custLabel: '신청자 메모' },
+    inq:  { sk: 'inq',  title: '문의 상세',      memoLabel: '관리자 답변 · 처리 메모', fields: [['이름','name'],['연락처','phone'],['유형','type']], custLabel: '문의 내용' },
+  };
+  function openRecordDetail(kindKey, id) {
+    if (!S.rawModal) return;
+    var meta = DETAIL_META[kindKey], storeKey = K[kindKey];
+    var r = gj(storeKey, []).filter(function (x) { return x.id === id; })[0];
+    if (!r) return;
+    var info = meta.fields.map(function (f) {
+      return '<div class="dl-row"><span class="dl-k">' + f[0] + '</span><span class="dl-v">' + esc(r[f[1]] || '-') + '</span></div>';
+    }).join('') + '<div class="dl-row"><span class="dl-k">접수일시</span><span class="dl-v">' + esc(fmtDate(r.at)) + '</span></div>';
+    var opts = STATUS[meta.sk].map(function (o) { return '<option' + (o === r.status ? ' selected' : '') + '>' + o + '</option>'; }).join('');
+    S.rawModal(
+      '<div class="modal-head"><div><div class="eyebrow">처리</div><h3>' + meta.title + '</h3></div>' +
+        '<button class="modal-close" data-modal-close aria-label="닫기"><i data-lucide="x"></i></button></div>' +
+      '<div class="modal-body"><div class="rec-detail" data-rec-key="' + kindKey + '" data-rec-id="' + esc(id) + '">' +
+        '<div class="dl">' + info + '</div>' +
+        '<div class="field full"><label>' + meta.custLabel + '</label><div class="rec-cust">' + (esc(r.memo || '') || '<span class="pc-sub">(없음)</span>') + '</div></div>' +
+        '<div class="field full"><label>상태</label><select class="rec-status st-sel">' + opts + '</select></div>' +
+        '<div class="field full"><label>' + meta.memoLabel + '</label><textarea class="rec-memo" rows="4" placeholder="처리 내용·통화 결과·답변 요지를 기록하세요">' + esc(r.adminMemo || '') + '</textarea></div>' +
+        '<div class="modal-foot"><button type="button" class="btn btn-ghost" data-modal-close>닫기</button><button type="button" class="btn btn-point" data-act="recSave"><i data-lucide="check"></i>처리 저장</button></div>' +
+      '</div></div>', 620);
+  }
+  function saveRecordDetail() {
+    var box = document.querySelector('.rec-detail'); if (!box) return;
+    var kindKey = box.dataset.recKey, id = box.dataset.recId, storeKey = K[kindKey];
+    var status = box.querySelector('.rec-status').value;
+    var memo = box.querySelector('.rec-memo').value.trim();
+    var a = gj(storeKey, []);
+    a.forEach(function (x) { if (x.id === id) { x.status = status; x.adminMemo = memo; x.handledAt = new Date().toISOString(); } });
+    sj(storeKey, a);
+    if (S.closeModal) S.closeModal();
+    render(); toast('처리 내용이 저장되었습니다.');
   }
 
   /* ============================================================
@@ -1204,11 +1253,176 @@
     rd.readAsText(file);
   }
 
+  /* ============================================================
+     CSV 내보내기 — 한글 안 깨지게 UTF-8 BOM, 셀 이스케이프(따옴표·쉼표·줄바꿈)
+     ============================================================ */
+  function csvCell(v) {
+    var s = v == null ? '' : String(v);
+    if (/[",\n\r]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+  function downloadCSV(filename, headers, rows) {
+    var lines = [headers.map(csvCell).join(',')];
+    rows.forEach(function (r) { lines.push(r.map(csvCell).join(',')); });
+    var blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+    var u = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = u; a.download = filename; document.body.appendChild(a); a.click();
+    document.body.removeChild(a); setTimeout(function () { URL.revokeObjectURL(u); }, 1000);
+    toast('CSV 파일을 내려받았습니다.');
+  }
+  function stamp() { var d = new Date(); function p(n){ return ('0'+n).slice(-2); } return '' + d.getFullYear() + p(d.getMonth()+1) + p(d.getDate()); }
+  // 내보내기 버튼(목록 우측 상단 공용)
+  function csvBtn(kind) { return '<button class="btn btn-ghost" data-csv="' + kind + '" style="padding:9px 15px"><i data-lucide="download"></i>CSV 내보내기</button>'; }
+
+  function exportCSV(kind) {
+    if (kind === 'orders') {
+      var a = gj(K.orders, []);
+      downloadCSV('주문내역_' + stamp() + '.csv',
+        ['주문번호', '일시', '구분', '상태', '주문자', '연락처', '상품/내용', '옵션', '수량', '금액', '입금자', '결제수단', '배송지', '운송장'],
+        a.map(function (o) {
+          return [o.orderNo || '', o.at || '', o.kind === 'seedjang' ? '씨장분양' : '제품주문', o.status || '',
+            o.name || '', o.phone || '', o.product || o.amount || '', o.optionLabel || '', o.qty || '',
+            o.total != null ? o.total : '', o.depositor || '', o.payMethod || '', o.address || o.region || '',
+            (o.courier ? o.courier + ' ' : '') + (o.tracking || '')];
+        }));
+    } else if (kind === 'apps') {
+      var ap = gj(K.apps, []);
+      downloadCSV('지도사신청_' + stamp() + '.csv',
+        ['일시', '이름', '연락처', '지역', '신청기수', '고객메모', '상태', '처리메모', '처리일시'],
+        ap.map(function (r) { return [r.at || '', r.name || '', r.phone || '', r.region || '', r.course || '', r.memo || '', r.status || '', r.adminMemo || '', r.handledAt || '']; }));
+    } else if (kind === 'inq') {
+      var iq = gj(K.inq, []);
+      downloadCSV('문의내역_' + stamp() + '.csv',
+        ['일시', '이름', '연락처', '유형', '문의내용', '상태', '처리메모', '처리일시'],
+        iq.map(function (r) { return [r.at || '', r.name || '', r.phone || '', r.type || '', r.memo || '', r.status || '', r.adminMemo || '', r.handledAt || '']; }));
+    } else if (kind === 'sales') {
+      var so = salesOrders(salesPeriod);
+      downloadCSV('매출_' + salesPeriod + '_' + stamp() + '.csv',
+        ['주문번호', '일시', '상품/내용', '수량', '금액', '상태', '결제수단', '주문자'],
+        so.map(function (o) { return [o.orderNo || '', o.at || '', o.product || o.amount || '', o.qty || '', o.total != null ? o.total : '', o.status || '', o.payMethod || '', o.name || '']; }));
+    }
+  }
+
+  /* ============================================================
+     사이트 설정 — 운영 정보(계좌·연락처·사업자정보·약도) 셀프 편집
+     값은 kach_settings 에 저장되고, 전 페이지 푸터·결제 안내·모바일 메뉴·약도에 반영된다.
+     ============================================================ */
+  function viewSettings() {
+    var st = (S.getSettings ? S.getSettings() : {});
+    function field(name, label, hint, ph) {
+      return '<div class="field"><label>' + label + (hint ? ' <span class="pc-sub" style="font-weight:400">' + hint + '</span>' : '') +
+        '</label><input name="' + name + '" value="' + esc(st[name] != null ? st[name] : '') + '"' + (ph ? ' placeholder="' + ph + '"' : '') + '></div>';
+    }
+    return '<div class="modal-note" style="margin-bottom:18px"><i data-lucide="info"></i><span>여기서 바꾼 값은 <b>전 페이지 푸터 · 무통장입금 결제 안내 · 모바일 메뉴 전화 · 약도</b>에 반영됩니다(저장 후 공개 페이지 새로고침 시). 문의·소개 페이지 본문의 안내 문구는 해당 페이지에서 별도로 관리합니다.</span></div>' +
+      '<form class="admin-form set-form" id="settingsForm">' +
+        '<div class="set-sec full"><i data-lucide="banknote"></i><b>무통장입금 계좌</b> <span class="pc-sub">— 주문 시 안내되는 입금 계좌입니다. 실제 계좌로 반드시 교체하세요.</span></div>' +
+        field('bank', '입금 계좌', '(은행 + 계좌번호)', '농협 123-4567-8901-23') +
+        field('holder', '예금주', '', '한국참전통발효식품협동조합') +
+        '<div class="set-sec full"><i data-lucide="phone"></i><b>연락처 · 주소</b></div>' +
+        field('phone', '대표 전화', '', '02-855-8806') +
+        field('email', '이메일', '', 'name@example.com') +
+        '<div class="field full"><label>주소</label><input name="address" value="' + esc(st.address || '') + '" placeholder="서울특별시 …"></div>' +
+        '<div class="set-sec full"><i data-lucide="building-2"></i><b>사업자 정보</b> <span class="pc-sub">— 푸터에 표시됩니다.</span></div>' +
+        field('ceo', '대표자', '', '김필연') +
+        field('bizNo', '사업자등록번호', '', '869-81-02406') +
+        field('mailOrderNo', '통신판매업 신고번호', '', '2025-서울구로-1345') +
+        '<div class="set-sec full"><i data-lucide="map-pin"></i><b>약도 좌표</b> <span class="pc-sub">— 오시는 길 지도의 핀 위치(위도·경도). 지도 서비스에서 좌표를 확인해 입력하세요.</span></div>' +
+        field('lat', '위도(latitude)', '', '37.50331') +
+        field('lng', '경도(longitude)', '', '126.88262') +
+        '<div class="full" style="display:flex;gap:10px;align-items:center;border-top:1px solid var(--line-soft);padding-top:18px;margin-top:6px">' +
+          '<button class="btn btn-point" type="submit"><i data-lucide="check"></i>설정 저장</button>' +
+          '<button class="btn btn-ghost" type="button" data-act="settingsReset" style="margin-left:auto"><i data-lucide="rotate-ccw"></i>기본값 복원</button>' +
+        '</div>' +
+      '</form>';
+  }
+
+  /* ============================================================
+     매출 · 정산 리포트 — 기간별 결제 매출, 상품별 판매, 결제수단 분포
+     매출 인정: 결제완료 이후(결제완료·배송준비중·배송중·배송완료). 취소·반품은 제외.
+     ============================================================ */
+  var salesPeriod = 'month';   // today | month | last | all
+  var PAID_STATES = ['결제완료', '배송준비중', '배송중', '배송완료'];
+  function periodRange(p) {
+    var now = new Date(), y = now.getFullYear(), m = now.getMonth();
+    if (p === 'today') { var d = S.todayStr(); return { from: d, to: d, label: '오늘' }; }
+    function ymd(dt){ return dt.getFullYear() + '-' + ('0'+(dt.getMonth()+1)).slice(-2) + '-' + ('0'+dt.getDate()).slice(-2); }
+    if (p === 'month') return { from: ymd(new Date(y, m, 1)), to: ymd(new Date(y, m+1, 0)), label: '이번 달' };
+    if (p === 'last') return { from: ymd(new Date(y, m-1, 1)), to: ymd(new Date(y, m, 0)), label: '지난 달' };
+    return { from: '0000-00-00', to: '9999-99-99', label: '전체 기간' };
+  }
+  function salesOrders(p) {
+    var r = periodRange(p);
+    return gj(K.orders, []).filter(function (o) {
+      if (PAID_STATES.indexOf(o.status) < 0) return false;
+      var d = (o.at || '').slice(0, 10);
+      return d >= r.from && d <= r.to;
+    });
+  }
+  function viewSales() {
+    var periods = [{ id: 'today', label: '오늘' }, { id: 'month', label: '이번 달' }, { id: 'last', label: '지난 달' }, { id: 'all', label: '전체' }];
+    var rng = periodRange(salesPeriod);
+    var list = salesOrders(salesPeriod);
+    var revenue = list.reduce(function (s, o) { return s + (Number(o.total) || 0); }, 0);
+    var qty = list.reduce(function (s, o) { return s + (Number(o.qty) || 0); }, 0);
+    var avg = list.length ? Math.round(revenue / list.length) : 0;
+    var allOrders = gj(K.orders, []);
+    var pendingPay = allOrders.filter(function (o) { return o.status === '주문접수'; });
+    var pendingAmt = pendingPay.reduce(function (s, o) { return s + (Number(o.total) || 0); }, 0);
+
+    var kpis = [
+      { i: 'wallet', v: fmtWon(revenue) + '원', l: rng.label + ' 매출', sub: '결제완료 이후 기준' },
+      { i: 'receipt', v: list.length + '건', l: '결제 완료 주문', sub: '판매 수량 ' + qty + '개' },
+      { i: 'calculator', v: fmtWon(avg) + '원', l: '평균 주문액', sub: list.length ? '건당 평균' : '주문 없음' },
+      { i: 'hourglass', v: fmtWon(pendingAmt) + '원', l: '입금 대기 금액', sub: '미확인 ' + pendingPay.length + '건' },
+    ];
+    var kpiCards = kpis.map(function (s) {
+      return '<div class="stat"><div class="si"><i data-lucide="' + s.i + '"></i></div><div class="sv" style="font-size:24px">' + s.v + '</div><div class="sl">' + s.l + '</div><div class="ss">' + s.sub + '</div></div>';
+    }).join('');
+
+    // 상품별 판매 순위
+    var byProd = {};
+    list.forEach(function (o) {
+      var name = o.product || o.amount || '기타';
+      if (!byProd[name]) byProd[name] = { q: 0, amt: 0 };
+      byProd[name].q += (Number(o.qty) || 0); byProd[name].amt += (Number(o.total) || 0);
+    });
+    var prodKeys = Object.keys(byProd).sort(function (a, b) { return byProd[b].amt - byProd[a].amt; });
+    var prodMax = prodKeys.length ? byProd[prodKeys[0]].amt : 1;
+    var prodBars = prodKeys.length ? prodKeys.map(function (k) {
+      var d = byProd[k], w = Math.round(d.amt / prodMax * 100);
+      return '<div class="src-row"><div class="src-top"><span class="src-name" style="max-width:52%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(k) + '</span><span class="src-num">' + fmtWon(d.amt) + '원 <em>' + d.q + '개</em></span></div><div class="src-track"><div class="src-fill" style="width:' + Math.max(3, w) + '%;background:var(--olive)"></div></div></div>';
+    }).join('') : '<div class="admin-empty" style="padding:30px 10px"><i data-lucide="inbox"></i><div>해당 기간 매출이 없습니다.</div></div>';
+
+    // 결제수단별 분포
+    var byPay = {};
+    list.forEach(function (o) { var k = o.payMethod || '기타'; byPay[k] = (byPay[k] || 0) + (Number(o.total) || 0); });
+    var payKeys = Object.keys(byPay).sort(function (a, b) { return byPay[b] - byPay[a]; });
+    var payBars = payKeys.length ? payKeys.map(function (k) {
+      var pct = revenue ? Math.round(byPay[k] / revenue * 100) : 0;
+      return '<div class="src-row"><div class="src-top"><span class="src-name"><i data-lucide="credit-card"></i>' + esc(k) + '</span><span class="src-num">' + fmtWon(byPay[k]) + '원 <em>' + pct + '%</em></span></div><div class="src-track"><div class="src-fill" style="width:' + Math.max(3, pct) + '%;background:var(--main)"></div></div></div>';
+    }).join('') : '<div class="admin-empty" style="padding:20px 10px"><i data-lucide="credit-card"></i><div>데이터 없음</div></div>';
+
+    var tabs = '<div class="subtabs">' + periods.map(function (p) {
+      return '<button data-speriod="' + p.id + '" class="' + (salesPeriod === p.id ? 'on' : '') + '">' + p.label + '</button>';
+    }).join('') + '</div>';
+
+    return '<div class="sales-head" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px">' + tabs +
+        '<span class="ph-sub" style="font-size:13px;color:var(--ink-mute)">' + rng.label + (salesPeriod !== 'all' && salesPeriod !== 'today' ? ' (' + rng.from + ' ~ ' + rng.to + ')' : '') + ' · 매출은 <b>결제완료 이후</b>만 집계(취소·반품 제외)</span>' +
+        '<span style="margin-left:auto">' + csvBtn('sales') + '</span>' +
+      '</div>' +
+      '<div class="stat-grid">' + kpiCards + '</div>' +
+      '<div class="dash-2col" style="margin-top:24px">' +
+        '<div class="panel"><div class="panel-head"><h3>상품별 판매 순위</h3><span class="ph-sub">' + prodKeys.length + '개 상품 · 금액순</span></div><div style="padding:20px 22px 24px"><div class="src-list">' + prodBars + '</div></div></div>' +
+        '<div class="panel"><div class="panel-head"><h3>결제수단별 매출</h3><span class="ph-sub">총 ' + fmtWon(revenue) + '원</span></div><div style="padding:20px 22px 24px"><div class="src-list">' + payBars + '</div></div></div>' +
+      '</div>';
+  }
+
   /* ---------- nav ---------- */
   var NAV = [
     { id: 'dashboard', label: '대시보드', icon: 'layout-dashboard', view: viewDashboard, title: '대시보드' },
     { id: 'products', label: '상품 관리', icon: 'package', view: viewProducts, title: '상품 관리' },
     { id: 'orders', label: '주문 관리', icon: 'shopping-cart', view: viewOrders, title: '주문 관리', countKey: K.orders },
+    { id: 'sales', label: '매출 · 정산', icon: 'trending-up', view: viewSales, title: '매출 · 정산 리포트' },
     { id: 'apps', label: '지도사 신청', icon: 'user-plus', view: viewApps, title: '참가자 신청 관리', countKey: K.apps },
     { id: 'inq', label: '문의 내역', icon: 'message-square', view: viewInq, title: '문의 내역 관리', countKey: K.inq },
     { id: 'posts', label: '게시글 관리', icon: 'file-text', view: viewPosts, title: '게시글 관리', countKey: K.posts },
@@ -1217,6 +1431,7 @@
     { id: 'popups', label: '팝업 관리', icon: 'bell', view: viewPopups, title: '팝업 관리', countKey: K.popups },
     { id: 'consents', label: '동의문 관리', icon: 'shield-check', view: viewConsents, title: '개인정보 동의문 관리' },
     { id: 'kms', label: 'KMS', icon: 'book-open', view: viewKMS, title: 'KMS — 표준 KMS · 디자인 룰북' },
+    { id: 'settings', label: '설정', icon: 'settings', view: viewSettings, title: '사이트 설정 — 운영 정보' },
     { id: 'backup', label: '데이터 백업', icon: 'database', view: viewBackup, title: '데이터 백업 · 복원' },
   ];
   var current = 'dashboard';
@@ -1225,7 +1440,8 @@
   var dirty = false;
   function isEditingForm() {
     return prodEditing !== null || kmsMode === 'edit' || consentMode === 'edit'
-      || !!document.getElementById('partnerForm') || !!document.getElementById('popupForm');
+      || !!document.getElementById('partnerForm') || !!document.getElementById('popupForm')
+      || !!document.getElementById('settingsForm');
   }
   // 이동/취소 전 호출 — 변경이 있으면 확인, 사용자가 취소하면 false 반환(이동 중단)
   function confirmLeave() {
@@ -1326,6 +1542,20 @@
       });
     }
 
+    var sf = document.getElementById('settingsForm');
+    if (sf) {
+      sf.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var fd = new FormData(sf), obj = {};
+        fd.forEach(function (v, k) { obj[k] = String(v).trim(); });
+        // 좌표는 숫자 검증(빈 값이면 기본값으로 되돌아감)
+        ['lat', 'lng'].forEach(function (k) { if (obj[k] && isNaN(Number(obj[k]))) obj[k] = ''; });
+        if (S.setSettings && !S.setSettings(obj)) { toast('저장 공간이 부족합니다.'); return; }
+        dirty = false; render();
+        toast('설정을 저장했습니다. 공개 페이지 새로고침 시 반영됩니다.');
+      });
+    }
+
     bindProductForm();
     if (document.querySelector('.simg-split')) {
       fillSlotPreviews();
@@ -1376,12 +1606,25 @@
 
   // 주문 목록 즉시 검색(주문번호·주문자·연락처·입금자·상품 등 행 전체 텍스트 매칭)
   document.addEventListener('input', function (e) {
-    if (!e.target || e.target.id !== 'oSearch') return;
-    var q = e.target.value.trim().toLowerCase();
-    document.querySelectorAll('.admin-table tbody tr').forEach(function (tr) {
-      if (!tr.querySelector('.osel')) return;
-      tr.style.display = (!q || tr.textContent.toLowerCase().indexOf(q) > -1) ? '' : 'none';
-    });
+    if (!e.target) return;
+    if (e.target.id === 'oSearch') {
+      var q = e.target.value.trim().toLowerCase();
+      document.querySelectorAll('.admin-table tbody tr').forEach(function (tr) {
+        if (!tr.querySelector('.osel')) return;
+        tr.style.display = (!q || tr.textContent.toLowerCase().indexOf(q) > -1) ? '' : 'none';
+      });
+      return;
+    }
+    // 신청·문의 목록 검색 — data-target 테이블 행 필터
+    if (e.target.classList && e.target.classList.contains('list-search')) {
+      var qq = e.target.value.trim().toLowerCase();
+      var tbl = document.getElementById(e.target.dataset.target);
+      if (!tbl) return;
+      tbl.querySelectorAll('tbody tr').forEach(function (tr) {
+        if (tr.querySelector('.admin-empty')) return;
+        tr.style.display = (!qq || tr.textContent.toLowerCase().indexOf(qq) > -1) ? '' : 'none';
+      });
+    }
   });
 
   document.addEventListener('click', function(e){
@@ -1403,6 +1646,15 @@
     // 페이지 이미지 — 기기(PC/모바일) 토글
     var idev = e.target.closest('[data-imgdev]');
     if (idev) { imgDevice = idev.dataset.imgdev; render(); return; }
+    // CSV 내보내기
+    var csv = e.target.closest('[data-csv]');
+    if (csv) { exportCSV(csv.dataset.csv); return; }
+    // 매출 기간 탭
+    var sp = e.target.closest('[data-speriod]');
+    if (sp) { salesPeriod = sp.dataset.speriod; render(); return; }
+    // 신청·문의 상세·처리 모달 열기
+    var det = e.target.closest('[data-detail]');
+    if (det) { openRecordDetail(det.dataset.detail, det.dataset.id); return; }
     // 주문 드롭다운
     var dbtn = e.target.closest('#odropBtn');
     var menu = document.getElementById('odropMenu');
@@ -1473,6 +1725,12 @@
     } else if (act === 'kmsreset') {
       if (!confirm('현재 문서를 기본 문서로 복원할까요?')) return;
       var kk = gj(K.kms, {}) || {}; delete kk[kmsTab]; sj(K.kms, kk); kmsMode = 'view'; render();
+    } else if (act === 'recSave') {
+      saveRecordDetail();
+    } else if (act === 'settingsReset') {
+      if (!confirm('설정을 기본값으로 되돌릴까요? 저장된 운영 정보(계좌·연락처 등)가 초기화됩니다.')) return;
+      if (S.setSettings) S.setSettings({});
+      dirty = false; render(); toast('설정을 기본값으로 되돌렸습니다.');
     } else if (act === 'exportAll') {
       doExport();
     } else if (act === 'importPick') {

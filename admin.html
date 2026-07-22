@@ -293,6 +293,32 @@
   .todo-go { font-size: 13px; font-weight: 700; color: var(--point); display: inline-flex; align-items: center; gap: 4px; }
   .todo-go i[data-lucide] { width: 14px; height: 14px; }
   .todo-go.done { color: var(--ink-faint); }
+
+  /* 목록 도구(검색 + CSV) — 패널 헤더 우측 */
+  .panel-tools { display: flex; gap: 10px; align-items: center; margin-left: auto; flex-wrap: wrap; }
+  .list-search { padding: 9px 13px; border: 1.5px solid var(--line); border-radius: 9px; font: inherit; font-size: 14px; background: var(--surface); width: 230px; max-width: 46vw; }
+  .list-search:focus { outline: none; border-color: var(--main); }
+  .cell-clip { max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hd-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--olive); margin-right: 6px; vertical-align: middle; }
+
+  /* 설정 폼 — 섹션 구분 */
+  .set-form .set-sec { grid-column: 1/-1; display: flex; align-items: center; gap: 8px; margin: 12px 0 0; padding-top: 16px; border-top: 1px solid var(--line-soft); font-size: 14.5px; }
+  .set-form .set-sec:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+  .set-form .set-sec i[data-lucide] { width: 18px; height: 18px; color: var(--main); }
+  .set-form .set-sec b { font-weight: 800; }
+
+  /* 신청·문의 상세 모달 */
+  .rec-detail .dl { margin-bottom: 6px; }
+  .rec-detail .dl-row { display: flex; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line-soft); }
+  .rec-detail .dl-k { width: 84px; flex-shrink: 0; color: var(--ink-mute); font-size: 13px; }
+  .rec-detail .dl-v { font-weight: 600; font-size: 14.5px; }
+  .rec-detail .field { margin-top: 14px; }
+  .rec-detail .field label { display: block; font-size: 13.5px; font-weight: 700; margin-bottom: 7px; color: var(--ink); }
+  .rec-detail .rec-cust { background: var(--surface-2); border: 1px solid var(--line-soft); border-radius: 9px; padding: 12px 14px; font-size: 14px; line-height: 1.65; white-space: pre-wrap; }
+  .rec-detail .rec-status { width: 100%; min-height: 46px; border-radius: 9px; }
+  .rec-detail .rec-memo { width: 100%; font: inherit; font-size: 14.5px; line-height: 1.6; padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 9px; resize: vertical; }
+  .rec-detail .rec-memo:focus, .rec-detail .rec-status:focus { outline: none; border-color: var(--main); }
+  .rec-detail .modal-foot { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
 </style>
 </head>
 <body data-page="admin">

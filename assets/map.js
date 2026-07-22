@@ -1,18 +1,26 @@
 /* ============================================================
    map.js — 오시는 길 약도 (OpenStreetMap + Leaflet)
    #osmMap 이 있는 페이지에서만 동작한다. (협동조합 소개 · 문의하기 공용)
-   정확한 핀 위치는 실제 측량 후 LAT/LNG 두 값만 교체하면 된다.
+   좌표·주소는 관리자 '설정'에서 편집한다(Site.getSettings). 기본값은 아래 conf().
    ============================================================ */
 (function () {
   'use strict';
 
-  var LAT = 37.50331, LNG = 126.88262;
-  var ADDRESS = '서울특별시 구로구 구로동로 240, 세일빌딩 701호';
   var NAME = '한국참전통발효식품협동조합';
+  // 좌표·주소는 관리자 '설정'에서 편집(Site.getSettings) — 없으면 기본값
+  function conf() {
+    var s = (window.Site && window.Site.getSettings) ? window.Site.getSettings() : {};
+    return {
+      lat: s.lat != null ? Number(s.lat) : 37.50331,
+      lng: s.lng != null ? Number(s.lng) : 126.88262,
+      address: s.address || '서울특별시 구로구 구로동로 240, 세일빌딩 701호',
+    };
+  }
 
   function renderMap() {
     var mapEl = document.getElementById('osmMap');
     if (!mapEl) return;
+    var C = conf(), LAT = C.lat, LNG = C.lng, ADDRESS = C.address;
 
     // Leaflet CDN이 차단된 환경(폐쇄망 등)에서도 주소는 읽히도록 폴백을 둔다
     if (!window.L) {
