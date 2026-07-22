@@ -28,11 +28,15 @@
     padding-block: clamp(72px, 9vw, 132px);
     background: var(--main-deeper);
   }
-  /* 사진은 별도 레이어로 — transform으로 천천히 밀기 위해 */
+  /* 사진은 별도 레이어로 — transform으로 천천히 밀기 위해.
+     배경 사진은 관리자 '페이지 이미지'의 vinegar-hero 슬롯으로 교체 가능(--bg-* 변수). */
   .vin-hero::before {
     content:""; position:absolute; inset:-3%; z-index:0;
-    background: url('assets/product-vinegar-lineup.jpg') center 62% / cover no-repeat;
+    background-image: var(--bg-img, url('assets/product-vinegar-lineup.jpg'));
+    background-position: var(--bg-pc, center 62%);
+    background-size: cover; background-repeat: no-repeat;
   }
+  @media (max-width: 640px){ .vin-hero::before { background-position: var(--bg-mb, var(--bg-pc, center 62%)); } }
   .vin-hero::after {
     content:""; position:absolute; inset:0; z-index:0;
     background: linear-gradient(rgba(28,26,22,.72), rgba(28,26,22,.58));

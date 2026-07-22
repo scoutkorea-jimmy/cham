@@ -123,34 +123,71 @@
   };
 
   /* ---------------- 페이지 이미지 슬롯 (관리자 '페이지 이미지'에서 교체) ----------------
-     각 페이지의 placeholder(.ph)에 data-img-slot="id"를 달아두면,
-     관리자에서 올린 사진(IndexedDB 'simg')이 자리표시 대신 표시됩니다. */
+     각 페이지의 사진 자리에 data-img-slot="id"를 달아두면, 관리자에서 올린 사진
+     (IndexedDB 'simg')이 자리표시/기본 사진 대신 표시됩니다. 슬롯은 세 종류로 쓰입니다:
+       · .ph 컨테이너   → <img class="slot-img"> 를 안에 덧대어 채웁니다.
+       · <img> 요소 자체 → src 를 갈아끼웁니다(홈 3분할 카드·파트너 포스터).
+       · 그 밖의 요소     → CSS 배경으로 처리(히어로: --bg-img/--bg-pc/--bg-mb 변수).
+     ar 은 관리자 위치 편집기의 크롭 미리보기 비율(페이지의 ratio 클래스를 반영).
+     crop:false 는 잘라내지 않고 원본 전체를 보여 주는 자리(포스터) — 위치 조정 없음. */
   var IMG_SLOTS = [
-    { id: 'home-story-meju',     page: '홈',          label: '우리 이야기 — 발효된 메주' },
-    { id: 'home-story-seedjang', page: '홈',          label: '우리 이야기 — 씨장 항아리' },
-    { id: 'home-instructor',     page: '홈',          label: '체험지도사 강조 — 교육 현장' },
-    { id: 'home-vinegar',        page: '홈',          label: '제품 — 서련 수제식초 전경' },
-    { id: 'about-ceo',           page: '협동조합 소개', label: '대표 인사말 — 대표 사진' },
-    { id: 'about-fair',          page: '협동조합 소개', label: '조합 활동 — 박람회·현장' },
-    { id: 'ferments-meju',       page: '전통발효식품', label: '전통 발효란 — 발효된 메주' },
-    { id: 'ferments-seedjang',   page: '전통발효식품', label: '씨장 이야기 — 씨장 항아리' },
-    { id: 'vinegar-hero',        page: '식초',        label: '히어로 — 식초 대표 이미지' },
-    { id: 'vinegar-lineup',      page: '식초',        label: '식초 종류 — 라인업 전경' },
-    { id: 'vinegar-craft',       page: '식초',        label: '만드는 과정 — 작업 현장' },
-    { id: 'inst-class-jang',     page: '체험지도사',   label: '수업 구분 — 장류반 수업' },
-    { id: 'inst-class-vinegar',  page: '체험지도사',   label: '수업 구분 — 식초류반 수업' },
-    { id: 'inst-field',          page: '체험지도사',   label: '지도사란 — 강의·실습 현장' },
-    { id: 'inst-oneday',         page: '체험지도사',   label: '원데이 수업 — 와인·식초 실습' },
-    { id: 'nuruk-intro',         page: '누룩이야기',   label: '누룩이란 — 누룩 사진' },
-    { id: 'nuruk-rice',          page: '누룩이야기',   label: '쌀누룩 만들기' },
-    { id: 'nuruk-yogurt',        page: '누룩이야기',   label: '요거트 만들기' },
-    { id: 'nuruk-gochujang',     page: '누룩이야기',   label: '저염 고추장 만들기' },
-    { id: 'nuruk-makjang',       page: '누룩이야기',   label: '저염 막장 만들기' },
-    { id: 'nuruk-ganjang',       page: '누룩이야기',   label: '저염 간장·소금 만들기' },
-    { id: 'prod-vinegar-line',   page: '제품',        label: '식초·와인 — 라인업 전경' },
-    { id: 'prod-seedjang',       page: '제품',        label: '씨장 분양 — 장독대' },
-    { id: 'prod-giftset',        page: '제품',        label: '명절선물세트' },
+    { id: 'home-hero',           page: '홈',          label: '히어로 배경 — 장독대 전경', ar: '16/6' },
+    { id: 'home-pillar-vinegar', page: '홈',          label: '3분할 카드① — 수제 발효식초', ar: '1/1' },
+    { id: 'home-pillar-jang',    page: '홈',          label: '3분할 카드② — 전통 장·씨장', ar: '1/1' },
+    { id: 'home-pillar-edu',     page: '홈',          label: '3분할 카드③ — 발효 교육', ar: '1/1' },
+    { id: 'home-story-meju',     page: '홈',          label: '우리 이야기 — 발효된 메주', ar: '3/2' },
+    { id: 'home-story-seedjang', page: '홈',          label: '우리 이야기 — 씨장 항아리', ar: '3/2' },
+    { id: 'home-instructor',     page: '홈',          label: '체험지도사 강조 — 교육 현장', ar: '4/3' },
+    { id: 'about-ceo',           page: '협동조합 소개', label: '대표 인사말 — 대표 사진', ar: '5/6' },
+    { id: 'about-fair',          page: '협동조합 소개', label: '조합 활동 — 박람회·현장', ar: '16/9' },
+    { id: 'about-partner',       page: '협동조합 소개', label: '파트너 — 정선만장대 포스터', crop: false },
+    { id: 'ferments-meju',       page: '전통발효식품', label: '전통 발효란 — 발효된 메주', ar: '4/3' },
+    { id: 'ferments-seedjang',   page: '전통발효식품', label: '씨장 이야기 — 씨장 항아리', ar: '4/3' },
+    { id: 'vinegar-hero',        page: '식초',        label: '히어로 배경 — 식초 대표 이미지', ar: '16/6' },
+    { id: 'vinegar-craft',       page: '식초',        label: '만드는 과정 — 작업 현장', ar: '4/3' },
+    { id: 'inst-class-jang',     page: '체험지도사',   label: '수업 구분 — 장류반 수업', ar: '3/2' },
+    { id: 'inst-class-vinegar',  page: '체험지도사',   label: '수업 구분 — 식초류반 수업', ar: '3/2' },
+    { id: 'inst-field',          page: '체험지도사',   label: '지도사란 — 강의·실습 현장', ar: '4/3' },
+    { id: 'inst-oneday',         page: '체험지도사',   label: '원데이 수업 — 와인·식초 실습', ar: '4/3' },
+    { id: 'nuruk-intro',         page: '누룩이야기',   label: '누룩이란 — 누룩 사진', ar: '4/3' },
+    { id: 'nuruk-rice',          page: '누룩이야기',   label: '쌀누룩 만들기', ar: '3/2' },
+    { id: 'nuruk-yogurt',        page: '누룩이야기',   label: '요거트 만들기', ar: '3/2' },
+    { id: 'nuruk-gochujang',     page: '누룩이야기',   label: '저염 고추장 만들기', ar: '3/2' },
+    { id: 'nuruk-makjang',       page: '누룩이야기',   label: '저염 막장 만들기', ar: '3/2' },
+    { id: 'nuruk-ganjang',       page: '누룩이야기',   label: '저염 간장·소금 만들기', ar: '3/2' },
+    { id: 'prod-vinegar-line',   page: '제품',        label: '식초·와인 — 라인업 전경', ar: '16/9' },
+    { id: 'prod-seedjang',       page: '제품',        label: '씨장 분양 — 장독대', ar: '4/3' },
   ];
+  // 슬롯 레코드의 저장된 위치를 object-position/background-position 문자열로 — 없으면 가운데, 모바일은 PC 상속
+  function slotPos(rec) {
+    var pcx = rec.pcx != null ? rec.pcx : 50, pcy = rec.pcy != null ? rec.pcy : 50;
+    var mbx = rec.mbx != null ? rec.mbx : pcx, mby = rec.mby != null ? rec.mby : pcy;
+    return { pc: pcx + '% ' + pcy + '%', mb: mbx + '% ' + mby + '%' };
+  }
+  // 한 슬롯 요소에 올린 사진(url)과 위치를 적용 — 요소 종류(img/.ph/배경)에 맞게
+  function applySlot(el, url, pos) {
+    if (el.tagName === 'IMG') {
+      el.src = url;
+      el.style.setProperty('--op-pc', pos.pc);
+      el.style.setProperty('--op-mb', pos.mb);
+    } else if (el.classList.contains('ph')) {
+      var img = el.querySelector('.slot-img');
+      if (!img) {
+        img = document.createElement('img');
+        img.className = 'slot-img';
+        img.alt = el.getAttribute('data-label') || '';
+        el.appendChild(img);
+        el.classList.add('has-img');
+      }
+      img.src = url;
+      img.style.setProperty('--op-pc', pos.pc);
+      img.style.setProperty('--op-mb', pos.mb);
+    } else {
+      el.style.setProperty('--bg-img', 'url("' + url + '")');
+      el.style.setProperty('--bg-pc', pos.pc);
+      el.style.setProperty('--bg-mb', pos.mb);
+    }
+  }
   function renderSlotImages() {
     var slots = document.querySelectorAll('[data-img-slot]');
     if (!slots.length) return;
@@ -159,13 +196,8 @@
       recs.forEach(function (r) { map[r.id] = r; });
       slots.forEach(function (el) {
         var rec = map[el.getAttribute('data-img-slot')];
-        if (!rec || !rec.blob || el.querySelector('.slot-img')) return;
-        var img = document.createElement('img');
-        img.className = 'slot-img';
-        img.alt = el.getAttribute('data-label') || '';
-        img.src = URL.createObjectURL(rec.blob);
-        el.classList.add('has-img');
-        el.appendChild(img);
+        if (!rec || !rec.blob) return;
+        applySlot(el, URL.createObjectURL(rec.blob), slotPos(rec));
       });
     });
   }
@@ -1137,7 +1169,7 @@
     getJSON: getJSON, setJSON: setJSON, pushRecord: pushRecord,
     fmtWon: fmtWon, fmtYMD: fmtYMD, todayStr: todayStr, genOrderNo: genOrderNo,
     idb: idb, toast: toast, revealScan: revealScan,
-    IMG_SLOTS: IMG_SLOTS, renderSlotImages: renderSlotImages,
+    IMG_SLOTS: IMG_SLOTS, renderSlotImages: renderSlotImages, slotPos: slotPos, applySlot: applySlot,
     requireAdmin: requireAdmin, verifyLogin: verifyLogin, lockMs: lockMs,
     openModal: openModal, closeModal: closeModal, rawModal: rawModal, openOrderLookup: openOrderLookup,
     getPartners: getPartners, setPartners: setPartners, renderPartnersStrip: renderPartnersStrip, partnerDefaults: PARTNER_DEFAULTS,

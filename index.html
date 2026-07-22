@@ -42,7 +42,7 @@
 <header id="site-nav"></header>
 
 <!-- ① 히어로 — 정선 장독대 전경 위에 조합이 하는 일을 한 문장으로 -->
-<section class="hero">
+<section class="hero" data-img-slot="home-hero" data-label="홈 히어로 배경">
   <div class="wrap">
     <div class="hero-copy">
       <p class="hero-kicker reveal">교육부 진로체험 인증기관</p>
@@ -70,7 +70,7 @@
     </div>
     <div class="pillars reveal">
       <a class="pillar" href="vinegar.html">
-        <img src="assets/product-vinegar-lineup.jpg" alt="서련 수제 발효식초 라인업">
+        <img src="assets/product-vinegar-lineup.jpg" alt="서련 수제 발효식초 라인업" data-img-slot="home-pillar-vinegar" data-label="3분할 카드 — 수제 발효식초">
         <div class="pillar-body">
           <span class="p-no">01</span>
           <h3>수제 발효식초</h3>
@@ -79,7 +79,7 @@
         </div>
       </a>
       <a class="pillar" href="products.html#jang">
-        <img src="assets/hero-bg.jpg" alt="정선 장독대 전경">
+        <img src="assets/hero-bg.jpg" alt="정선 장독대 전경" data-img-slot="home-pillar-jang" data-label="3분할 카드 — 전통 장·씨장">
         <div class="pillar-body">
           <span class="p-no">02</span>
           <h3>전통 장(醬)과 씨장</h3>
@@ -88,7 +88,7 @@
         </div>
       </a>
       <a class="pillar" href="instructor.html">
-        <img src="assets/edu-lecture.jpg" alt="전통발효식품 체험지도사 교육 현장">
+        <img src="assets/edu-lecture.jpg" alt="전통발효식품 체험지도사 교육 현장" data-img-slot="home-pillar-edu" data-label="3분할 카드 — 발효 교육">
         <div class="pillar-body">
           <span class="p-no">03</span>
           <h3>발효 교육</h3>
@@ -277,10 +277,15 @@
     padding-bottom: calc(var(--sec-pad) + 36px);
     text-align: center;
   }
+  /* 배경 사진은 관리자 '페이지 이미지'의 home-hero 슬롯으로 교체 가능.
+     --bg-img/--bg-pc/--bg-mb 는 site.js 가 넣고, 없으면 아래 기본값(장독대 전경)을 쓴다. */
   .hero::before {
     content:""; position:absolute; inset:-3%; z-index:0;
-    background: url('assets/hero-bg.jpg') center 60% / cover no-repeat;
+    background-image: var(--bg-img, url('assets/hero-bg.jpg'));
+    background-position: var(--bg-pc, center 60%);
+    background-size: cover; background-repeat: no-repeat;
   }
+  @media (max-width: 640px){ .hero::before { background-position: var(--bg-mb, var(--bg-pc, center 60%)); } }
   .hero::after {
     content:""; position:absolute; inset:0; z-index:0;
     background: linear-gradient(rgba(28,32,22,.62) 0%, rgba(28,32,22,.44) 45%, rgba(28,32,22,.58) 100%);

@@ -167,12 +167,47 @@
   .pcard .pc-sub { font-size: 12px; color: var(--ink-mute); }
   .pcard .pc-row { display: flex; justify-content: space-between; align-items: center; margin-top: auto; }
 
-  /* 페이지 이미지 — 2단: 왼쪽 슬롯 목록 · 오른쪽 실제 페이지 미리보기 */
+  /* 페이지 이미지 — 2단: 왼쪽 슬롯 목록·위치 조정 · 오른쪽 실제 페이지 미리보기 */
   .simg-split { display: grid; grid-template-columns: minmax(320px, 2fr) minmax(0, 3fr); gap: 20px; align-items: start; }
   .simg-preview { position: sticky; top: 86px; }
-  .simg-frame-wrap { height: min(72vh, 860px); overflow: hidden; background: var(--bg); }
+  .simg-frame-wrap { height: min(72vh, 860px); overflow: hidden; background: var(--bg); display: grid; place-items: start center; }
+  .simg-frame-wrap.dev-mb { background: var(--surface-2); padding: 14px 0; place-items: start center; }
   .simg-frame-wrap iframe { display: block; border: 0; transform-origin: 0 0; }
+  .simg-frame-wrap.dev-mb iframe { border-radius: 20px; box-shadow: var(--sh-lg); outline: 6px solid #1c1a16; outline-offset: 0; }
   @media (max-width: 1100px){ .simg-split { grid-template-columns: 1fr; } .simg-preview { position: static; } }
+
+  /* 기기 토글 — PC/모바일 미리보기 폭 전환(위치 조정 대상 화면도 함께 바뀜) */
+  .dev-toggle { display: inline-flex; gap: 4px; background: var(--surface-2); border: 1px solid var(--line-soft); border-radius: 12px; padding: 5px; }
+  .dev-toggle button { display: inline-flex; align-items: center; gap: 7px; padding: 9px 16px; border: none; background: none; font: inherit; font-size: 13px; font-weight: 700; color: var(--ink-mute); cursor: pointer; border-radius: 9px; }
+  .dev-toggle button.on { background: var(--main); color: #fff; box-shadow: var(--sh-sm); }
+  .dev-toggle button i[data-lucide] { width: 15px; height: 15px; }
+
+  /* 선택된 슬롯 셀 강조 + 위치 조정 가능한 칸은 클릭 가능 표시 */
+  .pcard.sel { border-color: var(--point); box-shadow: 0 0 0 2px var(--point-tint); }
+  .pc-logo[data-slot-sel] { cursor: pointer; position: relative; }
+  .pcard.has-photo .pc-logo.can-pos::after { content: "위치 조정"; position: absolute; right: 6px; bottom: 6px; font-size: 10px; font-weight: 700; color: #fff; background: rgba(28,26,22,.66); padding: 2px 7px; border-radius: 6px; }
+
+  /* 위치 편집기 — 올린 사진의 초점을 드래그/화살표로 맞춤 */
+  .pos-editor { border: 1px solid var(--line-soft); border-radius: var(--r-md); background: var(--surface-2); padding: 16px; margin: 0 22px 6px; }
+  .pe-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+  .pe-head b { font-size: 14px; }
+  .pe-head .pe-dev { font-size: 12px; color: var(--main-deep); font-weight: 700; }
+  .pe-stage { position: relative; width: 100%; max-width: 340px; margin: 0 auto; border-radius: var(--r-sm); overflow: hidden; background: #1c1a16; cursor: grab; touch-action: none; box-shadow: inset 0 0 0 1px var(--line); user-select: none; }
+  .pe-stage.drag { cursor: grabbing; }
+  .pe-img { position: absolute; inset: 0; background-size: cover; background-repeat: no-repeat; }
+  .pe-stage::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+    background-image: linear-gradient(rgba(255,255,255,.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.5) 1px, transparent 1px);
+    background-size: 33.33% 33.33%; background-position: center; opacity: .35; }
+  .pe-ctrls { display: grid; grid-template-columns: repeat(3, 36px); grid-template-rows: repeat(3, 36px); gap: 4px; justify-content: center; margin: 14px auto 6px; }
+  .pe-ctrls button { border: 1px solid var(--line); background: var(--bg); border-radius: 8px; cursor: pointer; display: grid; place-items: center; color: var(--ink); }
+  .pe-ctrls button:hover { background: var(--surface-2); border-color: var(--main); }
+  .pe-ctrls button i[data-lucide] { width: 16px; height: 16px; }
+  .pe-ctrls .pe-up { grid-area: 1 / 2; } .pe-ctrls .pe-left { grid-area: 2 / 1; }
+  .pe-ctrls .pe-center { grid-area: 2 / 2; } .pe-ctrls .pe-right { grid-area: 2 / 3; }
+  .pe-ctrls .pe-down { grid-area: 3 / 2; }
+  .pe-ctrls .pe-center { font-size: 11px; font-weight: 700; color: var(--ink-mute); }
+  .pe-hint { font-size: 12px; color: var(--ink-mute); line-height: 1.6; text-align: center; margin: 4px 0 0; }
+  .pe-nocrop { font-size: 13px; color: var(--ink-mute); text-align: center; padding: 10px 6px; }
 
   .login-gate { position: fixed; inset: 0; z-index: 2000; background: var(--main-deeper); display: grid; place-items: center; background-image: var(--pat-light); background-size: var(--pat-size); }
   .login-card { background: var(--surface); border-radius: var(--r-xl); box-shadow: var(--sh-lg); padding: 38px 36px; width: min(380px, 92vw); text-align: center; }

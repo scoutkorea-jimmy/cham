@@ -913,50 +913,194 @@
   }
 
   /* ============================================================
-     페이지 이미지 관리 — 각 페이지의 사진 슬롯 교체
+     페이지 이미지 관리 — 각 페이지의 사진 슬롯 교체 + 위치(초점) 조정
+       · 왼쪽: 슬롯 목록(올리기/내리기) + 선택 슬롯의 위치 편집기
+       · 오른쪽: 실제 페이지 미리보기(iframe) — 기기 토글로 PC/모바일 폭 전환
+       · 위치는 모바일·PC 각각 저장(simg 레코드의 pcx/pcy/mbx/mby, 0~100%)
      ============================================================ */
   var imgPageTab = null;
+  var imgDevice = 'pc';   // 'pc' | 'mb' — 미리보기 폭 + 위치 조정 대상 화면
+  var imgSel = null;      // 위치 편집 중인 슬롯 id
+  var posState = null;    // { id, dev, x, y, rec } — 위치 편집기 활성 상태
   var IMG_PAGE_FILES = { '홈': 'index.html', '협동조합 소개': 'about.html', '전통발효식품': 'ferments.html', '식초': 'vinegar.html', '체험지도사': 'instructor.html', '누룩이야기': 'nuruk.html', '제품': 'products.html' };
+  function slotById(id) { return (S.IMG_SLOTS || []).filter(function (s) { return s.id === id; })[0]; }
+
   function viewImages() {
     var slots = S.IMG_SLOTS || [];
     var pages = [], byPage = {};
     slots.forEach(function (s) { if (!byPage[s.page]) { byPage[s.page] = []; pages.push(s.page); } byPage[s.page].push(s); });
     if (!imgPageTab || !byPage[imgPageTab]) imgPageTab = pages[0];
-    var cells = (byPage[imgPageTab] || []).map(function (s) {
-      return '<div class="pcard">' +
-        '<div class="pc-logo" data-slot-cell="' + s.id + '" style="height:96px;background:var(--surface-2);border-radius:8px;display:grid;place-items:center;overflow:hidden"><span class="pc-sub">사진 없음</span></div>' +
+    var list = byPage[imgPageTab] || [];
+    if (imgSel && !list.some(function (s) { return s.id === imgSel; })) imgSel = null;
+
+    var cells = list.map(function (s) {
+      var sel = s.id === imgSel ? ' sel' : '';
+      var canpos = s.crop !== false ? ' can-pos' : '';
+      return '<div class="pcard' + sel + '" data-slot-card="' + s.id + '">' +
+        '<div class="pc-logo' + canpos + '" data-slot-cell="' + s.id + '" data-slot-sel="' + s.id + '" style="height:96px"><span class="pc-sub">사진 없음</span></div>' +
         '<div><div class="pc-name">' + esc(s.label) + '</div></div>' +
         '<div class="pc-row">' +
           '<label class="btn btn-ghost" style="padding:8px 14px;cursor:pointer"><i data-lucide="upload"></i>사진 올리기<input type="file" accept="image/*" data-simg-up="' + s.id + '" style="display:none"></label>' +
           '<button class="btn btn-ghost" data-act="simgdel" data-id="' + s.id + '" style="padding:8px 14px;color:var(--point)"><i data-lucide="trash-2"></i>내리기</button>' +
         '</div></div>';
     }).join('');
+
     var file = IMG_PAGE_FILES[imgPageTab] || 'index.html';
-    return '<div class="modal-note" style="margin-bottom:18px"><i data-lucide="image"></i><span>사진을 올리면 오른쪽 <b>미리보기에 즉시 반영</b>됩니다. ‘내리기’를 누르면 다시 자리표시로 돌아갑니다. 사진은 이 브라우저에 저장되므로 <b>데이터 백업</b> 메뉴로 주기적으로 백업하세요.</span></div>' +
+    var devLabel = imgDevice === 'mb' ? '모바일' : 'PC';
+    return '<div class="modal-note" style="margin-bottom:18px"><i data-lucide="image"></i><span>사진을 올리면 오른쪽 <b>미리보기에 즉시 반영</b>됩니다. 올린 뒤 왼쪽 미리보기 칸을 눌러 <b>상하좌우 위치</b>를 맞추세요 — <b>모바일·PC 각각 따로</b> 저장됩니다. 사진은 이 브라우저에 저장되니 <b>데이터 백업</b>으로 주기적으로 백업하세요.</span></div>' +
       subtabs(pages.map(function (pg) { return { id: pg, label: pg }; }), imgPageTab) +
+      '<div class="simg-devbar" style="display:flex;align-items:center;gap:12px;margin:0 0 16px;flex-wrap:wrap">' +
+        '<div class="dev-toggle">' +
+          '<button data-imgdev="pc" class="' + (imgDevice === 'pc' ? 'on' : '') + '"><i data-lucide="monitor"></i>PC 화면</button>' +
+          '<button data-imgdev="mb" class="' + (imgDevice === 'mb' ? 'on' : '') + '"><i data-lucide="smartphone"></i>모바일 화면</button>' +
+        '</div>' +
+        '<span class="ph-sub" style="font-size:13px;color:var(--ink-mute)">지금 <b>' + devLabel + ' 화면</b> 기준으로 미리보고, 사진 위치도 ' + devLabel + ' 화면에 맞춰 조정합니다.</span>' +
+      '</div>' +
       '<div class="simg-split">' +
-        '<div class="panel"><div class="panel-head"><h3>' + esc(imgPageTab) + '</h3><span class="ph-sub">' + (byPage[imgPageTab] || []).length + '개 자리</span></div><div class="card-list">' + cells + '</div></div>' +
+        '<div class="panel">' +
+          '<div class="panel-head"><h3>' + esc(imgPageTab) + '</h3><span class="ph-sub">' + list.length + '개 자리</span></div>' +
+          '<div id="posEditor"></div>' +
+          '<div class="card-list">' + cells + '</div>' +
+        '</div>' +
         '<div class="panel simg-preview">' +
-          '<div class="panel-head"><h3>실제 페이지 미리보기</h3><a class="btn btn-ghost" href="' + file + '" target="_blank" rel="noopener" style="padding:8px 14px"><i data-lucide="external-link"></i>새 탭에서 열기</a></div>' +
-          '<div class="simg-frame-wrap" id="simgFrameWrap"><iframe id="simgFrame" src="' + file + '" title="' + esc(imgPageTab) + ' 페이지 미리보기"></iframe></div>' +
+          '<div class="panel-head"><h3>실제 페이지 미리보기 · ' + devLabel + '</h3><a class="btn btn-ghost" href="' + file + '" target="_blank" rel="noopener" style="padding:8px 14px"><i data-lucide="external-link"></i>새 탭에서 열기</a></div>' +
+          '<div class="simg-frame-wrap' + (imgDevice === 'mb' ? ' dev-mb' : '') + '" id="simgFrameWrap"><iframe id="simgFrame" src="' + file + '" title="' + esc(imgPageTab) + ' 페이지 미리보기"></iframe></div>' +
         '</div>' +
       '</div>';
   }
-  // 미리보기 iframe을 데스크톱 폭(1280px)으로 렌더한 뒤 패널 폭에 맞춰 축소 표시
+
+  // 미리보기 iframe을 기기 폭(PC 1280 / 모바일 390)으로 렌더한 뒤 패널 폭에 맞춰 축소 표시
   function fitSimgPreview() {
     var wrap = document.getElementById('simgFrameWrap'), fr = document.getElementById('simgFrame');
     if (!wrap || !fr) return;
-    var W = 1280, sc = Math.min(1, wrap.clientWidth / W);
+    var mb = imgDevice === 'mb';
+    var W = mb ? 390 : 1280;
+    var pad = mb ? 28 : 0;
+    var sc = Math.min(1, wrap.clientWidth / W);
     fr.style.width = W + 'px';
     fr.style.transform = 'scale(' + sc + ')';
-    fr.style.height = Math.round(wrap.clientHeight / sc) + 'px';
+    fr.style.height = Math.round((wrap.clientHeight - pad) / sc) + 'px';
   }
   window.addEventListener('resize', fitSimgPreview);
+
+  // 선택 슬롯으로 미리보기 스크롤(같은 출처 iframe)
+  function scrollFrameToSel() {
+    if (!imgSel) return;
+    var fr = document.getElementById('simgFrame'); if (!fr) return;
+    try {
+      var doc = fr.contentDocument, win = fr.contentWindow;
+      var el = doc && doc.querySelector('[data-img-slot="' + imgSel + '"]');
+      if (el) win.scrollTo(0, Math.max(0, el.getBoundingClientRect().top + win.pageYOffset - 40));
+    } catch (e) {}
+  }
+
+  // 위치 변경을 미리보기 iframe에 즉시 반영(reload 없이) — renderSlotImages 와 같은 규칙
+  function pokePreview(id, dev, x, y) {
+    var fr = document.getElementById('simgFrame'), doc;
+    try { doc = fr && fr.contentDocument; } catch (e) { doc = null; }
+    if (!doc) return;
+    var el = doc.querySelector('[data-img-slot="' + id + '"]'); if (!el) return;
+    var val = x + '% ' + y + '%';
+    if (el.tagName === 'IMG') el.style.setProperty(dev === 'mb' ? '--op-mb' : '--op-pc', val);
+    else if (el.classList.contains('ph')) { var im = el.querySelector('.slot-img'); if (im) im.style.setProperty(dev === 'mb' ? '--op-mb' : '--op-pc', val); }
+    else el.style.setProperty(dev === 'mb' ? '--bg-mb' : '--bg-pc', val);
+  }
+
+  function clampPct(v) { return Math.max(0, Math.min(100, Math.round(v))); }
+  function setPos(x, y, persist) {
+    if (!posState) return;
+    posState.x = x; posState.y = y;
+    var img = document.getElementById('peImg');
+    if (img) img.style.backgroundPosition = x + '% ' + y + '%';
+    pokePreview(posState.id, posState.dev, x, y);
+    if (persist) {
+      if (posState.dev === 'mb') { posState.rec.mbx = x; posState.rec.mby = y; }
+      else { posState.rec.pcx = x; posState.rec.pcy = y; }
+      S.idb.put('simg', posState.rec);
+    }
+  }
+  function nudgePos(dir) {
+    if (!posState) return;
+    var STEP = 4, x = posState.x, y = posState.y;
+    // 사진을 화살표 방향으로 민다(드래그와 같은 감각): ↑ 위로 밀면 아래가 드러남 → y 증가
+    if (dir === 'up') y = clampPct(y + STEP);
+    else if (dir === 'down') y = clampPct(y - STEP);
+    else if (dir === 'left') x = clampPct(x + STEP);
+    else if (dir === 'right') x = clampPct(x - STEP);
+    else { x = 50; y = 50; }
+    setPos(x, y, true);
+  }
+
+  // 선택 슬롯의 위치 편집기 채우기(사진이 있을 때만) — render 후·슬롯 선택 후 호출
+  function fillPosEditor() {
+    var box = document.getElementById('posEditor'); if (!box) return;
+    posState = null;
+    if (!imgSel) { box.innerHTML = ''; return; }
+    var meta = slotById(imgSel); if (!meta) { box.innerHTML = ''; return; }
+    if (meta.crop === false) {
+      box.innerHTML = '<div class="pos-editor"><div class="pe-head"><b>' + esc(meta.label) + '</b></div>' +
+        '<div class="pe-nocrop"><i data-lucide="info"></i> 이 자리는 사진 원본 전체를 그대로 보여 줍니다. 위치 조정이 필요 없습니다.</div></div>';
+      icons(); return;
+    }
+    S.idb.all('simg').then(function (recs) {
+      var rec = recs.filter(function (r) { return r.id === imgSel; })[0];
+      if (!rec || !rec.blob) {
+        box.innerHTML = '<div class="pos-editor"><div class="pe-head"><b>' + esc(meta.label) + '</b></div>' +
+          '<div class="pe-nocrop">먼저 <b>사진 올리기</b>로 사진을 올리면, 여기서 상하좌우 위치를 맞출 수 있습니다.</div></div>';
+        return;
+      }
+      var pos = S.slotPos(rec);
+      var cur = (imgDevice === 'mb' ? pos.mb : pos.pc).split(' ');
+      var x = parseFloat(cur[0]), y = parseFloat(cur[1]);
+      posState = { id: imgSel, dev: imgDevice, x: x, y: y, rec: rec };
+      var devLabel = imgDevice === 'mb' ? '모바일' : 'PC';
+      box.innerHTML = '<div class="pos-editor">' +
+        '<div class="pe-head"><b>' + esc(meta.label) + '</b><span class="pe-dev">' + devLabel + ' 화면 위치</span></div>' +
+        '<div class="pe-stage" id="peStage" style="aspect-ratio:' + (meta.ar || '4/3') + '">' +
+          '<div class="pe-img" id="peImg" style="background-image:url(' + mkURL(rec.blob) + ');background-position:' + x + '% ' + y + '%"></div>' +
+        '</div>' +
+        '<div class="pe-ctrls">' +
+          '<button class="pe-up" data-pe-nudge="up" title="사진을 위로"><i data-lucide="chevron-up"></i></button>' +
+          '<button class="pe-left" data-pe-nudge="left" title="사진을 왼쪽으로"><i data-lucide="chevron-left"></i></button>' +
+          '<button class="pe-center" data-pe-nudge="center" title="가운데로">가운데</button>' +
+          '<button class="pe-right" data-pe-nudge="right" title="사진을 오른쪽으로"><i data-lucide="chevron-right"></i></button>' +
+          '<button class="pe-down" data-pe-nudge="down" title="사진을 아래로"><i data-lucide="chevron-down"></i></button>' +
+        '</div>' +
+        '<p class="pe-hint">사진을 <b>드래그</b>하거나 화살표로 옮겨 <b>' + devLabel + ' 화면</b>에서 잘 보이도록 맞추세요.<br>모바일과 PC 위치는 따로 저장됩니다.</p>' +
+      '</div>';
+      icons();
+      bindPosDrag();
+    });
+  }
+  // 위치 편집기 드래그 — 사진을 잡아 끄는 느낌(오른쪽으로 끌면 왼쪽이 드러남)
+  function bindPosDrag() {
+    var stage = document.getElementById('peStage'); if (!stage) return;
+    var on = false, sx, sy, ox, oy, rect;
+    stage.addEventListener('pointerdown', function (e) {
+      if (!posState) return;
+      on = true; stage.classList.add('drag');
+      try { stage.setPointerCapture(e.pointerId); } catch (er) {}
+      rect = stage.getBoundingClientRect(); sx = e.clientX; sy = e.clientY; ox = posState.x; oy = posState.y;
+    });
+    stage.addEventListener('pointermove', function (e) {
+      if (!on) return;
+      setPos(clampPct(ox - (e.clientX - sx) / rect.width * 100), clampPct(oy - (e.clientY - sy) / rect.height * 100), false);
+    });
+    function end() { if (!on) return; on = false; stage.classList.remove('drag'); setPos(posState.x, posState.y, true); }
+    stage.addEventListener('pointerup', end);
+    stage.addEventListener('pointercancel', end);
+  }
+
   function fillSlotPreviews() {
     S.idb.all('simg').then(function (recs) {
+      var have = {};
       recs.forEach(function (r) {
+        have[r.id] = true;
         var cell = document.querySelector('[data-slot-cell="' + r.id + '"]');
         if (cell && r.blob) cell.innerHTML = '<img src="' + mkURL(r.blob) + '" alt="" style="width:100%;height:100%;object-fit:cover">';
+      });
+      document.querySelectorAll('[data-slot-card]').forEach(function (card) {
+        if (have[card.getAttribute('data-slot-card')]) card.classList.add('has-photo');
       });
     });
   }
@@ -1183,8 +1327,13 @@
     }
 
     bindProductForm();
-    if (document.querySelector('[data-slot-cell]')) fillSlotPreviews();
-    fitSimgPreview();
+    if (document.querySelector('.simg-split')) {
+      fillSlotPreviews();
+      fillPosEditor();
+      var fr = document.getElementById('simgFrame');
+      if (fr) fr.addEventListener('load', function () { fitSimgPreview(); scrollFrameToSel(); });
+      fitSimgPreview();
+    }
   }
 
   /* ---------- delegation ---------- */
@@ -1196,11 +1345,18 @@
       resizeToDataURL(f, 1600, function (durl) {
         if (!durl) { toast('이미지를 읽을 수 없습니다.'); return; }
         dataURLToBlob(durl).then(function (blob) {
-          return S.idb.put('simg', { id: slotId, blob: blob, at: new Date().toISOString() });
+          // 재업로드 시 기존 위치(pcx/pcy/mbx/mby)는 보존한다
+          return S.idb.all('simg').then(function (recs) {
+            var prev = recs.filter(function (r) { return r.id === slotId; })[0] || {};
+            return S.idb.put('simg', { id: slotId, blob: blob, at: new Date().toISOString(),
+              pcx: prev.pcx, pcy: prev.pcy, mbx: prev.mbx, mby: prev.mby });
+          });
         }).then(function (r) {
           if (!r) { toast('이미지 저장에 실패했습니다. 브라우저 저장 공간을 확인해 주세요.'); return; }
+          var meta = slotById(slotId);
+          imgSel = slotId;   // 올린 뒤 바로 위치 편집기(또는 원본표시 안내) 표시
           dirty = false; render();
-          toast('사진이 저장되었습니다. 해당 페이지에 바로 반영됩니다.');
+          toast('사진이 저장되었습니다.' + (meta && meta.crop !== false ? ' 아래에서 위치를 맞춰 보세요.' : ''));
         });
       });
       return;
@@ -1235,9 +1391,18 @@
       if (!confirmLeave()) return;
       if (current === 'kms') kmsTab = st.dataset.subtab;
       else if (current === 'consents') consentTab = st.dataset.subtab;
-      else if (current === 'images') imgPageTab = st.dataset.subtab;
+      else if (current === 'images') { imgPageTab = st.dataset.subtab; imgSel = null; }
       render(); return;
     }
+    // 페이지 이미지 — 위치 화살표(즉시 반영, render 없음)
+    var nb = e.target.closest('[data-pe-nudge]');
+    if (nb) { nudgePos(nb.dataset.peNudge); return; }
+    // 페이지 이미지 — 슬롯 선택(위치 편집 대상)
+    var sc = e.target.closest('[data-slot-sel]');
+    if (sc) { imgSel = sc.dataset.slotSel; render(); return; }
+    // 페이지 이미지 — 기기(PC/모바일) 토글
+    var idev = e.target.closest('[data-imgdev]');
+    if (idev) { imgDevice = idev.dataset.imgdev; render(); return; }
     // 주문 드롭다운
     var dbtn = e.target.closest('#odropBtn');
     var menu = document.getElementById('odropMenu');
@@ -1265,6 +1430,7 @@
       toast('팝업이 ' + (a.some(function(p){ return p.id===b.dataset.id && p.active; }) ? '게시' : '중지') + '되었습니다.');
     } else if (act === 'simgdel') {
       if (!confirm('이 자리의 사진을 내릴까요? 페이지는 기본 자리표시로 돌아갑니다.')) return;
+      if (imgSel === b.dataset.id) imgSel = null;
       S.idb.del('simg', b.dataset.id).then(function(){ render(); toast('사진을 내렸습니다.'); });
     } else if (act === 'pnew') { prodEditing = 'new'; pImgState.removed = []; render();
     } else if (act === 'pedit') { prodEditing = b.dataset.id; pImgState.removed = []; render();

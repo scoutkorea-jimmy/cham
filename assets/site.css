@@ -366,6 +366,13 @@ p  { margin: 0 0 var(--s4); text-wrap: pretty; }
 .ph .slot-img, .ph .slot-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .ph.has-img::before, .ph.has-img::after,
 .ph.has-img > i, .ph.has-img > svg { display: none; }
+/* 관리자 '페이지 이미지'에서 올린 사진의 초점(잘라 보일 위치). --op-pc/--op-mb 는 site.js 가
+   슬롯별 저장값(0~100%)으로 넣는다. 모바일(≤640px)은 별도 값, 없으면 PC 값을 상속한다.
+   crop:false 자리(파트너 포스터)는 object-fit 이 없어 이 값이 무해하게 무시된다. */
+.ph .slot-img, img[data-img-slot] { object-position: var(--op-pc, 50% 50%); }
+@media (max-width: 640px){
+  .ph .slot-img, img[data-img-slot] { object-position: var(--op-mb, var(--op-pc, 50% 50%)); }
+}
 /* subtle weave texture for placeholders */
 .ph::before {
   content:""; position:absolute; inset:0; opacity:0.5;
