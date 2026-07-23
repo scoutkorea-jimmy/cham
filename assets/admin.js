@@ -1313,17 +1313,21 @@
       return '<div class="field"><label>' + label + (hint ? ' <span class="pc-sub" style="font-weight:400">' + hint + '</span>' : '') +
         '</label><input name="' + name + '" value="' + esc(st[name] != null ? st[name] : '') + '"' + (ph ? ' placeholder="' + ph + '"' : '') + '></div>';
     }
-    return '<div class="modal-note" style="margin-bottom:18px"><i data-lucide="info"></i><span>여기서 바꾼 값은 <b>전 페이지 푸터 · 무통장입금 결제 안내 · 모바일 메뉴 전화 · 약도</b>에 반영됩니다(저장 후 공개 페이지 새로고침 시). 문의·소개 페이지 본문의 안내 문구는 해당 페이지에서 별도로 관리합니다.</span></div>' +
+    return '<div class="modal-note" style="margin-bottom:18px"><i data-lucide="info"></i><span>여기서 바꾼 값은 <b>전 페이지 푸터 · 무통장입금 결제 안내 · 모바일 메뉴 · 문의 페이지 · 협동조합 소개(등록 정보)</b>에 모두 반영됩니다(저장 후 공개 페이지 새로고침 시). 약도 좌표는 오시는 길 지도에 적용됩니다.</span></div>' +
       '<form class="admin-form set-form" id="settingsForm">' +
         '<div class="set-sec full"><i data-lucide="banknote"></i><b>무통장입금 계좌</b> <span class="pc-sub">— 주문 시 안내되는 입금 계좌입니다. 실제 계좌로 반드시 교체하세요.</span></div>' +
         field('bank', '입금 계좌', '(은행 + 계좌번호)', '농협 123-4567-8901-23') +
         field('holder', '예금주', '', '한국참전통발효식품협동조합') +
         '<div class="set-sec full"><i data-lucide="phone"></i><b>연락처 · 주소</b></div>' +
         field('phone', '대표 전화', '', '02-855-8806') +
+        field('phone2', '보조 전화', '(휴대폰 등)', '010-0000-0000') +
         field('email', '이메일', '', 'name@example.com') +
         '<div class="field full"><label>주소</label><input name="address" value="' + esc(st.address || '') + '" placeholder="서울특별시 …"></div>' +
-        '<div class="set-sec full"><i data-lucide="building-2"></i><b>사업자 정보</b> <span class="pc-sub">— 푸터에 표시됩니다.</span></div>' +
+        field('hours', '운영 시간', '', '평일 09:00 – 18:00 (주말·공휴일 휴무)') +
+        '<div class="set-sec full"><i data-lucide="building-2"></i><b>사업자 정보</b> <span class="pc-sub">— 푸터와 소개 페이지 ‘공식 등록 사항’에 표시됩니다.</span></div>' +
+        field('corpName', '법인명', '', '한국참전통발효식품 협동조합 (법인사업자)') +
         field('ceo', '대표자', '', '김필연') +
+        field('founded', '설립일', '', '2021년 11월 1일') +
         field('bizNo', '사업자등록번호', '', '869-81-02406') +
         field('mailOrderNo', '통신판매업 신고번호', '', '2025-서울구로-1345') +
         '<div class="set-sec full"><i data-lucide="map-pin"></i><b>약도 좌표</b> <span class="pc-sub">— 오시는 길 지도의 핀 위치(위도·경도). 지도 서비스에서 좌표를 확인해 입력하세요.</span></div>' +
