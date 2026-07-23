@@ -1313,6 +1313,10 @@
       return '<div class="field"><label>' + label + (hint ? ' <span class="pc-sub" style="font-weight:400">' + hint + '</span>' : '') +
         '</label><input name="' + name + '" value="' + esc(st[name] != null ? st[name] : '') + '"' + (ph ? ' placeholder="' + ph + '"' : '') + '></div>';
     }
+    function areaField(name, label, hint, rows) {
+      return '<div class="field full"><label>' + label + (hint ? ' <span class="pc-sub" style="font-weight:400">' + hint + '</span>' : '') +
+        '</label><textarea name="' + name + '" rows="' + (rows || 2) + '">' + esc(st[name] != null ? st[name] : '') + '</textarea></div>';
+    }
     return '<div class="modal-note" style="margin-bottom:18px"><i data-lucide="info"></i><span>여기서 바꾼 값은 <b>전 페이지 푸터 · 무통장입금 결제 안내 · 모바일 메뉴 · 문의 페이지 · 협동조합 소개(등록 정보)</b>에 모두 반영됩니다(저장 후 공개 페이지 새로고침 시). 약도 좌표는 오시는 길 지도에 적용됩니다.</span></div>' +
       '<form class="admin-form set-form" id="settingsForm">' +
         '<div class="set-sec full"><i data-lucide="banknote"></i><b>무통장입금 계좌</b> <span class="pc-sub">— 주문 시 안내되는 입금 계좌입니다. 실제 계좌로 반드시 교체하세요.</span></div>' +
@@ -1330,7 +1334,13 @@
         field('founded', '설립일', '', '2021년 11월 1일') +
         field('bizNo', '사업자등록번호', '', '869-81-02406') +
         field('mailOrderNo', '통신판매업 신고번호', '', '2025-서울구로-1345') +
-        '<div class="set-sec full"><i data-lucide="map-pin"></i><b>약도 좌표</b> <span class="pc-sub">— 오시는 길 지도의 핀 위치(위도·경도). 지도 서비스에서 좌표를 확인해 입력하세요.</span></div>' +
+        areaField('bizType', '업태 · 종목', '(여러 줄 입력 가능)', 2) +
+        areaField('eduCert', '교육 인증', '', 2) +
+        areaField('productTest', '제품 시험 · 검사', '', 2) +
+        '<div class="set-sec full"><i data-lucide="map-pin"></i><b>약도 위치</b> <span class="pc-sub">— 지도에서 <b>핀을 끌거나 지도를 클릭</b>해 위치를 맞추세요. 좌표가 자동으로 채워집니다.</span></div>' +
+        '<div class="full"><div id="setMap" class="set-map"></div>' +
+          '<div class="set-map-tools"><button class="btn btn-ghost" type="button" data-act="geocode" style="padding:8px 14px"><i data-lucide="search"></i>위 주소로 찾기</button>' +
+          '<span class="pc-sub">주소를 입력한 뒤 눌러 지도를 이동한 다음, 핀으로 정확히 맞추세요.</span></div></div>' +
         field('lat', '위도(latitude)', '', '37.50331') +
         field('lng', '경도(longitude)', '', '126.88262') +
         '<div class="full" style="display:flex;gap:10px;align-items:center;border-top:1px solid var(--line-soft);padding-top:18px;margin-top:6px">' +
@@ -1338,6 +1348,54 @@
           '<button class="btn btn-ghost" type="button" data-act="settingsReset" style="margin-left:auto"><i data-lucide="rotate-ccw"></i>기본값 복원</button>' +
         '</div>' +
       '</form>';
+  }
+  // 설정 화면의 약도 위치 지도 — 핀 드래그/클릭으로 좌표 입력(Leaflet). 없으면 좌표 숫자 입력으로 대체.
+  var settingsMap = null;
+  function initSettingsMap() {
+    var el = document.getElementById('setMap');
+    if (!el) return;
+    var latI = document.querySelector('#settingsForm input[name=lat]');
+    var lngI = document.querySelector('#settingsForm input[name=lng]');
+    if (!window.L) { el.innerHTML = '<div style="display:grid;place-items:center;height:100%;color:var(--ink-mute);text-align:center;padding:20px;line-height:1.6"><span>지도를 불러올 수 없습니다.<br>아래 위도·경도를 직접 입력해 주세요.</span></div>'; return; }
+    // 컨테이너 레이아웃이 잡힌 뒤 초기화(0크기 상태에서 만들면 마커 위치 계산이 실패한다)
+    requestAnimationFrame(function () {
+      if (el._leaflet_id) return;                       // 이미 초기화됨
+      try {
+        var lat = parseFloat(latI && latI.value) || 37.50331, lng = parseFloat(lngI && lngI.value) || 126.88262;
+        var map = L.map(el, { scrollWheelZoom: false, attributionControl: true });
+        settingsMap = map;
+        map.setView([lat, lng], 16);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(map);
+        var marker = L.marker([lat, lng], { draggable: true, autoPan: true }).addTo(map);
+        function writeLL(ll) { if (latI) latI.value = ll.lat.toFixed(5); if (lngI) lngI.value = ll.lng.toFixed(5); dirty = true; }
+        marker.on('dragend', function () { writeLL(marker.getLatLng()); });
+        map.on('click', function (e) { marker.setLatLng(e.latlng); writeLL(e.latlng); map.scrollWheelZoom.enable(); });
+        function fromInputs() { var a = parseFloat(latI && latI.value), b = parseFloat(lngI && lngI.value); if (!isNaN(a) && !isNaN(b)) { marker.setLatLng([a, b]); map.panTo([a, b]); } }
+        if (latI) latI.addEventListener('change', fromInputs);
+        if (lngI) lngI.addEventListener('change', fromInputs);
+        map.whenReady(function () { setTimeout(function () { try { map.invalidateSize(); } catch (e) {} }, 60); });
+      } catch (err) {
+        el.innerHTML = '<div style="display:grid;place-items:center;height:100%;color:var(--ink-mute);text-align:center;padding:20px;line-height:1.6"><span>지도를 표시할 수 없습니다.<br>아래 위도·경도를 직접 입력해 주세요.</span></div>';
+      }
+    });
+  }
+  // '위 주소로 찾기' — 입력한 주소를 좌표로(OpenStreetMap Nominatim). 실패 시 안내만.
+  function geocodeAddress() {
+    var addrI = document.querySelector('#settingsForm input[name=address]');
+    var q = addrI ? addrI.value.trim() : '';
+    if (!q) { toast('먼저 주소를 입력해 주세요.'); return; }
+    toast('주소를 찾는 중…');
+    fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(q), { headers: { 'Accept-Language': 'ko' } })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d || !d.length) { toast('주소를 찾지 못했습니다. 지도에서 직접 핀을 옮겨 주세요.'); return; }
+        var la = parseFloat(d[0].lat), lo = parseFloat(d[0].lon);
+        var latI = document.querySelector('#settingsForm input[name=lat]'), lngI = document.querySelector('#settingsForm input[name=lng]');
+        if (latI) latI.value = la.toFixed(5); if (lngI) lngI.value = lo.toFixed(5);
+        if (latI) latI.dispatchEvent(new Event('change'));
+        dirty = true; toast('지도를 주소 위치로 옮겼습니다. 핀으로 정확히 맞춰 주세요.');
+      })
+      .catch(function () { toast('주소 검색에 실패했습니다(네트워크). 지도에서 직접 핀을 옮겨 주세요.'); });
   }
 
   /* ============================================================
@@ -1464,6 +1522,7 @@
     dirty = false;
     revokeURLs();
     if (descEditor) { try { descEditor.destroy(); } catch (e) {} descEditor = null; }
+    if (settingsMap) { try { settingsMap.remove(); } catch (e) {} settingsMap = null; }
     var n = NAV.filter(function(x){ return x.id === current; })[0] || NAV[0];
     document.getElementById('adminTitle').textContent = n.title;
     var av = document.getElementById('adminView');
@@ -1558,6 +1617,7 @@
         dirty = false; render();
         toast('설정을 저장했습니다. 공개 페이지 새로고침 시 반영됩니다.');
       });
+      initSettingsMap();
     }
 
     bindProductForm();
@@ -1729,6 +1789,8 @@
     } else if (act === 'kmsreset') {
       if (!confirm('현재 문서를 기본 문서로 복원할까요?')) return;
       var kk = gj(K.kms, {}) || {}; delete kk[kmsTab]; sj(K.kms, kk); kmsMode = 'view'; render();
+    } else if (act === 'geocode') {
+      geocodeAddress();
     } else if (act === 'recSave') {
       saveRecordDetail();
     } else if (act === 'settingsReset') {

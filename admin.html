@@ -11,6 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://esm.sh" crossorigin>
 <link rel="stylesheet" href="assets/site.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <style id="admin-style">
   body { background: var(--surface-2); }
   .admin { display: flex; min-height: 100vh; }
@@ -302,6 +303,11 @@
   .hd-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--olive); margin-right: 6px; vertical-align: middle; }
 
   /* 설정 폼 — 섹션 구분 */
+  .set-form textarea { font: inherit; font-size: 15px; line-height: 1.6; padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 10px; resize: vertical; min-height: 64px; }
+  .set-form textarea:focus { outline: none; border-color: var(--main); }
+  .set-map { height: 320px; border-radius: 11px; overflow: hidden; border: 1px solid var(--line); background: var(--surface-2); }
+  .set-map-tools { display: flex; align-items: center; gap: 12px; margin-top: 10px; flex-wrap: wrap; }
+  .leaflet-container { font: inherit; }
   .set-form .set-sec { grid-column: 1/-1; display: flex; align-items: center; gap: 8px; margin: 12px 0 0; padding-top: 16px; border-top: 1px solid var(--line-soft); font-size: 14.5px; }
   .set-form .set-sec:first-child { margin-top: 0; padding-top: 0; border-top: none; }
   .set-form .set-sec i[data-lucide] { width: 18px; height: 18px; color: var(--main); }
@@ -359,6 +365,7 @@
 </div>
 
 <script defer src="https://unpkg.com/lucide@1.17.0"></script>
+<script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script defer src="assets/site.js"></script>
 <script defer src="assets/editor.js"></script>
 <script defer src="assets/admin.js"></script>

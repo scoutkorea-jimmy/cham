@@ -616,6 +616,9 @@
     founded: '2021년 11월 1일',
     bizNo: '869-81-02406',                 // 사업자등록번호
     mailOrderNo: '2025-서울구로-1345',      // 통신판매업 신고번호
+    bizType: '교육서비스업 — 발효식품교육, 체험학습\n도소매업 — 발효식품, 전자상거래',  // 업태·종목(여러 줄)
+    eduCert: '교육부 교육기부 진로체험 인증기관',
+    productTest: '발효식초 총산 4.7%(기준 4.00~20.00) 적합 — 강원특별자치도보건환경연구원 (2025.04.30)',
     lat: 37.50331, lng: 126.88262,         // 약도 핀 좌표
   };
   function getSettings() {
@@ -638,6 +641,7 @@
       if (href && href.indexOf('tel:') === 0) elx.setAttribute('href', 'tel:' + String(val).replace(/[^0-9+]/g, ''));
       else if (href && href.indexOf('mailto:') === 0) elx.setAttribute('href', 'mailto:' + val);
       if (key === 'address') elx.innerHTML = esc(String(val)).replace(/,\s*/, ',<br>');
+      else if (elx.hasAttribute('data-site-ml')) elx.innerHTML = esc(String(val)).replace(/\n/g, '<br>');  // 여러 줄 값
       else elx.textContent = val;
     }
   }
