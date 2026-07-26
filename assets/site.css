@@ -1008,7 +1008,9 @@ button[type=submit]:disabled, .btn:disabled { opacity: 0.45; cursor: not-allowed
 /* ============================================================
    리치 텍스트 (게시글 본문 + Tiptap 에디터 공통)
    ============================================================ */
-.rich { line-height: 1.85; color: var(--ink); word-break: break-word; }
+/* 줄바꿈은 body 의 keep-all 을 그대로 물려받는다 — 여기서 word-break 를 다시 선언하면
+   한글이 글자 단위로 꺾인다(break-word = normal + overflow-wrap:anywhere 로 풀린다). */
+.rich { line-height: 1.85; color: var(--ink); }
 .rich h1 { font-size: 26px; margin: 22px 0 10px; }
 .rich h2 { font-size: 22px; margin: 20px 0 9px; }
 .rich h3 { font-size: 18px; margin: 16px 0 8px; }

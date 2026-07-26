@@ -51,7 +51,30 @@
 - 행간: `--lh-tight 1.12` / `--lh-snug 1.32` / `--lh-normal 1.72` / `--lh-relaxed 1.9`
 - 키커(`.eyebrow`)는 `--fs-caption(14px)` · 700 · 자간 `--tracking-kicker(0.08em)`.
   **대문자 변환을 쓰지 않는다** — 한글에는 효과가 없고, 영문 대문자용 자간 `0.22em` 은 한글에서 흩어져 보인다.
-- **한국어 줄바꿈은 어절 단위**(`word-break: keep-all`)를 전역 적용한다.
+
+### 줄바꿈은 어절 단위 — `word-break` 를 다시 선언하지 않는다
+
+한글은 음절 하나하나가 줄바꿈 자리라, 기본값으로 두면 **글자 단위로 꺾입니다** —
+`전통발효식품` 이 `전통발효식` / `품` 으로 갈라집니다. `site.css` 의 `body` 한 곳에서 전역으로 막습니다.
+
+```css
+body { word-break: keep-all;        /* 어절 중간에서 끊지 않는다 */
+       overflow-wrap: break-word; } /* 한 줄에 안 들어가는 긴 영문·URL만 예외 */
+```
+
+`word-break` 는 **상속되는 속성**이므로 이 한 줄이 페이지·관리자 콘솔·에디터 본문까지 전부 덮습니다.
+**어떤 선택자에서도 다시 선언하지 않습니다.** 다시 쓰는 순간 그 안의 한글이 글자 단위로 돌아갑니다.
+
+| 쓰지 않는 값 | 실제 동작 |
+|---|---|
+| `word-break: break-all` | 한글·영문을 가리지 않고 글자 단위로 자른다 |
+| `word-break: break-word` | 폐기된 값 — `normal` + `overflow-wrap: anywhere` 로 풀려 한글이 글자 단위로 꺾인다 |
+| `word-break: normal` | 한글은 음절 사이가 전부 줄바꿈 자리 → 어절이 깨진다 |
+
+**주소·코드처럼 상자를 넘치는 긴 문자열**만 예외이고, 그때도 `word-break` 가 아니라
+`overflow-wrap: anywhere` 를 씁니다 — '넘칠 때만' 끊으므로 같은 상자 안의 한글은 어절을 지킵니다.
+
+회귀 검사: `./venv/bin/python .claude/skills/verify/tools/word_break.py`
 
 ### 본문 위계 4단 — 크기·굵기·색을 동시에 바꾼다
 

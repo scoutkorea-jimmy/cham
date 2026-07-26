@@ -183,6 +183,7 @@
       '- 제목·본문: PayboocFont(페이북) → Pretendard Variable 폴백 / 보조 손글씨: Gaegu',
       '- 스케일: display 40~76 · h1 32~48 · h2 26~36 · h3 26 · h4 21 · h5 18 · 본문 16 · sm 14 · caption 13 · micro 11 (px)',
       '- 행간: 제목 1.12~1.3 / 본문 1.6 / 여유 본문 1.8 — 키커는 자간 0.22em + 대문자',
+      '- 줄바꿈은 어절 단위(word-break: keep-all)를 site.css body 한 곳에서 전역 적용 — 다른 선택자에서 word-break 를 다시 쓰지 않는다(한글이 글자 단위로 꺾인다). 긴 주소·코드만 overflow-wrap: anywhere 로 예외 처리',
       '',
       '[3. 간격 · 리듬]',
       '- 4px 그리드: --s1(4) ~ --s32(128) / 섹션 상하 여백 --sec-pad 80px',

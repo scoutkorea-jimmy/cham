@@ -48,6 +48,7 @@ a.evaluate("""(id)=>{const g=document.querySelector(`[data-navgroup="${id}"]`);
 | 실행 | 보는 것 |
 |---|---|
 | `./venv/bin/python .claude/skills/verify/tools/edge_padding.py` | 색·테두리 상자 안에서 **글이 모서리에 붙은 곳** (공개 12 + 관리자 24화면 × 2폭) |
+| `./venv/bin/python .claude/skills/verify/tools/word_break.py` | **한글이 어절 단위로 꺾이는가** — `word-break` 를 덮어쓴 선택자를 찾는다 |
 | `./venv/bin/python .claude/skills/verify/tools/rhythm_public.py` | 공개 페이지 블록 간격이 허용 값인가 |
 | `./venv/bin/python .claude/skills/verify/tools/rhythm_admin.py` | 관리자 화면 최상위 블록 간격 + 빈 화면·콘솔 오류 |
 | `./venv/bin/python .claude/skills/verify/tools/clicks.py` | **클릭이 실제로 먹는가** — 렌더링만 보는 검사로는 못 잡는다 |
