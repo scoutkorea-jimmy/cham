@@ -1765,6 +1765,111 @@
       .catch(function () { manualHTML = false; if (current === 'manual') render(); });
   }
 
+  /* ============================================================
+     그룹 요약 화면 — 사이드바의 그룹 이름을 누르면 나온다.
+     그 묶음에서 지금 무엇을 봐야 하는지 숫자로 먼저 보여 주고, 하위 화면으로 보낸다.
+     ============================================================ */
+  function shortcut(id, icon, label, desc, note) {
+    return '<button class="gs-card" data-nav="' + id + '">' +
+      '<span class="gs-i"><i data-lucide="' + icon + '"></i></span>' +
+      '<span class="gs-b"><b>' + label + '</b><span>' + desc + '</span></span>' +
+      (note ? '<span class="gs-n">' + note + '</span>' : '') +
+      '<i data-lucide="chevron-right" class="gs-go"></i></button>';
+  }
+  function groupHead(title, desc) {
+    return '<div class="gs-head"><h2>' + title + '</h2><p>' + desc + '</p></div>';
+  }
+  function kpi(v, l, sub) {
+    return '<div class="stat"><div class="sv">' + v + '</div><div class="sl">' + l + '</div>' +
+      (sub ? '<div class="ss">' + sub + '</div>' : '') + '</div>';
+  }
+
+  function viewGroupSales() {
+    var orders = gj(K.orders, []);
+    var prods = S.getProducts();
+    var wk = salesOrders('week'), mo = salesOrders('month');
+    var sum = function (a) { return a.reduce(function (s, o) { return s + (Number(o.total) || 0); }, 0); };
+    var wait = orders.filter(function (o) { return o.status === '주문접수'; }).length;
+    var ship = orders.filter(function (o) { return o.status === '결제완료' || o.status === '배송준비중'; }).length;
+    var rma  = orders.filter(function (o) { return CRX.indexOf(o.status) > -1; }).length;
+    var soldout = prods.filter(function (p) { return p.status === '품절'; }).length;
+    var low = prods.filter(function (p) {
+      if (p.status !== '판매중') return false;
+      var st = p.option && p.option.values ? p.option.values.reduce(function (s, v) { return s + (Number(v.stock) || 0); }, 0) : Number(p.stock) || 0;
+      return st > 0 && st <= 5;
+    }).length;
+    return groupHead('판매 관리', '상품을 올리고, 주문을 처리하고, 얼마나 팔렸는지 봅니다.') +
+      '<div class="stat-grid">' +
+        kpi(fmtWon(sum(wk)) + '원', '이번 주 매출', '주문 ' + wk.length + '건') +
+        kpi(fmtWon(sum(mo)) + '원', '이번 달 매출', '주문 ' + mo.length + '건') +
+        kpi(wait + '건', '입금 확인 대기', wait ? '먼저 처리하세요' : '밀린 것 없음') +
+        kpi(ship + '건', '발송 대기', ship ? '포장·운송장 입력' : '밀린 것 없음') +
+      '</div>' +
+      '<div class="gs-grid">' +
+        shortcut('orders', 'shopping-cart', '주문 관리', '입금 확인 · 발송 · 반품/교환',
+                 (wait + ship + rma) ? '처리 대기 ' + (wait + ship + rma) + '건' : '') +
+        shortcut('products', 'package', '상품 관리', '상품 등록 · 가격 · 재고 · 사진',
+                 soldout || low ? (soldout ? '품절 ' + soldout : '') + (soldout && low ? ' · ' : '') + (low ? '재고 적음 ' + low : '') : '전체 ' + prods.length + '개') +
+        shortcut('sales', 'trending-up', '매출 · 정산', '기간별 매출 · 상품별 순위 · CSV', '') +
+      '</div>';
+  }
+
+  function viewGroupCustomer() {
+    var apps = gj(K.apps, []), inq = gj(K.inq, []);
+    var na = apps.filter(function (r) { return r.status === '신규'; }).length;
+    var ni = inq.filter(function (r) { return r.status === '신규'; }).length;
+    var cohorts = S.getCohorts().filter(function (c) { return c.status === '모집중' || c.status === '상시'; }).length;
+    return groupHead('고객 관리', '교육 신청과 문의를 확인하고 답합니다.') +
+      '<div class="stat-grid">' +
+        kpi(na + '명', '새 지도사 신청', '전체 ' + apps.length + '명') +
+        kpi(ni + '건', '답변 안 한 문의', '전체 ' + inq.length + '건') +
+        kpi(cohorts + '개', '접수 중인 기수', '지도사 신청 화면에서 관리') +
+        kpi(apps.filter(function (r) { return r.status === '확정' || r.status === '수료'; }).length + '명', '확정 · 수료', '') +
+      '</div>' +
+      '<div class="gs-grid">' +
+        shortcut('apps', 'user-plus', '지도사 신청', '신청자 연락 · 처리 기록 · 기수 등록', na ? '새 신청 ' + na + '명' : '') +
+        shortcut('inq', 'message-square', '문의 내역', '문의 확인 · 답변 기록', ni ? '미답변 ' + ni + '건' : '') +
+      '</div>';
+  }
+
+  function viewGroupContent() {
+    var posts = gj(K.posts, []);
+    var pops = gj(K.popups, []) || [];
+    var live = pops.filter(function (p) { return p.active; }).length;
+    var partners = (S.getPartners() || []).length;
+    return groupHead('콘텐츠 관리', '홈페이지에 보이는 글·사진·알림을 관리합니다.') +
+      '<div class="stat-grid">' +
+        kpi(posts.length + '건', '게시글', '공지 · 언론 · 교육') +
+        kpi(live + '개', '게시 중인 팝업', '전체 ' + pops.length + '개') +
+        kpi(partners + '곳', '파트너', '홈 하단 로고 띠') +
+        kpi((S.IMG_SLOTS || []).length + '자리', '사진 자리', '7개 페이지') +
+      '</div>' +
+      '<div class="gs-grid">' +
+        shortcut('posts', 'file-text', '게시글 관리', '소식마당 글 목록 · 삭제', posts.length ? posts.length + '건' : '없음') +
+        shortcut('images', 'image', '페이지 이미지', '홈페이지 사진 교체 · 위치 조정', '') +
+        shortcut('popups', 'bell', '팝업 관리', '홈 첫 화면 알림', live ? '게시 중 ' + live + '개' : '없음') +
+        shortcut('partners', 'handshake', '파트너 관리', '로고 띠', partners ? partners + '곳' : '없음') +
+      '</div>';
+  }
+
+  function viewGroupSite() {
+    return groupHead('운영 설정', '계좌·연락처 같은 운영 정보와 관리자 계정을 관리합니다.') +
+      '<div class="gs-grid">' +
+        shortcut('settings', 'settings', '설정', '계좌 · 연락처 · 사업자정보 · 약도', '') +
+        (myRole === 'owner' && S.isServer && S.isServer()
+          ? shortcut('accounts', 'users', '계정 관리', '직원 계정 · 권한 · 사용 중지', '') : '') +
+      '</div>';
+  }
+
+  function viewGroupSystem() {
+    return groupHead('시스템', '평소에는 손대지 않는 항목입니다. 담당자와 상의해 바꾸세요.') +
+      '<div class="gs-grid">' +
+        shortcut('backup', 'database', '데이터 백업', '자료 내려받기 · 되살리기', '정기적으로') +
+        shortcut('consents', 'shield-check', '동의문 관리', '개인정보 수집·이용 · 제3자 제공', '') +
+        shortcut('kms', 'book-open', 'KMS', '개발 규칙 · 디자인 룰북', '') +
+      '</div>';
+  }
+
   /* ---------- nav ---------- */
   var NAV = [
     { id: 'dashboard', label: '대시보드', icon: 'layout-dashboard', view: viewDashboard, title: '대시보드' },
@@ -1783,7 +1888,27 @@
     { id: 'settings', label: '설정', icon: 'settings', view: viewSettings, title: '사이트 설정 — 운영 정보' },
     { id: 'backup', label: '데이터 백업', icon: 'database', view: viewBackup, title: '데이터 백업 · 복원' },
     { id: 'manual', label: '사용 설명서', icon: 'book-open-check', view: viewManual, title: '사용 설명서' },
+    // 그룹 요약 — 사이드바 그룹 이름을 눌렀을 때 나오는 화면
+    { id: 'g_sales',    label: '판매 관리',   icon: 'shopping-bag',    view: viewGroupSales,    title: '판매 관리' },
+    { id: 'g_customer', label: '고객 관리',   icon: 'users-round',     view: viewGroupCustomer, title: '고객 관리' },
+    { id: 'g_content',  label: '콘텐츠 관리', icon: 'layout-template', view: viewGroupContent,  title: '콘텐츠 관리' },
+    { id: 'g_site',     label: '운영 설정',   icon: 'sliders-horizontal', view: viewGroupSite,  title: '운영 설정' },
+    { id: 'g_system',   label: '시스템',      icon: 'server-cog',      view: viewGroupSystem,   title: '시스템' },
   ];
+
+  /* 사이드바 구조. 평평한 목록 15개는 눈으로 훑기 어렵다 —
+     하는 일이 같은 것끼리 묶고, 그룹 이름을 누르면 그 묶음 요약을 보여 준다.
+     '시스템'은 평소 손댈 일이 없으므로 기본으로 접어 둔다. */
+  var NAV_TREE = [
+    { solo: 'manual' },
+    { solo: 'dashboard' },
+    { group: 'g_sales',    items: ['products', 'orders', 'sales'] },
+    { group: 'g_customer', items: ['apps', 'inq'] },
+    { group: 'g_content',  items: ['posts', 'images', 'popups', 'partners'] },
+    { group: 'g_site',     items: ['settings', 'accounts'] },
+    { group: 'g_system',   items: ['backup', 'consents', 'kms'], collapsed: true },
+  ];
+  var navOpen = null;   // 열려 있는 그룹 id. null = 아직 정하지 않음(현재 화면 따라 자동)
   var current = 'dashboard';
 
   /* ---------- 저장하지 않은 변경 경고 ---------- */
@@ -1808,12 +1933,60 @@
       return true;
     });
   }
+  function navItem(id) {
+    var v = visibleNav();
+    for (var i = 0; i < v.length; i++) if (v[i].id === id) return v[i];
+    return null;
+  }
+  // 지금 보고 있는 화면이 속한 그룹
+  function groupOf(id) {
+    for (var i = 0; i < NAV_TREE.length; i++) {
+      var t = NAV_TREE[i];
+      if (!t.group) continue;
+      if (t.group === id || t.items.indexOf(id) > -1) return t.group;
+    }
+    return null;
+  }
+  function isOpen(t) {
+    if (navOpen !== null) return navOpen === t.group;
+    // 아직 아무 그룹도 펼치지 않았으면, 보고 있는 화면이 속한 그룹만 연다.
+    // '시스템'은 평소 쓸 일이 없어 기본으로 접어 둔다.
+    var cur = groupOf(current);
+    if (cur) return cur === t.group;
+    return !t.collapsed;
+  }
+
   function renderNav() {
-    document.getElementById('adminNav').innerHTML = visibleNav().map(function(n){
-      var cnt = n.countKey ? gj(n.countKey, []).length : 0;
-      var badge = (n.countKey && cnt) ? '<span class="badge">' + cnt + '</span>' : '';
-      return '<button data-nav="' + n.id + '" class="' + (n.id===current?'on':'') + '"><i data-lucide="' + n.icon + '"></i>' + n.label + badge + '</button>';
-    }).join('');
+    var html = '';
+    NAV_TREE.forEach(function (t) {
+      if (t.solo) {
+        var it = navItem(t.solo);
+        if (!it) return;
+        html += '<button data-nav="' + it.id + '" class="nav-solo ' + (it.id === current ? 'on' : '') + '">' +
+          '<i data-lucide="' + it.icon + '"></i>' + it.label + '</button>';
+        return;
+      }
+      var items = t.items.map(navItem).filter(Boolean);
+      if (!items.length) return;
+      var g = navItem(t.group);
+      var open = isOpen(t);
+      // 접힌 그룹의 대기 건수는 그룹 이름 옆에 모아 보여 준다 — 접혀 있어도 놓치지 않게
+      var total = items.reduce(function (s, it) { return s + (it.countKey ? gj(it.countKey, []).length : 0); }, 0);
+      html += '<div class="nav-group' + (open ? ' open' : '') + '">' +
+        '<button class="nav-gh ' + (current === t.group ? 'on' : '') + '" data-navgroup="' + t.group + '">' +
+          '<i data-lucide="' + (g ? g.icon : 'folder') + '"></i>' +
+          '<span>' + (g ? g.label : t.group) + '</span>' +
+          (!open && total ? '<span class="badge">' + total + '</span>' : '') +
+          '<i data-lucide="chevron-down" class="nav-caret"></i>' +
+        '</button>' +
+        '<div class="nav-sub">' + items.map(function (it) {
+          var cnt = it.countKey ? gj(it.countKey, []).length : 0;
+          return '<button data-nav="' + it.id + '" class="' + (it.id === current ? 'on' : '') + '">' +
+            '<i data-lucide="' + it.icon + '"></i>' + it.label +
+            (cnt ? '<span class="badge">' + cnt + '</span>' : '') + '</button>';
+        }).join('') + '</div></div>';
+    });
+    document.getElementById('adminNav').innerHTML = html;
     icons();
   }
   function render() {
@@ -2187,10 +2360,24 @@
   });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setSide(false); });
 
+  document.addEventListener('click', function (e) {
+    var gh = e.target.closest('[data-navgroup]');
+    if (!gh) return;
+    if (!confirmLeave()) return;
+    var gid = gh.dataset.navgroup;
+    // 이미 열려 있는 그룹의 이름을 다시 누르면 접는다
+    navOpen = (navOpen === gid && current === gid) ? '' : gid;
+    current = gid;
+    prodEditing = null; kmsMode = 'view'; consentMode = 'view';
+    render();
+    window.scrollTo(0, 0);
+  });
+
   document.addEventListener('click', function(e){
     var nav = e.target.closest('[data-nav]'); if (!nav) return;
     if (!confirmLeave()) return;
     current = nav.dataset.nav;
+    navOpen = groupOf(current);        // 고른 화면이 속한 그룹을 열어 둔다
     if (nav.dataset.otab) orderTab = nav.dataset.otab;
     prodEditing = null; kmsMode = 'view'; consentMode = 'view';
     render();

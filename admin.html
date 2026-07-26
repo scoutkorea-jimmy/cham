@@ -27,6 +27,53 @@
   .admin-nav button i[data-lucide] { width: 18px; height: 18px; }
   .admin-nav .badge { margin-left: auto; background: rgba(255,255,255,.18); border-radius: 999px; font-size: 11px; font-weight: 700; padding: 1px 8px; }
   .admin-nav button.on .badge { background: rgba(255,255,255,.25); }
+  /* ── 사이드바 그룹 ──
+     평평한 목록 15개는 눈으로 훑기 어렵다. 하는 일이 같은 것끼리 묶는다. */
+  .admin-nav .nav-solo { font-weight: 700; }
+  .admin-nav .nav-solo + .nav-group { margin-top: 6px; }
+  .nav-group { border-top: 1px solid rgba(255,255,255,.10); padding-top: 6px; margin-top: 2px; }
+  .nav-group:first-child { border-top: none; }
+  .nav-gh { display: flex; align-items: center; gap: 11px; width: 100%; text-align: left;
+    padding: 11px 14px; border: none; background: transparent; color: rgba(255,255,255,.62);
+    font: inherit; font-size: 13.5px; font-weight: 800; letter-spacing: .02em;
+    border-radius: 10px; cursor: pointer; transition: all var(--dur-fast) var(--ease); }
+  .nav-gh:hover { background: rgba(255,255,255,.08); color: #fff; }
+  .nav-gh.on { background: rgba(255,255,255,.14); color: #fff; }
+  .nav-gh > span { flex: 1; min-width: 0; }
+  .nav-gh i[data-lucide] { width: 18px; height: 18px; }
+  .nav-caret { transition: transform var(--dur-fast) var(--ease); opacity: .6; width: 15px !important; height: 15px !important; }
+  .nav-group.open .nav-caret { transform: rotate(180deg); }
+  /* 접힘은 높이가 아니라 표시 여부로 — 항목 수가 달라도 애니메이션이 어긋나지 않는다 */
+  .nav-sub { display: none; padding: 2px 0 6px 10px; }
+  .nav-group.open .nav-sub { display: block; }
+  .nav-sub button { font-size: 14.5px; font-weight: 600; padding-left: 16px; }
+  .nav-sub button::before { content: ""; position: absolute; left: 6px; width: 3px; height: 16px;
+    border-radius: 2px; background: transparent; }
+  .nav-sub button { position: relative; }
+  .nav-sub button.on::before { background: var(--point); }
+  .nav-sub button.on { background: rgba(255,255,255,.12); color: #fff; }
+
+  /* 그룹 요약 화면 */
+  .gs-head { margin-bottom: 22px; }
+  .gs-head h2 { font-size: 24px; }
+  .gs-head p { color: var(--ink-mute); font-size: 15px; margin-top: 6px; }
+  .gs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 24px; }
+  .gs-card { display: flex; align-items: center; gap: 14px; text-align: left; font: inherit; cursor: pointer;
+    background: var(--surface); border: 1.5px solid var(--line-soft); border-radius: 14px; padding: 18px 20px;
+    box-shadow: var(--sh-xs); transition: transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease); }
+  .gs-card:hover { transform: translateY(-2px); box-shadow: var(--sh-md); border-color: var(--main); }
+  .gs-card:focus-visible { outline: 3px solid var(--point); outline-offset: 2px; }
+  .gs-i { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center;
+    background: var(--main-tint); color: var(--main); flex-shrink: 0; }
+  .gs-i i[data-lucide] { width: 22px; height: 22px; }
+  .gs-b { flex: 1; min-width: 0; }
+  .gs-b b { display: block; font-size: 16px; }
+  .gs-b span { display: block; font-size: 13.5px; color: var(--ink-mute); margin-top: 3px; }
+  .gs-n { font-size: 13px; font-weight: 700; color: var(--point-deep); white-space: nowrap; }
+  .gs-go { width: 18px !important; height: 18px !important; color: var(--ink-faint); flex-shrink: 0; }
+  .gs-head + .stat-grid .stat { padding: 18px 20px; }
+  .gs-head + .stat-grid .sv { font-size: 26px; }
+
   .as-foot { padding: 14px; border-top: 1px solid rgba(255,255,255,.12); display: flex; flex-direction: column; gap: 8px; }
   .as-foot a, .as-foot button { display: flex; align-items: center; gap: 9px; padding: 9px 12px; border-radius: 9px; font-size: 13px; font-weight: 600; color: rgba(255,255,255,.7); background: transparent; border: none; cursor: pointer; font-family: inherit; }
   .as-foot a:hover, .as-foot button:hover { background: rgba(255,255,255,.08); color: #fff; }
