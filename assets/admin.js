@@ -1533,8 +1533,9 @@
         '<div class="field full"><p class="pc-sub">실제로 쓰이는 주소: <code>' + esc(imgAbs) + '</code><br>' +
           '가로로 긴 그림(1200×630 정도)이 가장 잘 나옵니다. 로고처럼 정사각형이면 양옆이 잘릴 수 있습니다.</p></div>' +
 
-        '<div class="set-sec full"><i data-lucide="save"></i><b>저장</b></div>' +
-        '<div class="field full"><button class="btn btn-point" type="submit"><i data-lucide="check"></i>저장</button></div>' +
+        '<div class="full form-sec row-btns gap-tight">' +
+          '<button class="btn btn-point" type="submit"><i data-lucide="check"></i>검색 노출 저장</button>' +
+        '</div>' +
       '</form>' +
 
       '<div class="panel"><div class="panel-head"><h3>검색엔진에 알리기</h3>' +
