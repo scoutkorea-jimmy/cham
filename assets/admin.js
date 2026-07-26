@@ -3240,10 +3240,21 @@
       '</div>';
   }
 
+  /* 물어본 자리로 올린다. 맨 아래로 내리면 답 대신 버튼이 보인다 —
+     답에 설명서 본문이 딸려 와 한 화면보다 길기 때문이다. */
+  function cbScrollTo(el) {
+    var b = cbEl('cbBody');
+    if (!b || !el) return;
+    b.scrollTop += el.getBoundingClientRect().top - b.getBoundingClientRect().top - 8;
+  }
+
   function cbAsk(q) {
     if (cbBusy) return;
     cbBusy = true;
-    cbSay('me', esc(q));
+    // 예시 질문은 처음 말을 꺼내기 위한 것이다 — 한 번 물었으면 자리를 대화에 내준다
+    var quick = cbEl('cbQuick');
+    if (quick) quick.classList.add('hide');
+    var mine = cbSay('me', esc(q));
     var wait = cbSay('bot', '<span class="cb-dots"><span></span><span></span><span></span></span>');
     cbIndex().then(function (secs) {
       var hits = cbSearch(q, secs);
@@ -3260,12 +3271,12 @@
         '<span class="cb-wait">설명서에서 찾은 내용을 먼저 보여 드립니다</span></div>' + cbDocHTML(hits);
       var ansEl = wait.querySelector('.cb-ans');
       icons();
-      var b = cbEl('cbBody'); if (b) b.scrollTop = b.scrollHeight;
+      cbScrollTo(mine);
 
       var done = function (html) {
         if (ansEl) ansEl.innerHTML = html;
         icons(); cbBusy = false;
-        var bd = cbEl('cbBody'); if (bd) bd.scrollTop = bd.scrollHeight;
+        cbScrollTo(mine);
       };
 
       S.api('/api/admin/assist', { method: 'POST', body: {
