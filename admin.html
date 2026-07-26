@@ -411,8 +411,15 @@
      대시보드 — 화면 전체 폭 채우기 + 유입/상태 그래프
      ========================================================= */
   .admin-view.view-full { max-width: none; }
-  .dash-2col { display: grid; grid-template-columns: 1.6fr 1fr; gap: 24px; margin-top: 24px; align-items: start; }
+  /* 두 칸 중 한쪽이 짧으면 그 아래가 통째로 빈 배경으로 남는다(align-items:start 였을 때).
+     늘려서 같은 높이로 맞추면 남는 공간이 패널 안으로 들어가 빈 구멍이 사라진다. */
+  .dash-2col { display: grid; grid-template-columns: 1.6fr 1fr; gap: 24px; margin-top: 24px; align-items: stretch; }
   @media (max-width: 1100px){ .dash-2col { grid-template-columns: 1fr; } }
+  .dash-2col > .panel { display: flex; flex-direction: column; }
+  .dash-2col > .panel > *:last-child { flex: 1; }
+  /* 표가 짧아 남는 자리도 배경으로 채워 패널이 끊겨 보이지 않게 한다 */
+  .dash-2col > .panel > div[style*="overflow-x"] { display: flex; flex-direction: column; }
+  .dash-2col > .panel .admin-table { flex: 0 0 auto; }
   .src-list { display: flex; flex-direction: column; gap: 18px; }
   .src-row { display: flex; flex-direction: column; gap: 8px; }
   .src-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 14.5px; }
