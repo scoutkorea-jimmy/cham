@@ -22,7 +22,7 @@ login.html          관리자 로그인 — 서버 세션(functions/api/admin/lo
 functions/          Cloudflare Pages Functions. 정적 호스팅에서는 동작하지 않는다
   _shared/auth.js     세션 토큰(HMAC) · PBKDF2 비밀번호 · 쿠키
   _shared/store.js    D1 ↔ 클라이언트 객체 변환 (읽기 API·가져오기가 공유)
-  _middleware.js      admin.html · manual.html 서버 차단 → login.html
+  _middleware.js      admin.html 차단 → login.html · 설명서 본문(assets/manual.html) 차단 → 404
   api/bootstrap.js    공개 페이지가 첫 렌더 전에 받는 묶음(상품·소식·설정·이미지)
   api/submit.js       주문·신청·문의 접수 — 주문번호와 금액을 서버가 정한다
   api/order-lookup.js 비회원 주문 조회 (서버 대조)

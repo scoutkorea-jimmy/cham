@@ -9,7 +9,14 @@
  */
 import { getSession } from './_shared/auth.js';
 
-const PROTECTED = [/^\/admin(?:\.html)?$/];
+/* 설명서 본문(assets/manual.html)도 함께 막는다.
+   화면은 관리자 콘솔 안에 있지만 본문은 **정적 파일**이라, 주소를 아는 사람은
+   로그인 없이 51KB 짜리 운영 설명서를 통째로 읽을 수 있었다.
+   admin.js 는 `credentials: 'same-origin'` 으로 받으므로 세션이 있으면 그대로 열린다.
+   확장자 없는 주소(/assets/manual)로도 닿는다 — Pages 가 .html 을 떼어 주기 때문이다. */
+const PROTECTED = [/^\/admin(?:\.html)?$/, /^\/assets\/manual(?:\.html)?$/];
+// 사람이 보는 화면이 아닌 것은 로그인 화면으로 보내 봐야 소용없다 — 없는 것처럼 답한다
+const AS_NOT_FOUND = [/^\/assets\//];
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -25,6 +32,10 @@ export async function onRequest(context) {
 
   const session = await getSession(request, env);
   if (session) return context.next();
+
+  if (AS_NOT_FOUND.some((re) => re.test(path))) {
+    return new Response('Not Found', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8' } });
+  }
 
   const to = new URL(request.url);
   to.pathname = '/login.html';
