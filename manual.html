@@ -150,6 +150,7 @@
     <a href="#apply">신청 · 문의</a>
     <a href="#content">소식 · 팝업</a>
     <a href="#images">사진 교체</a>
+    <a href="#accounts">계정 관리</a>
     <a href="#settings">운영 정보</a>
     <a href="#backup">자료 백업</a>
     <a href="#trouble">문제 해결</a>
@@ -176,12 +177,13 @@
             <p>홈페이지 맨 아래 <span class="ui">관리자</span> 글씨를 누르거나, 주소창에 <b>주소 뒤에 /admin.html</b> 을 붙여 들어갑니다.</p>
           </li>
           <li>
-            <b>아이디와 비밀번호를 넣습니다</b>
-            <p>담당자에게 전달받은 아이디·비밀번호를 입력하고 <span class="ui point">로그인</span> 을 누릅니다.</p>
+            <b>본인 아이디와 비밀번호를 넣습니다</b>
+            <p><b>사람마다 아이디가 따로 있습니다.</b> 남의 아이디를 함께 쓰지 마세요 — 누가 처리했는지 알 수 없게 됩니다.</p>
+            <p>처음 받은 비밀번호로 로그인하면 <b>바로 바꾸라는 화면</b>이 나옵니다. 받은 비밀번호는 만들어 준 사람도 알고 있기 때문입니다.</p>
           </li>
           <li>
             <b>왼쪽 메뉴에서 할 일을 고릅니다</b>
-            <p>왼쪽에 <b>14개 메뉴</b>가 세로로 있습니다. 메뉴 이름 옆 숫자는 그 항목에 쌓인 건수입니다.</p>
+            <p>메뉴 이름 옆 숫자는 그 항목에 쌓인 건수입니다. <b>권한에 따라 보이는 메뉴가 다릅니다.</b></p>
           </li>
         </ol>
 
@@ -189,11 +191,15 @@
 
         <div class="mnote">
           <i data-lucide="shield-check"></i>
-          <span><b>새로고침하면 다시 로그인해야 합니다.</b> 불편해 보이지만, 자리를 비운 사이 다른 사람이 관리자 화면을 열어보지 못하게 하는 안전장치입니다. 로그인 정보는 어디에도 저장되지 않습니다.</span>
+          <span>한 번 로그인하면 <b>12시간</b> 동안 유지됩니다. 공용 컴퓨터를 쓰셨다면 자리를 뜨기 전에 왼쪽 아래 <span class="ui">로그아웃</span> 을 눌러 주세요.</span>
         </div>
         <div class="mnote warn">
           <i data-lucide="lock"></i>
-          <span>비밀번호를 <b>5번 틀리면 5분 동안 잠깁니다.</b> 잠기면 화면에 남은 시간이 표시됩니다. 그 시간이 지나면 다시 시도할 수 있습니다.</span>
+          <span>비밀번호를 <b>여러 번 틀리면 일정 시간 잠깁니다</b>(틀릴수록 길어집니다). 잠기면 화면에 남은 시간이 나옵니다. 남의 비밀번호를 추측해 들어오는 것을 막기 위한 장치입니다.</span>
+        </div>
+        <div class="mnote">
+          <i data-lucide="key-round"></i>
+          <span>비밀번호는 <b>10자 이상</b>이고 영문·숫자·기호 중 <b>두 가지 이상</b>을 섞어야 합니다. 길수록 안전합니다 — 외우기 쉬운 문장을 쓰셔도 좋습니다.</span>
         </div>
       </div>
 
@@ -201,8 +207,8 @@
         <div class="icon-badge point"><i data-lucide="key-round"></i></div>
         <h4>먼저 알아두실 3가지</h4>
         <ul class="iconlist">
-          <li class="il"><i data-lucide="hard-drive"></i><div><b>자료는 이 컴퓨터에 저장됩니다</b><p class="note">다른 컴퓨터나 휴대폰에서 관리자 페이지를 열면 주문·상품이 보이지 않습니다. 늘 <b>같은 컴퓨터·같은 브라우저</b>로 관리하세요.</p></div></li>
-          <li class="il"><i data-lucide="download"></i><div><b>백업이 가장 중요합니다</b><p class="note">컴퓨터를 바꾸거나 인터넷 기록을 지우면 자료가 사라집니다. <a href="#backup">자료 백업</a>을 꼭 읽어주세요.</p></div></li>
+          <li class="il"><i data-lucide="cloud"></i><div><b>자료는 서버에 저장됩니다</b><p class="note">어느 컴퓨터·휴대폰에서 들어가도 <b>같은 자료</b>가 보입니다. 여러 사람이 나눠서 관리해도 됩니다.</p></div></li>
+          <li class="il"><i data-lucide="user-check"></i><div><b>사람마다 계정을 씁니다</b><p class="note">누가 언제 처리했는지 남습니다. 직원이 그만두면 <a href="#accounts">계정 관리</a>에서 사용을 중지하세요.</p></div></li>
           <li class="il"><i data-lucide="save"></i><div><b>저장을 눌러야 반영됩니다</b><p class="note">글을 고친 뒤 저장하지 않고 다른 메뉴로 넘어가면 확인창이 뜹니다. 이때 <b>취소</b>를 누르고 저장하세요.</p></div></li>
         </ul>
       </div>
@@ -219,6 +225,7 @@
       <a href="#apply"><span class="icon-badge sm"><i data-lucide="user-plus"></i></span><span><b>지도사 신청 · 문의</b><span>신청자 연락 · 답변 기록 · 기수 등록</span></span></a>
       <a href="#content"><span class="icon-badge sm"><i data-lucide="file-text"></i></span><span><b>게시글 · 팝업 · 파트너</b><span>공지 올리기 · 첫 화면 알림</span></span></a>
       <a href="#images"><span class="icon-badge sm"><i data-lucide="image"></i></span><span><b>페이지 이미지</b><span>홈페이지 사진 교체 · 위치 맞추기</span></span></a>
+      <a href="#accounts"><span class="icon-badge sm"><i data-lucide="users"></i></span><span><b>계정 관리</b><span>직원 계정 만들기 · 권한 · 사용 중지</span></span></a>
       <a href="#settings"><span class="icon-badge sm"><i data-lucide="settings"></i></span><span><b>설정</b><span>계좌 · 전화 · 주소 · 약도</span></span></a>
       <a href="#backup"><span class="icon-badge sm"><i data-lucide="database"></i></span><span><b>데이터 백업</b><span>자료 내려받기 · 되살리기</span></span></a>
     </div>
@@ -622,6 +629,56 @@
   </div>
 </section>
 
+<!-- ============ 계정 관리 ============ -->
+<section class="section band-tint" id="accounts">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow">계정 관리</span>
+      <h2>직원 계정 만들기 · 권한 나누기</h2>
+      <p class="lede"><b>관리자(owner)</b>에게만 보이는 메뉴입니다. 함께 일하는 분께 각자 계정을 만들어 주세요.</p>
+    </div>
+
+    <div class="split reveal" style="grid-template-columns:1fr 1fr">
+      <div class="card card-pad">
+        <div class="icon-badge point"><i data-lucide="user-plus"></i></div>
+        <h4>계정 만들기</h4>
+        <ol class="mstep">
+          <li><b><span class="ui">계정 관리</span> 로 갑니다</b><p>표 아래에 계정 만들기 칸이 있습니다.</p></li>
+          <li><b>아이디와 이름을 넣습니다</b><p>아이디는 <b>영문 소문자·숫자</b>로 3자 이상(예: staff01). 이름은 화면에 표시할 실명입니다.</p></li>
+          <li><b>권한을 고릅니다</b><p>대부분은 <b>직원(staff)</b>이면 충분합니다.</p></li>
+          <li><b>처음 비밀번호를 정해 알려 줍니다</b><p>그 사람이 <b>첫 로그인 때 직접 바꿉니다</b>. 알려 주신 비밀번호는 그때 없어집니다.</p></li>
+        </ol>
+      </div>
+
+      <div class="stack">
+        <div class="card card-pad">
+          <div class="icon-badge sm"><i data-lucide="shield"></i></div>
+          <h4>권한 두 가지</h4>
+          <ul class="iconlist">
+            <li class="il"><i data-lucide="crown"></i><div><b>관리자 (owner)</b><p class="note">모든 것을 할 수 있습니다 — 계정 관리, 사이트 설정(계좌·사업자정보), 자료 백업·복원.</p></div></li>
+            <li class="il"><i data-lucide="user"></i><div><b>직원 (staff)</b><p class="note">일상 운영을 합니다 — 주문 처리, 신청·문의 응대, 상품, 게시글, 사진. 계정 관리와 설정은 보이지 않습니다.</p></div></li>
+          </ul>
+        </div>
+
+        <div class="card card-pad">
+          <div class="icon-badge sm"><i data-lucide="user-x"></i></div>
+          <h4>그만둔 직원 처리</h4>
+          <p class="muted">계정을 <b>지우지 않고 「사용 중지」</b> 합니다. 그러면 바로 로그인할 수 없게 되고, <b>그 사람이 처리한 기록은 그대로 남습니다.</b> 다시 오시면 <span class="ui">다시 사용</span> 으로 되살립니다.</p>
+          <div class="mnote">
+            <i data-lucide="key-round"></i>
+            <span>비밀번호를 잊은 분은 <span class="ui">수정</span> 에서 새 비밀번호를 넣어 주세요. 그 사람의 <b>기존 로그인이 모두 끊기고</b> 다음 로그인 때 본인이 다시 바꿉니다.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mnote warn reveal">
+      <i data-lucide="alert-circle"></i>
+      <span><b>마지막 관리자(owner)는 권한을 내리거나 사용 중지할 수 없습니다.</b> 아무도 못 들어가는 상황을 막기 위한 장치입니다. 관리자를 바꾸실 때는 <b>새 관리자를 먼저 만든 뒤</b> 기존 계정을 정리하세요.</span>
+    </div>
+  </div>
+</section>
+
 <!-- ============ 9. 설정 ============ -->
 <section class="section" id="settings">
   <div class="wrap">
@@ -678,14 +735,14 @@
     <div class="section-head reveal">
       <span class="eyebrow">10. 자료 백업 · 가장 중요합니다</span>
       <h2>한 달에 한 번, 자료를 내려받아 보관하세요</h2>
-      <p class="lede">주문·신청·문의·상품·게시글·사진 — <b>모든 자료는 지금 쓰고 계신 이 컴퓨터의 브라우저 안</b>에 저장됩니다.
-        서버에 올라가 있지 않기 때문에, 아래 상황에서 <b>되돌릴 수 없이 사라집니다.</b></p>
+      <p class="lede">주문·신청·문의·상품·게시글·사진은 이제 <b>서버에 저장</b>됩니다. 컴퓨터를 바꿔도 사라지지 않습니다.
+        그래도 백업은 필요합니다 — 서버가 지켜 주지 <b>못하는</b> 것이 있기 때문입니다.</p>
     </div>
 
     <div class="grid g-3 reveal">
-      <div class="card card-pad"><div class="icon-badge point"><i data-lucide="monitor-x"></i></div><h5>컴퓨터를 바꿨을 때</h5><p class="muted">새 컴퓨터에는 자료가 없습니다.</p></div>
-      <div class="card card-pad"><div class="icon-badge point"><i data-lucide="eraser"></i></div><h5>인터넷 기록을 지웠을 때</h5><p class="muted">‘쿠키·사이트 데이터 삭제’를 하면 함께 지워집니다.</p></div>
-      <div class="card card-pad"><div class="icon-badge point"><i data-lucide="globe"></i></div><h5>다른 브라우저로 열었을 때</h5><p class="muted">크롬에서 만든 자료는 엣지에서 보이지 않습니다.</p></div>
+      <div class="card card-pad"><div class="icon-badge point"><i data-lucide="trash-2"></i></div><h5>실수로 지웠을 때</h5><p class="muted">서버는 지우라는 대로 지웁니다. 되돌리려면 백업이 있어야 합니다.</p></div>
+      <div class="card card-pad"><div class="icon-badge point"><i data-lucide="file-x"></i></div><h5>잘못 덮어썼을 때</h5><p class="muted">가격표나 게시글을 잘못 고쳐 저장한 경우입니다.</p></div>
+      <div class="card card-pad"><div class="icon-badge point"><i data-lucide="server-off"></i></div><h5>서비스를 옮길 때</h5><p class="muted">다른 업체로 옮기거나 계약이 끝날 때, 내 자료를 손에 쥐고 있어야 합니다.</p></div>
     </div>
 
     <div class="split reveal" style="grid-template-columns:1fr 1fr">
@@ -695,7 +752,7 @@
         <ol class="mstep">
           <li><b><span class="ui">데이터 백업</span> 메뉴로 갑니다</b><p>왼쪽 메뉴 맨 아래에 있습니다.</p></li>
           <li><b><span class="ui point">백업 파일 내려받기</span> 를 누릅니다</b><p>모든 자료와 사진이 <b>파일 하나</b>로 내려받아집니다.</p></li>
-          <li><b>안전한 곳에 보관합니다</b><p>파일 이름 예) <b>kach-backup-20260726-1204.json</b> — USB나 클라우드(구글 드라이브·네이버 마이박스 등)에 옮겨두세요.</p></li>
+          <li><b>안전한 곳에 보관합니다</b><p>파일 이름 예) <b>kach-backup-20260726-1204.json</b> — USB나 클라우드(구글 드라이브·네이버 마이박스 등)에 옮겨두세요.</p><p>사진까지 함께 담기므로 파일이 큽니다(수 MB~수십 MB).</p></li>
         </ol>
       </div>
       <div class="card card-pad">
@@ -734,19 +791,23 @@
         <tbody>
           <tr>
             <td><b>주문·상품이 하나도 안 보여요</b></td>
-            <td>다른 컴퓨터나 다른 브라우저로 여신 것은 아닌지 먼저 확인하세요. 늘 쓰던 컴퓨터가 맞다면, 인터넷 기록이 지워졌을 수 있습니다. <b>데이터 백업 → 백업 파일 선택</b>으로 되살리세요.</td>
+            <td>인터넷 연결을 확인하고 <b>새로고침</b>하세요. 자료는 서버에 있으므로 컴퓨터를 바꿔서 생긴 문제는 아닙니다. 계속 비어 있으면 담당자에게 알려 주세요.</td>
+          </tr>
+          <tr>
+            <td><b>로그인 화면으로 자꾸 돌아가요</b></td>
+            <td>로그인이 12시간 지나 끊긴 것입니다. 다시 로그인하시면 됩니다. 방금 로그인했는데도 그렇다면, 다른 곳에서 <b>비밀번호가 재설정</b>되었을 수 있습니다(그때 모든 로그인이 끊깁니다).</td>
           </tr>
           <tr>
             <td><b>고친 내용이 홈페이지에 안 보여요</b></td>
             <td>손님 화면(공개 페이지)을 <b>새로고침</b>하세요. 키보드 <b>F5</b> 또는 <b>Ctrl(⌘) + R</b> 입니다. 그래도 안 보이면 <b>Ctrl(⌘) + Shift + R</b> 로 강력 새로고침을 하세요.</td>
           </tr>
           <tr>
-            <td><b>“저장 공간이 부족합니다” 라고 나와요</b></td>
-            <td>브라우저에 저장할 수 있는 양을 넘었습니다. <b>먼저 백업을 받아 보관</b>한 뒤, 오래된 게시글이나 쓰지 않는 상품 사진을 정리하세요. 사진은 되도록 <b>한 장에 2MB 이하</b>로 올리시길 권합니다.</td>
+            <td><b>사진이 안 올라가요</b></td>
+            <td>사진 한 장은 <b>8MB 이하</b>여야 하고, 이미지 파일(JPG·PNG·WEBP)만 됩니다. 휴대폰으로 찍은 원본이 크면 카카오톡으로 자신에게 보내 받은 사진을 쓰시면 크기가 줄어듭니다.</td>
           </tr>
           <tr>
             <td><b>로그인이 안 되고 잠겼어요</b></td>
-            <td>비밀번호를 5번 틀리면 <b>5분간</b> 잠깁니다. 화면에 남은 시간이 나옵니다. 5분 뒤에 다시 시도하세요.</td>
+            <td>비밀번호를 여러 번 틀리면 잠깁니다. 화면에 남은 시간이 나오니 그만큼 기다렸다 다시 시도하세요. 비밀번호가 기억나지 않으면 <b>관리자(owner)에게 재설정을 요청</b>하세요.</td>
           </tr>
           <tr>
             <td><b>잘못된 상태로 처리해 버렸어요</b></td>
@@ -754,7 +815,11 @@
           </tr>
           <tr>
             <td><b>실수로 지웠어요</b></td>
-            <td>삭제한 자료는 되살릴 수 없습니다. 최근 <b>백업 파일이 있다면</b> 되살리기로 그 시점으로 돌아갈 수 있습니다(그 이후에 들어온 주문은 사라집니다).</td>
+            <td>삭제한 자료는 되살릴 수 없습니다. 최근 <b>백업 파일이 있다면</b> 되살리기로 그 시점으로 돌아갈 수 있습니다(그 이후에 들어온 주문은 사라집니다). 그래서 백업 주기를 지키는 것이 중요합니다.</td>
+          </tr>
+          <tr>
+            <td><b>직원이 그만뒀어요</b></td>
+            <td><b>계정 관리 → 사용 중지</b>를 누르세요. 바로 로그인할 수 없게 됩니다. 계정을 지우지 않으므로 그 사람이 처리한 기록은 남습니다.</td>
           </tr>
           <tr>
             <td><b>지도가 안 나와요</b></td>
@@ -791,14 +856,16 @@
           <li class="todo"><i data-lucide="square"></i><div><b>사업자 정보 확인</b><span>설정 → 사업자 정보. 등록번호·신고번호가 맞는지 확인하세요.</span></div></li>
           <li class="todo"><i data-lucide="square"></i><div><b>샘플 자료 지우기</b><span>‘샘플’ 표시가 붙은 게시글과 시험용 주문·신청을 삭제하세요.</span></div></li>
           <li class="todo"><i data-lucide="square"></i><div><b>실제 상품 가격·재고 넣기</b><span>상품 관리에서 판매가와 재고를 실제 값으로 맞추세요.</span></div></li>
+          <li class="todo"><i data-lucide="square"></i><div><b>직원 계정 만들기</b><span>함께 일하는 분께 각자 계정을 만들어 주세요. 아이디를 같이 쓰지 않습니다.</span></div></li>
           <li class="todo"><i data-lucide="square"></i><div><b>첫 백업 받아두기</b><span>모든 준비가 끝난 상태를 한 번 저장해 두세요.</span></div></li>
         </ul>
       </div>
       <div class="card card-pad">
         <h4>담당자(개발)와 함께 할 일</h4>
         <ul class="mcheck">
-          <li class="todo"><i data-lucide="square"></i><div><b>관리자 로그인을 서버 방식으로 바꾸기</b><span>지금은 이 컴퓨터 안에서만 확인하는 방식입니다. 실제 운영에서는 서버에서 확인해야 안전합니다.</span></div></li>
-          <li class="todo"><i data-lucide="square"></i><div><b>자료를 서버에 저장하도록 바꾸기</b><span>브라우저 저장 방식이라 컴퓨터가 바뀌면 자료가 사라집니다.</span></div></li>
+          <li><i data-lucide="check-square"></i><div><b>관리자 로그인을 서버 방식으로 바꾸기</b><span>완료 — 계정별 로그인, 권한 구분, 실패 시 잠금.</span></div></li>
+          <li><i data-lucide="check-square"></i><div><b>자료를 서버에 저장하도록 바꾸기</b><span>완료 — 주문·상품·게시글은 데이터베이스에, 사진은 파일 저장소에 있습니다.</span></div></li>
+          <li class="todo"><i data-lucide="square"></i><div><b>Cloudflare 에 실제로 올리기</b><span>지금은 담당자 컴퓨터에서만 돌아갑니다. 서버에 올려야 손님이 볼 수 있습니다.</span></div></li>
           <li class="todo"><i data-lucide="square"></i><div><b>도메인 확정 후 검색 설정 파일 교체</b><span>검색 노출에 쓰이는 파일의 주소를 실제 도메인으로 바꿔야 합니다.</span></div></li>
           <li class="todo"><i data-lucide="square"></i><div><b>이용약관·개인정보처리방침 법무 검토</b><span>지금 문구는 초안입니다.</span></div></li>
         </ul>

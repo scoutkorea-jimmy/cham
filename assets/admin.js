@@ -1514,6 +1514,99 @@
       '</div>';
   }
 
+  /* ============================================================
+     계정 관리 — owner 전용. 서버(D1 admin_users)에만 존재하므로
+     정적 호스팅에서는 메뉴 자체를 띄우지 않는다.
+     ============================================================ */
+  var accounts = null;      // 서버에서 받은 목록. null = 아직 못 받음
+  var ROLE_LABEL = { owner: '관리자(owner)', staff: '직원(staff)' };
+
+  function viewAccounts() {
+    if (!accounts) {
+      loadAccounts();
+      return '<div class="panel"><div class="admin-empty"><i data-lucide="loader"></i><div>계정을 불러오는 중…</div></div></div>';
+    }
+    var rows = accounts.length ? accounts.map(function (u) {
+      var off = u.status !== 'active';
+      return '<tr' + (off ? ' style="opacity:.55"' : '') + '>' +
+        '<td><b>' + esc(u.username) + '</b>' + (u.mustChangePassword ? ' <span class="tag point" style="font-size:11px">비밀번호 변경 필요</span>' : '') + '</td>' +
+        '<td>' + esc(u.displayName) + '</td>' +
+        '<td><span class="tag' + (u.role === 'owner' ? ' solid' : '') + '">' + ROLE_LABEL[u.role] + '</span></td>' +
+        '<td>' + (off ? '<span class="tag">사용 중지</span>' : '<span class="tag olive">사용 중</span>') + '</td>' +
+        '<td class="dt">' + (u.lastLoginAt ? fmtDate(u.lastLoginAt) : '기록 없음') + '</td>' +
+        '<td style="white-space:nowrap"><div style="display:inline-flex;gap:6px">' +
+          '<button class="btn btn-ghost" data-act="acctEdit" data-id="' + u.id + '" style="padding:8px 13px"><i data-lucide="pen-line"></i>수정</button>' +
+          (off
+            ? '<button class="btn btn-ghost" data-act="acctOn" data-id="' + u.id + '" style="padding:8px 13px">다시 사용</button>'
+            : '<button class="icon-btn" data-act="acctOff" data-id="' + u.id + '" title="사용 중지"><i data-lucide="user-x"></i></button>') +
+        '</div></td></tr>';
+    }).join('') : emptyRow(6, '계정이 없습니다.');
+
+    return '<div class="modal-note" style="margin-bottom:18px"><i data-lucide="users"></i><span>' +
+        '<b>관리자(owner)</b>는 계정 관리와 설정까지 모두 할 수 있고, <b>직원(staff)</b>은 주문·신청·문의·게시글 등 일상 운영만 합니다. ' +
+        '새로 만든 계정은 <b>첫 로그인 때 본인이 비밀번호를 바꿔야</b> 합니다.</span></div>' +
+      '<div class="panel"><div class="panel-head"><h3>관리자 계정</h3><span class="ph-sub">총 ' + accounts.length + '개</span></div>' +
+      '<div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>아이디</th><th>이름</th><th>권한</th><th>상태</th><th>마지막 로그인</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      '<form class="admin-form" id="acctForm" style="border-top:1px solid var(--line-soft)">' +
+        '<div class="field"><label>아이디 <span style="color:var(--point)">*</span> <span class="pc-sub" style="font-weight:400">(영문 소문자·숫자·_·- 3~32자)</span></label>' +
+          '<input name="username" required autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="예) staff01"></div>' +
+        '<div class="field"><label>이름 <span style="color:var(--point)">*</span></label><input name="displayName" required placeholder="예) 이직원"></div>' +
+        '<div class="field"><label>권한</label><select name="role"><option value="staff">직원(staff)</option><option value="owner">관리자(owner)</option></select></div>' +
+        '<div class="field"><label>처음 비밀번호 <span style="color:var(--point)">*</span> <span class="pc-sub" style="font-weight:400">(10자 이상)</span></label>' +
+          '<input name="password" type="password" required autocomplete="new-password"></div>' +
+        '<div class="full"><button class="btn btn-point" type="submit"><i data-lucide="user-plus"></i>계정 만들기</button></div>' +
+      '</form></div>';
+  }
+
+  function loadAccounts() {
+    S.api('/api/admin/users').then(function (r) {
+      if (!r.ok) { accounts = []; toast(r.data.error || '계정을 불러오지 못했습니다.'); }
+      else accounts = r.data.users || [];
+      if (current === 'accounts') render();
+    });
+  }
+
+  function openAccountEdit(id) {
+    var u = (accounts || []).filter(function (x) { return String(x.id) === String(id); })[0];
+    if (!u) return;
+    S.rawModal(
+      '<div class="modal-head"><div><div class="eyebrow">계정</div><h3>' + esc(u.username) + '</h3></div>' +
+        '<button class="modal-close" data-modal-close aria-label="닫기"><i data-lucide="x"></i></button></div>' +
+      '<div class="modal-body"><div class="rec-detail" data-acct-id="' + u.id + '">' +
+        '<div class="field full"><label>이름</label><input class="acct-name" value="' + esc(u.displayName) + '" style="width:100%;min-height:46px;padding:11px 14px;border:1.5px solid var(--line);border-radius:9px;font:inherit;font-size:15px"></div>' +
+        '<div class="field full"><label>권한</label><select class="acct-role rec-status st-sel">' +
+          ['staff', 'owner'].map(function (r) { return '<option value="' + r + '"' + (u.role === r ? ' selected' : '') + '>' + ROLE_LABEL[r] + '</option>'; }).join('') +
+        '</select></div>' +
+        '<div class="field full"><label>비밀번호 재설정 <span class="pc-sub" style="font-weight:400">— 비우면 그대로 둡니다</span></label>' +
+          '<input class="acct-pw" type="password" autocomplete="new-password" placeholder="새 비밀번호 (10자 이상)" style="width:100%;min-height:46px;padding:11px 14px;border:1.5px solid var(--line);border-radius:9px;font:inherit;font-size:15px"></div>' +
+        '<div class="modal-note"><i data-lucide="info"></i><span>비밀번호를 재설정하면 그 계정의 <b>기존 로그인이 모두 끊기고</b>, 다음 로그인 때 본인이 다시 바꿔야 합니다.</span></div>' +
+        '<div class="modal-foot"><button type="button" class="btn btn-ghost" data-modal-close>취소</button>' +
+        '<button type="button" class="btn btn-point" data-act="acctSave"><i data-lucide="check"></i>저장</button></div>' +
+      '</div></div>', 520);
+  }
+
+  function saveAccount() {
+    var box = document.querySelector('[data-acct-id]'); if (!box) return;
+    var body = {
+      displayName: box.querySelector('.acct-name').value.trim(),
+      role: box.querySelector('.acct-role').value,
+    };
+    var pw = box.querySelector('.acct-pw').value;
+    if (pw) body.password = pw;
+    S.api('/api/admin/users/' + box.dataset.acctId, { method: 'PATCH', body: body }).then(function (r) {
+      if (!r.ok) { alert(r.data.error || '저장하지 못했습니다.'); return; }
+      S.closeModal(); accounts = null; render(); toast('계정을 저장했습니다.');
+    });
+  }
+
+  function setAccountStatus(id, status) {
+    S.api('/api/admin/users/' + id, { method: 'PATCH', body: { status: status } }).then(function (r) {
+      if (!r.ok) { alert(r.data.error || '변경하지 못했습니다.'); return; }
+      accounts = null; render();
+      toast(status === 'active' ? '계정을 다시 사용합니다.' : '계정 사용을 중지했습니다.');
+    });
+  }
+
   /* ---------- nav ---------- */
   var NAV = [
     { id: 'dashboard', label: '대시보드', icon: 'layout-dashboard', view: viewDashboard, title: '대시보드' },
@@ -1528,6 +1621,7 @@
     { id: 'popups', label: '팝업 관리', icon: 'bell', view: viewPopups, title: '팝업 관리', countKey: K.popups },
     { id: 'consents', label: '동의문 관리', icon: 'shield-check', view: viewConsents, title: '개인정보 동의문 관리' },
     { id: 'kms', label: 'KMS', icon: 'book-open', view: viewKMS, title: 'KMS — 표준 KMS · 디자인 룰북' },
+    { id: 'accounts', label: '계정 관리', icon: 'users', view: viewAccounts, title: '관리자 계정 관리', serverOnly: true, ownerOnly: true },
     { id: 'settings', label: '설정', icon: 'settings', view: viewSettings, title: '사이트 설정 — 운영 정보' },
     { id: 'backup', label: '데이터 백업', icon: 'database', view: viewBackup, title: '데이터 백업 · 복원' },
   ];
@@ -1545,8 +1639,18 @@
     return !dirty || confirm('저장하지 않은 변경 내용이 있습니다.\n저장하지 않고 이동하시겠습니까?');
   }
 
+  // 지금 환경·권한에서 쓸 수 있는 메뉴만. 서버가 403 으로 막더라도
+  // 못 쓰는 메뉴를 보여 주는 것 자체가 혼란이다.
+  function visibleNav() {
+    var server = !!(S.isServer && S.isServer());
+    return NAV.filter(function (n) {
+      if (n.serverOnly && !server) return false;
+      if (n.ownerOnly && myRole !== 'owner') return false;
+      return true;
+    });
+  }
   function renderNav() {
-    document.getElementById('adminNav').innerHTML = NAV.map(function(n){
+    document.getElementById('adminNav').innerHTML = visibleNav().map(function(n){
       var cnt = n.countKey ? gj(n.countKey, []).length : 0;
       var badge = (n.countKey && cnt) ? '<span class="badge">' + cnt + '</span>' : '';
       return '<button data-nav="' + n.id + '" class="' + (n.id===current?'on':'') + '"><i data-lucide="' + n.icon + '"></i>' + n.label + badge + '</button>';
@@ -1558,7 +1662,7 @@
     revokeURLs();
     if (descEditor) { try { descEditor.destroy(); } catch (e) {} descEditor = null; }
     if (settingsMap) { try { settingsMap.remove(); } catch (e) {} settingsMap = null; }
-    var n = NAV.filter(function(x){ return x.id === current; })[0] || NAV[0];
+    var n = visibleNav().filter(function(x){ return x.id === current; })[0] || visibleNav()[0];
     document.getElementById('adminTitle').textContent = n.title;
     var av = document.getElementById('adminView');
     av.innerHTML = n.view();
@@ -1647,6 +1751,20 @@
         if (!S.setCohorts(list)) { toast('저장 공간이 부족합니다.'); return; }
         render();
         toast('기수가 추가되었습니다. 지도사 페이지·신청서에 반영됩니다.');
+      });
+    }
+
+    var af = document.getElementById('acctForm');
+    if (af) {
+      af.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var fd = new FormData(af), body = {};
+        fd.forEach(function (v, k) { body[k] = String(v).trim(); });
+        S.api('/api/admin/users', { method: 'POST', body: body }).then(function (r) {
+          if (!r.ok) { alert(r.data.error || '계정을 만들지 못했습니다.'); return; }
+          accounts = null; dirty = false; render();
+          toast('계정을 만들었습니다. 첫 로그인 때 본인이 비밀번호를 바꿉니다.');
+        });
       });
     }
 
@@ -1833,6 +1951,15 @@
     } else if (act === 'kmsreset') {
       if (!confirm('현재 문서를 기본 문서로 복원할까요?')) return;
       var kk = gj(K.kms, {}) || {}; delete kk[kmsTab]; sj(K.kms, kk); kmsMode = 'view'; render();
+    } else if (act === 'acctEdit') {
+      openAccountEdit(b.dataset.id);
+    } else if (act === 'acctSave') {
+      saveAccount();
+    } else if (act === 'acctOff') {
+      if (!confirm('이 계정의 사용을 중지할까요? 로그인할 수 없게 되지만 지난 처리 기록은 남습니다.')) return;
+      setAccountStatus(b.dataset.id, 'disabled');
+    } else if (act === 'acctOn') {
+      setAccountStatus(b.dataset.id, 'active');
     } else if (act === 'geocode') {
       geocodeAddress();
     } else if (act === 'recSave') {
@@ -1873,17 +2000,30 @@
 
   /* ---------- auth (상태 미저장 · 잠금) ---------- */
   var authed = false;
-  function unlock(){ document.getElementById('loginGate').style.display = 'none'; document.getElementById('adminApp').style.display = 'flex'; render(); icons(); }
+  var myRole = 'owner';     // 로컬 모드에는 역할 구분이 없다 — 전부 허용
+  var myName = '';
+  function unlock(){
+    document.getElementById('loginGate').style.display = 'none';
+    document.getElementById('adminApp').style.display = 'flex';
+    var meta = document.getElementById('adminMeta');
+    if (meta && myName) meta.textContent = myName + '님 (' + (myRole === 'owner' ? '관리자' : '직원') + ')';
+    render(); icons();
+  }
   function initAuth() {
     if (S.isServer && S.isServer()) {
       // 서버가 이미 세션을 확인하고 들여보냈다. 여기서 또 묻지 않는다.
+      S.api('/api/admin/session').then(function (r) {
+        if (r.ok && r.data.authenticated && r.data.user) {
+          myRole = r.data.user.role || 'staff';
+          myName = r.data.user.displayName || r.data.user.username || '';
+        }
+        authed = true; unlock();
+      });
       document.getElementById('logoutBtn').addEventListener('click', function () {
         fetch('/api/admin/logout', { method: 'POST', credentials: 'same-origin' })
           .catch(function () {})
           .then(function () { location.href = '/login.html'; });
       });
-      authed = true;
-      unlock();
       return;
     }
     document.getElementById('loginGate').style.display = 'grid';

@@ -19,13 +19,21 @@ contact.html        문의                admin.html      관리자 콘솔
 manual.html         운영 매뉴얼 — 관리자 전용(noindex · 공개 링크 없음)
 login.html          관리자 로그인 — 서버 세션(functions/api/admin/login)
 
-functions/          Cloudflare Pages Functions — 서버 인증(1단계). 정적 호스팅에서는 동작하지 않는다
+functions/          Cloudflare Pages Functions. 정적 호스팅에서는 동작하지 않는다
   _shared/auth.js     세션 토큰(HMAC) · PBKDF2 비밀번호 · 쿠키
+  _shared/store.js    D1 ↔ 클라이언트 객체 변환 (읽기 API·가져오기가 공유)
   _middleware.js      admin.html · manual.html 서버 차단 → login.html
-  api/admin/…         login · logout · session · password · users
-db/0001_auth.sql    D1 스키마(admin_users · admin_login_attempts)
+  api/bootstrap.js    공개 페이지가 첫 렌더 전에 받는 묶음(상품·소식·설정·이미지)
+  api/submit.js       주문·신청·문의 접수 — 주문번호와 금액을 서버가 정한다
+  api/order-lookup.js 비회원 주문 조회 (서버 대조)
+  api/images/…        R2 이미지 서빙·목록
+  api/admin/…         login · logout · session · password · users · data · images · import · export
+db/0001_auth.sql    admin_users · admin_login_attempts
+db/0002_data.sql    orders · applications · inquiries · products · posts · collections ·
+                    documents · images · visits
 wrangler.toml       Pages 설정 · D1(DB) · R2(MEDIA) 바인딩
-docs/migration-cloudflare.md   서버 이전 계획 — 단계·스키마·전환 절차
+docs/migration-cloudflare.md   서버 이전 계획 — 단계·스키마
+docs/deploy.md      배포 절차 — Cloudflare 설정 · 확인 · 정리 · 되돌리기
 terms.html / privacy.html                robots.txt / sitemap.xml / llms.txt
 
 assets/
@@ -111,4 +119,20 @@ python3 -m http.server 8777 --bind 127.0.0.1     # 서버
 관리자 인증을 서버 세션/토큰으로 · 샘플 데이터를 실데이터로 · 약관·개인정보처리방침 법무 검토
 
 > 운영 정보(계좌·연락처·사업자정보·약도 좌표)는 `site.js` 의 `SETTINGS_DEFAULTS` 가 기본값이고,
-> **관리자 > 설정**(localStorage `kach_settings`)에서 덮어씁니다. 반영: 전 페이지 푸터·결제 안내·모바일 메뉴·약도.
+> **관리자 > 설정**에서 덮어씁니다. 반영: 전 페이지 푸터·결제 안내·모바일 메뉴·약도.
+
+## 저장소 — 지금은 두 모드
+
+Cloudflare Pages 이전 중이라 `site.js` 가 부팅 때 `/api/bootstrap` 을 불러 모드를 정합니다.
+
+| | 서버 모드 (Cloudflare) | 로컬 모드 (GitHub Pages) |
+|---|---|---|
+| 데이터 | D1 | localStorage `kach_*` |
+| 이미지 | R2 | IndexedDB `kach_db` |
+| 관리자 인증 | 서버 세션 쿠키 + 계정별 권한 | `site.js` 안의 해시 비교 |
+
+**읽기는 동기 그대로**입니다 — 서버 모드는 부팅 때 받은 값을 메모리에서 읽으므로
+`getProducts()` 같은 기존 호출부가 바뀌지 않습니다. 쓰기는 낙관적(메모리 먼저, 저장은 뒤에서)입니다.
+이미지는 `Site.Media` 로 감싸 화면 코드가 항상 `rec.url` 만 씁니다.
+
+배포가 끝나면 로컬 모드를 **지웁니다** → [docs/deploy.md](docs/deploy.md) 5절.
