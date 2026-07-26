@@ -50,6 +50,10 @@ a.evaluate("""(id)=>{const g=document.querySelector(`[data-navgroup="${id}"]`);
 | `./venv/bin/python .claude/skills/verify/tools/edge_padding.py` | 색·테두리 상자 안에서 **글이 모서리에 붙은 곳** (공개 12 + 관리자 24화면 × 2폭) |
 | `./venv/bin/python .claude/skills/verify/tools/rhythm_public.py` | 공개 페이지 블록 간격이 허용 값인가 |
 | `./venv/bin/python .claude/skills/verify/tools/rhythm_admin.py` | 관리자 화면 최상위 블록 간격 + 빈 화면·콘솔 오류 |
+| `./venv/bin/python .claude/skills/verify/tools/clicks.py` | **클릭이 실제로 먹는가** — 렌더링만 보는 검사로는 못 잡는다 |
+| `./venv/bin/python .claude/skills/verify/tools/fixed_overlap.py` | 고정 버튼(챗봇·맨위로)이 눌러야 할 것을 덮는가 |
+| `./venv/bin/python .claude/skills/verify/tools/list_scale.py` | 목록 건수 상한 — 몇 건부터 저장이 실패하는가 |
+| `./venv/bin/python .claude/skills/verify/tools/concurrent_edit.py` | 두 사람이 동시에 저장하면 앞 사람 작업이 남는가 |
 
 ## 재는 도구가 먼저 틀린다
 
@@ -71,7 +75,15 @@ a.evaluate("""(id)=>{const g=document.querySelector(`[data-navgroup="${id}"]`);
    → 빈 요소에 물려 계산된 px 을 받아온다.
 5. **가로 스크롤·잘림 상자 안은 넘쳐도 정상이다.** 마키·지도 타일·가로 스크롤 표까지
    잡으면 진짜 문제가 묻힌다 → 조상에 `overflow: auto|scroll|hidden` 이 있으면 건너뛴다.
-6. **배포 직후 검증은 옛 코드를 볼 수 있다.** 배포 성공 뒤에도 잠깐은 이전 자산이 온다 —
+6. **그려지는 것과 눌리는 것은 다르다.** 전 화면이 멀쩡히 그려지는데 **모든 클릭이 죽어** 있던
+   적이 있다 — 쪽 이동 버튼에 `data-page` 를 썼는데 `<body data-page="admin">` 이 이미 있어서
+   `closest('[data-page]')` 가 모든 클릭에서 body 를 잡았다. 렌더링 검사는 이걸 못 잡는다.
+   **흔한 속성 이름을 새 선택자로 쓰기 전에 이미 쓰이는지 본다.**
+7. **관리자 화면을 자동으로 돌아다닐 때 두 가지를 조심한다.**
+   `data-nav` 는 사이드바 말고 대시보드 바로가기에도 붙어 있어 선택자가 여러 개를 잡는다
+   → `.admin-nav` 로 좁힌다. 접힌 메뉴도 DOM 에는 남아 있어 `query_selector` 로는 '있다'가
+   된다 → **보이는지**를 봐야 한다. 그룹 헤더를 누르면 사이드바가 다시 그려져 DOM 참조가 끊긴다.
+8. **배포 직후 검증은 옛 코드를 볼 수 있다.** 배포 성공 뒤에도 잠깐은 이전 자산이 온다 —
    고친 것이 안 고쳐진 것처럼 보이면 **한 번 더 돌려** 확인한다.
 
 ## 최소 확인
