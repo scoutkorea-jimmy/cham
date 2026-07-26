@@ -833,12 +833,24 @@ body { background-image: var(--pat-dark); background-size: var(--pat-size); back
    같은 표가 본문 전폭(880px)에도, 2열 카드 안(약 300px)에도 들어간다.
    뷰포트 기준으로 접으면 넓은 화면의 좁은 카드 안에서 180px 라벨 열이 그대로 남아
    내용 최소폭이 카드를 밀어내고 페이지가 가로로 넘친다. */
-.facts { border-top: 2px solid var(--ink); container-type: inline-size; }
-.facts .fact { display: grid; grid-template-columns: 180px 1fr; gap: var(--s5); padding: 16px 4px; border-bottom: 1px solid var(--line-soft); align-items: baseline; }
-.facts .fact dt { font-weight: 700; color: var(--ink); font-size: var(--fs-sm); margin: 0; }
-.facts .fact dd { margin: 0; color: var(--ink-soft); }
-/* 420px = 라벨 열 180px + 간격 24px 을 빼고도 값 열에 200px 이상 남는 최소 폭 */
-@container (max-width: 420px){ .facts .fact { grid-template-columns: 1fr; gap: 4px; } }
+/* 라벨 열을 **가장 긴 라벨에 맞춰** 잡는다.
+   예전에는 행마다 따로 그리드를 만들고 라벨 열을 180px 로 못박았다. 줄을 맞추려면
+   그 방법뿐이었지만, 실제 라벨은 길어야 105px 이라 뒤에 빈 자리가 70px 넘게 남았다.
+   .facts 를 하나의 그리드로 만들고 각 행을 display:contents 로 펼치면,
+   모든 라벨이 같은 열을 공유하므로 max-content 로도 줄이 맞는다. */
+.facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); column-gap: var(--s8);
+  border-top: 2px solid var(--ink); container-type: inline-size; }
+.facts .fact { display: contents; }
+/* 행 구분선은 .fact 가 사라졌으므로 셀에 그린다 */
+.facts .fact dt, .facts .fact dd { padding: 16px 4px; border-bottom: 1px solid var(--line-soft); margin: 0; align-self: baseline; }
+.facts .fact dt { font-weight: 700; color: var(--ink); font-size: var(--fs-sm); white-space: nowrap; }
+.facts .fact dd { color: var(--ink-soft); }
+/* 좁으면 라벨을 값 위로 올린다. 라벨 열이 값 자리를 먹는 것보다 낫다. */
+@container (max-width: 420px){
+  .facts { grid-template-columns: 1fr; }
+  .facts .fact dt { padding-bottom: 0; border-bottom: none; white-space: normal; }
+  .facts .fact dd { padding-top: 4px; }
+}
 
 /* ============================================================
    가격표 — 실제 판매가 고지용 표

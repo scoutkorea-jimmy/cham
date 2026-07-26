@@ -193,6 +193,11 @@
 
   /* 선택된 슬롯 셀 강조 + 위치 조정 가능한 칸은 클릭 가능 표시 */
   .pcard.sel { border-color: var(--point); box-shadow: 0 0 0 2px var(--point-tint); }
+  /* 올린 사진이 아니라 '지금 그 자리에 보이는 기본 사진'임을 구분해 준다 */
+  .pc-logo { position: relative; }
+  .slot-default { position: absolute; left: 6px; top: 6px; background: rgba(28,26,22,.72); color: #fff;
+    font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 6px; letter-spacing: .01em; }
+  .pcard.is-default .pc-logo.can-pos::after { content: "사진 올리면 위치 조정"; }
   .pc-logo[data-slot-sel] { cursor: pointer; position: relative; }
   .pcard.has-photo .pc-logo.can-pos::after { content: "위치 조정"; position: absolute; right: 6px; bottom: 6px; font-size: 10px; font-weight: 700; color: #fff; background: rgba(28,26,22,.66); padding: 2px 7px; border-radius: 6px; }
 

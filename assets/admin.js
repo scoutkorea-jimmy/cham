@@ -1124,6 +1124,12 @@
     stage.addEventListener('pointercancel', end);
   }
 
+  /* 왼쪽 자리 목록의 미리보기.
+     올린 사진이 있으면 그것을, 없으면 **그 자리에 지금 실제로 보이는 기본 사진**을 띄운다.
+     예전에는 올린 것이 없으면 '사진 없음'만 보여 줬는데, 오른쪽 미리보기에는 사진이
+     떡하니 있어서 운영자가 "왜 없다고 하지?" 하게 된다. 기본 사진도 사진이다.
+     기본 사진 목록을 따로 들고 있지 않고 미리보기 iframe 에서 읽는다 — 페이지가 바뀌면
+     그 목록이 어긋나지만, 실제로 그려진 것을 읽으면 언제나 맞는다. */
   function fillSlotPreviews() {
     S.Media.list('page').then(function (recs) {
       var have = {};
@@ -1135,6 +1141,39 @@
       document.querySelectorAll('[data-slot-card]').forEach(function (card) {
         if (have[card.getAttribute('data-slot-card')]) card.classList.add('has-photo');
       });
+      fillDefaultPreviews(have);
+    });
+  }
+
+  // 올린 사진이 없는 자리 — 미리보기에서 지금 그려진 사진을 가져다 보여 준다
+  function fillDefaultPreviews(have) {
+    var fr = document.getElementById('simgFrame');
+    var doc;
+    try { doc = fr && fr.contentDocument; } catch (e) { doc = null; }
+    if (!doc || !doc.body) return;
+
+    document.querySelectorAll('[data-slot-cell]').forEach(function (cell) {
+      var id = cell.getAttribute('data-slot-cell');
+      if (have[id]) return;
+      var el = doc.querySelector('[data-img-slot="' + id + '"]');
+      if (!el) return;
+      var src = '';
+      if (el.tagName === 'IMG') src = el.currentSrc || el.src;
+      else {
+        var inner = el.querySelector('img');
+        if (inner) src = inner.currentSrc || inner.src;
+        else {
+          // 히어로처럼 CSS 배경으로 깔린 자리
+          var bg = doc.defaultView.getComputedStyle(el).backgroundImage || '';
+          var m = /url\(["']?(.*?)["']?\)/.exec(bg);
+          if (m && m[1] && m[1] !== 'none') src = m[1];
+        }
+      }
+      if (!src) return;   // 정말 자리표시(아이콘)만 있는 자리는 '사진 없음' 그대로
+      cell.innerHTML = '<img src="' + esc(src) + '" alt="" style="width:100%;height:100%;object-fit:cover">' +
+        '<span class="slot-default">기본 사진</span>';
+      var card = cell.closest('[data-slot-card]');
+      if (card) card.classList.add('has-photo', 'is-default');
     });
   }
 
@@ -1850,7 +1889,14 @@
       fillSlotPreviews();
       fillPosEditor();
       var fr = document.getElementById('simgFrame');
-      if (fr) fr.addEventListener('load', function () { fitSimgPreview(); scrollFrameToSel(); });
+      // iframe 은 비동기로 뜬다 — 다 뜬 뒤 기본 사진 미리보기를 한 번 더 채운다
+      if (fr) fr.addEventListener('load', function () {
+        fitSimgPreview(); scrollFrameToSel();
+        S.Media.list('page').then(function (recs) {
+          var have = {}; recs.forEach(function (r) { have[r.id] = true; });
+          fillDefaultPreviews(have);
+        });
+      });
       fitSimgPreview();
     }
   }
