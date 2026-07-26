@@ -2,7 +2,7 @@
    board.js — 소식마당 게시판 · 현장 갤러리
    - 글쓰기/수정/삭제·사진 업로드/삭제: 클릭할 때마다 관리자 인증(상태 미저장)
    - 에디터: 공용 RichEditor(editor.js, Tiptap v2 무료 확장 전체)
-   - 첨부파일: 최대 10개 × 개당 10MB, 형식 제한 없음 (IndexedDB)
+   - 첨부파일: 최대 10개 · 개당 5MB(site.js MAX_IMAGE_BYTES), 형식 제한 없음
    - 첨부 이미지: 게시글 하단 슬라이드 미리보기
    - 갤러리: 페이지당 최대 10장 페이지네이션
    ============================================================ */
@@ -13,7 +13,8 @@
   var esc = S.esc, icons = S.icons, uid = S.uid;
 
   var MAX_FILES = 10;
-  var MAX_SIZE = 8 * 1024 * 1024;  // 8MB — 서버(/api/admin/images)와 같은 값이어야 한다.
+  // 한도는 site.js 한 곳에서 정한다 — 여기서 따로 적으면 서버와 어긋난다
+  var MAX_SIZE = (S && S.MAX_IMAGE_BYTES) || 5 * 1024 * 1024;
                                    // 더 크게 잡으면 여기서 통과시킨 파일을 서버가 거절한다.
   var GAL_PER_PAGE = 10;
 
@@ -181,7 +182,7 @@
       var files = Array.prototype.slice.call(this.files || []);
       files.forEach(function (f) {
         if (atts.length >= MAX_FILES) { alert('첨부파일은 최대 ' + MAX_FILES + '개까지 등록할 수 있습니다.'); return; }
-        if (f.size > MAX_SIZE) { alert('"' + f.name + '" — 파일당 최대 8MB까지 첨부할 수 있습니다.'); return; }
+        if (f.size > MAX_SIZE) { alert(S.tooBigMsg ? S.tooBigMsg(f.name, f.size) : '파일이 너무 큽니다.'); return; }
         atts.push({ name: f.name, size: f.size, type: f.type || 'application/octet-stream', file: f });
       });
       this.value = '';
@@ -309,7 +310,7 @@
           var files = Array.prototype.slice.call(inp.files || []);
           var jobs = [];
           files.forEach(function (f) {
-            if (f.size > MAX_SIZE) { alert('"' + f.name + '" — 사진은 8MB 이하만 올릴 수 있습니다.'); return; }
+            if (f.size > MAX_SIZE) { alert(S.tooBigMsg ? S.tooBigMsg(f.name, f.size) : '사진이 너무 큽니다.'); return; }
             jobs.push(S.Media.put('gallery', null, f, { name: f.name.replace(/\.[^.]+$/, '') }));
           });
           if (!jobs.length) return;
@@ -317,8 +318,10 @@
             galPage = 1;
             renderGallery();
             // 올리기가 실패해도 null 로 조용히 끝난다 — 세어서 사실대로 알린다
-            var ok = results.filter(Boolean).length, fail = results.length - ok;
-            if (fail) S.toast(ok ? (ok + '장 등록 · ' + fail + '장 실패했습니다.') : '사진을 올리지 못했습니다. 다시 시도해 주세요.');
+            var ok = results.filter(function (x) { return x && !x.error; }).length;
+            var fail = results.length - ok;
+            var why = (results.find(function (x) { return x && x.error; }) || {}).error;
+            if (fail) S.toast((ok ? ok + '장 등록 · ' + fail + '장 실패 — ' : '') + (why || '사진을 올리지 못했습니다.'), 5000);
             else S.toast(ok + '장의 사진이 등록되었습니다.');
           });
         };

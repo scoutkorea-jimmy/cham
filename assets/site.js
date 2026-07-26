@@ -118,6 +118,17 @@
     'kach_inquiries':    'inquiries',
   };
   var DOC_KINDS = { settings: 1, consents: 1, kms: 1 };
+
+  /* 사진 한 장의 최대 크기. **서버(functions/api/admin/images.js)와 같은 값이어야 한다** —
+     화면이 더 크게 허용하면 올린 뒤 서버가 되돌려 보내고, 화면이 더 작게 잡으면
+     올릴 수 있는 것을 못 올린다. 예전에는 화면 8MB · 본문 삽입 10MB · 서버 8MB 로
+     제각각이라 그 사이 파일이 조용히 실패했다. */
+  var MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+  function tooBigMsg(name, size) {
+    var mb = (size / 1024 / 1024).toFixed(1);
+    return (name ? '「' + name + '」 ' : '') + '사진이 ' + mb + 'MB 입니다. ' +
+      '한 장에 5MB 까지 올릴 수 있습니다.';
+  }
   /* 목록마다 '내가 읽은 시점의 버전'. 저장할 때 되돌려주면 서버가 그 사이 누가
      바꿨는지 가려 준다. 비어 있으면(마이그레이션 전 등) 검사를 건너뛴다. */
   var versions = {};
@@ -411,9 +422,19 @@
         if (ref) fd.append('ref', ref);
         if (o.role) fd.append('role', o.role);
         if (o.ord != null) fd.append('ord', String(o.ord));
+        /* 실패를 전부 null 로 뭉개면 화면이 원인을 말할 수 없다.
+           실제로 "브라우저 저장 공간을 확인해 주세요"가 떴는데, 서버 모드에서 사진은
+           브라우저가 아니라 R2 로 간다 — 엉뚱한 곳을 보게 만드는 안내였다. */
         return api('/api/admin/images', { method: 'POST', body: fd })
-          .then(function (r) { return r.ok ? r.data.image : null; })
-          .catch(function () { return null; });
+          .then(function (r) {
+            if (r.ok) return r.data.image;
+            var reason = (r.data && r.data.error) ||
+              (r.status === 413 ? '사진이 너무 큽니다.'
+               : r.status === 401 || r.status === 403 ? '로그인이 풀렸습니다. 다시 로그인해 주세요.'
+               : '사진을 저장하지 못했습니다.');
+            return { error: reason, status: r.status };
+          })
+          .catch(function () { return { error: '연결하지 못했습니다. 인터넷 연결을 확인해 주세요.', status: 0 }; });
       }
       var m = SCOPE_STORE[scope]; if (!m) return Promise.resolve(null);
       var rec = { id: scope === 'page' ? ref : (o.id || uid()), blob: file, at: new Date().toISOString() };
@@ -1691,6 +1712,7 @@
     getJSON: getJSON, setJSON: setJSON, pushRecord: pushRecord, submitRecord: submitRecord,
     fmtWon: fmtWon, fmtYMD: fmtYMD, todayStr: todayStr, genOrderNo: genOrderNo,
     idb: idb, Media: Media, api: api, reload: reload, loadAdminData: loadAdminData,
+    MAX_IMAGE_BYTES: MAX_IMAGE_BYTES, tooBigMsg: tooBigMsg,
     patchItem: patchItem, patchItems: patchItems, removeItem: removeItem, kindOf: function (k) { return KEY_MAP[k] || null; },
     loadOlder: loadOlder, windowInfo: windowInfo,
     isServer: function(){ return SERVER; }, ready: function(fn){ booted.then(function(){ ready(fn); }); },

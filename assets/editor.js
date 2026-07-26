@@ -6,7 +6,11 @@
    ============================================================ */
 (function () {
   'use strict';
-  var MAX_IMG = 10 * 1024 * 1024; // 본문 삽입 이미지 10MB
+  /* 본문 삽입 이미지. 한도는 site.js 한 곳에서 정한다.
+     여기 있던 10MB 는 다른 경로(8MB)보다 커서, 그 사이 크기의 사진이
+     '삽입은 되는데 저장이 안 되는' 상태를 만들었다.
+     게다가 본문 삽입은 사진을 글 안에 통째로(base64) 담으므로 실제로는 더 무겁다. */
+  var MAX_IMG = (window.Site && window.Site.MAX_IMAGE_BYTES) || 5 * 1024 * 1024;
 
   /* ---------- 툴바 정의 ---------- */
   var TOOLBAR = [
@@ -175,7 +179,11 @@
             inp.type = 'file'; inp.accept = 'image/*';
             inp.onchange = function () {
               var f = inp.files[0]; if (!f) return;
-              if (f.size > MAX_IMG) { alert('이미지는 10MB 이하만 삽입할 수 있습니다.'); return; }
+              if (f.size > MAX_IMG) {
+                alert(window.Site && window.Site.tooBigMsg ? window.Site.tooBigMsg(f.name, f.size)
+                      : '사진이 너무 큽니다. 한 장에 5MB 까지 넣을 수 있습니다.');
+                return;
+              }
               var rd = new FileReader();
               rd.onload = function () { editor.chain().focus().setImage({ src: rd.result }).run(); };
               rd.readAsDataURL(f);

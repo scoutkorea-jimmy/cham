@@ -727,8 +727,11 @@
         pImgState = { main: null, extra: [], detail: [], removed: [] };
         render();
         // 이미지 올리기는 실패해도 null 로 끝난다 — 저장됐다고만 알리면 사진이 빠진 걸 나중에 안다
-        var fail = results.filter(function (r) { return r === null || r === false; }).length;
-        toast('상품이 저장되었습니다.' + (fail ? ' (사진 ' + fail + '건은 처리하지 못했습니다 — 다시 확인해 주세요)' : ''));
+        var failed = results.filter(function (r) { return !r || r.error || r === false; });
+        var why = (failed.filter(function (r) { return r && r.error; })[0] || {}).error;
+        toast('상품이 저장되었습니다.' +
+          (failed.length ? ' (사진 ' + failed.length + '건 실패 — ' + (why || '다시 확인해 주세요') + ')' : ''),
+          failed.length ? 5000 : 2600);
       });
     });
   }
@@ -2971,7 +2974,10 @@
             keep: { pcx: prev.pcx, pcy: prev.pcy, mbx: prev.mbx, mby: prev.mby },
           });
         }).then(function (r) {
-          if (!r) { toast('이미지 저장에 실패했습니다. 브라우저 저장 공간을 확인해 주세요.'); return; }
+          /* 서버 모드에서 사진은 브라우저가 아니라 R2 로 간다 —
+             예전 문구('브라우저 저장 공간을 확인해 주세요')는 엉뚱한 곳을 보게 만들었다.
+             서버가 알려 준 이유를 그대로 보여 준다. */
+          if (!r || r.error) { toast((r && r.error) || '사진을 저장하지 못했습니다.', 5000); return; }
           var meta = slotById(slotId);
           imgSel = slotId;   // 올린 뒤 바로 위치 편집기(또는 원본표시 안내) 표시
           dirty = false; render();

@@ -11,7 +11,8 @@ import { IMAGE_INSERT, imageRowToObj } from '../../_shared/store.js';
 import { json, badRequest, notFound, readJson } from '../../_shared/http.js';
 
 const SCOPES = new Set(['product', 'page', 'post', 'gallery']);
-const MAX_BYTES = 8 * 1024 * 1024;
+// 화면(assets/site.js MAX_IMAGE_BYTES)과 같은 값이어야 한다 — 다르면 그 사이 파일이 조용히 실패한다
+const MAX_BYTES = 5 * 1024 * 1024;
 const OK_MIME = /^image\/(jpeg|png|webp|gif|avif)$/;
 
 const rid = () => 'i' + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36);
@@ -27,7 +28,7 @@ export async function onRequestPost({ request, env }) {
   const scope = String(form.get('scope') || '');
   if (!file || typeof file === 'string') return badRequest('파일이 없습니다.');
   if (!SCOPES.has(scope)) return badRequest('scope 가 올바르지 않습니다.');
-  if (file.size > MAX_BYTES) return json({ error: '이미지가 너무 큽니다(8MB 이하).', code: 'too_large' }, 413);
+  if (file.size > MAX_BYTES) return json({ error: '사진이 너무 큽니다. 한 장에 5MB 까지 올릴 수 있습니다.', code: 'too_large' }, 413);
   if (!OK_MIME.test(file.type || '')) return badRequest('이미지 파일만 올릴 수 있습니다.');
 
   const ref = form.get('ref') ? String(form.get('ref')).slice(0, 120) : null;
