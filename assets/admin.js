@@ -212,16 +212,16 @@
     // opts: { mode, dataAttr, key, body, label, hint, saveAct, resetAct, editAct, cancelAct, monospace }
     var head = '<div class="panel-head"><h3>' + opts.label + '</h3><span class="ph-sub">' + opts.hint + '</span>' +
       (opts.mode === 'view'
-        ? '<button class="btn btn-ghost" style="padding:9px 16px;margin-left:auto" data-act="' + opts.editAct + '"><i data-lucide="pen-line"></i>편집</button>'
+        ? '<button class="btn btn-ghost push" style="padding:9px 16px" data-act="' + opts.editAct + '"><i data-lucide="pen-line"></i>편집</button>'
         : '') + '</div>';
     var bodyHtml = opts.mode === 'view'
-      ? '<div style="padding:8px 22px 22px">' + renderKMS(opts.body) + '</div>'
-      : '<div style="padding:22px"><textarea ' + opts.dataAttr + '="' + opts.key + '" rows="' + (opts.monospace ? 22 : 14) + '" style="width:100%;' +
+      ? '<div style="padding:8px var(--gutter-panel) 22px">' + renderKMS(opts.body) + '</div>'
+      : '<div style="padding:22px var(--gutter-panel)"><textarea ' + opts.dataAttr + '="' + opts.key + '" rows="' + (opts.monospace ? 22 : 14) + '" style="width:100%;' +
           (opts.monospace ? 'font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;background:#FFFEF9;' : 'font:inherit;font-size:13.5px;') +
           'line-height:1.7;padding:16px 18px;border:1.5px solid var(--line);border-radius:10px;resize:vertical">' + esc(opts.body) + '</textarea>' +
-          '<div style="display:flex;gap:10px;margin-top:16px"><button class="btn btn-point" data-act="' + opts.saveAct + '"><i data-lucide="check"></i>저장</button>' +
+          '<div class="row-btns gap-related"><button class="btn btn-point" data-act="' + opts.saveAct + '"><i data-lucide="check"></i>저장</button>' +
           '<button class="btn btn-ghost" data-act="' + opts.cancelAct + '"><i data-lucide="x"></i>취소</button>' +
-          '<button class="btn btn-ghost" data-act="' + opts.resetAct + '" style="margin-left:auto"><i data-lucide="rotate-ccw"></i>표준안 복원</button></div>' +
+          '<button class="btn btn-ghost push" data-act="' + opts.resetAct + '"><i data-lucide="rotate-ccw"></i>표준안 복원</button></div>' +
         '</div>';
     return '<div class="panel">' + head + bodyHtml + '</div>';
   }
@@ -318,11 +318,11 @@
     var popRows = pops.length ? pops.map(function (p) {
       return '<div style="display:flex;align-items:center;gap:14px;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line-soft)">' +
         '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><b>' + esc(p.title) + '</b>' +
-        '<span class="pc-sub" style="margin-left:10px">' + (p.startsAt || '상시') + (p.endsAt ? ' ~ ' + p.endsAt : '') + '</span></span>' +
+        '<span class="pc-sub ml-tight">' + (p.startsAt || '상시') + (p.endsAt ? ' ~ ' + p.endsAt : '') + '</span></span>' +
         '<span class="pc-sub">' + (p.active ? '게시 중' : '중지됨') + '</span>' +
         '<button class="toggle ' + (p.active ? 'on' : '') + '" data-act="poptoggle" data-id="' + p.id + '" title="게시/중지"><i></i></button></div>';
     }).join('') : '<div class="admin-empty" style="padding:20px 10px"><i data-lucide="bell-off"></i><div>등록된 팝업이 없습니다. ‘팝업 관리’에서 추가하세요.</div></div>';
-    var popPanel = '<div class="panel" style="margin-top:24px"><div class="panel-head"><h3>홈 팝업 게시/중지</h3><button class="btn btn-ghost" data-nav="popups" style="padding:8px 16px"><i data-lucide="bell"></i>팝업 관리로 이동</button></div><div style="padding:8px 22px 14px">' + popRows + '</div></div>';
+    var popPanel = '<div class="panel"><div class="panel-head"><h3>홈 팝업 게시/중지</h3><button class="btn btn-ghost" data-nav="popups" style="padding:8px 16px"><i data-lucide="bell"></i>팝업 관리로 이동</button></div><div style="padding:8px var(--gutter-panel) 16px">' + popRows + '</div></div>';
 
     /* ── 판매 현황 (주간 · 월간) ──────────────────────────────
        매출은 '결제완료 이후'만 센다(매출·정산 화면과 같은 기준) — 입금 확인이 안 된
@@ -371,18 +371,18 @@
     }
     var salesPanel = '<div class="panel"><div class="panel-head"><h3>판매 현황</h3>' +
         '<span class="ph-sub">입금이 확인된 주문만 셉니다 — 통장과 맞습니다</span>' +
-        '<button class="btn btn-ghost" data-nav="sales" style="padding:8px 16px;margin-left:auto"><i data-lucide="trending-up"></i>자세히 보기</button></div>' +
+        '<button class="btn btn-ghost push" data-nav="sales" style="padding:8px 16px"><i data-lucide="trending-up"></i>자세히 보기</button></div>' +
       '<div class="sale-grid">' +
         saleCard('주간 판매', wR.from.slice(5).replace('-', '.') + ' ~ ' + wR.to.slice(5).replace('-', '.'), wSum, wNow.length, wD, '지난 주', wPrevSum) +
         saleCard('월간 판매', wR.from.slice(0, 4) + '년 ' + String(Number(mR.from.slice(5, 7))) + '월', mSum, mNow.length, mD, '지난 달', mPrevSum) +
       '</div>' +
-      '<div style="padding:4px 22px 22px"><div class="ph-sub" style="margin-bottom:10px">최근 7일 일별 매출</div>' + salesBars + '</div>' +
+      '<div style="padding:4px var(--gutter-panel) 22px"><div class="ph-sub lbl-gap">최근 7일 일별 매출</div>' + salesBars + '</div>' +
     '</div>';
 
-    var visitPanel = '<div class="panel"><div class="panel-head"><h3>최근 7일 방문 추이</h3><span class="ph-sub">방문자 수 기준 · 데모 집계</span></div><div style="padding:22px">' + chart + '</div></div>';
-    var sourcePanel = '<div class="panel"><div class="panel-head"><h3>방문자 유입 분석</h3><span class="ph-sub">총 ' + srcTotal + '회 방문</span></div><div style="padding:20px 22px 24px"><div class="src-list">' + srcBars + '</div></div></div>';
+    var visitPanel = '<div class="panel"><div class="panel-head"><h3>최근 7일 방문 추이</h3><span class="ph-sub">방문자 수 기준 · 데모 집계</span></div><div style="padding:22px var(--gutter-panel)">' + chart + '</div></div>';
+    var sourcePanel = '<div class="panel"><div class="panel-head"><h3>방문자 유입 분석</h3><span class="ph-sub">총 ' + srcTotal + '회 방문</span></div><div style="padding:20px var(--gutter-panel) 24px"><div class="src-list">' + srcBars + '</div></div></div>';
     var recentPanel = '<div class="panel"><div class="panel-head"><h3>최근 접수 내역</h3><span class="ph-sub">주문 · 신청 · 문의 통합</span></div><table class="admin-table"><thead><tr><th>일시</th><th>구분</th><th>이름</th><th>내용</th><th>상태</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
-    var statusPanel = '<div class="panel"><div class="panel-head"><h3>주문 상태 분포</h3><span class="ph-sub">전체 ' + orders.length + '건</span></div><div style="padding:20px 22px 24px"><div class="src-list">' + stBars + '</div></div></div>';
+    var statusPanel = '<div class="panel"><div class="panel-head"><h3>주문 상태 분포</h3><span class="ph-sub">전체 ' + orders.length + '건</span></div><div style="padding:20px var(--gutter-panel) 24px"><div class="src-list">' + stBars + '</div></div></div>';
 
     return '<div class="dash">' +
       todoPanel +
@@ -463,35 +463,35 @@
         '<div class="field"><label>판매 상태</label><select name="status">' + ['판매중', '품절', '숨김'].map(function (s) { return '<option' + (p && p.status === s ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select></div>' +
         '<div class="field"><label>간단 설명</label><input name="summary" value="' + esc(p ? p.summary : '') + '"></div>' +
 
-        '<div class="full" style="border-top:1px solid var(--line-soft);padding-top:18px"><b>상세 설명</b><div class="pc-sub" style="margin-top:2px">판매자 직접 관리 — Tiptap 에디터(이미지·표·영상 등 전체 기능)</div></div>' +
+        '<div class="full form-sec"><b>상세 설명</b><div class="pc-sub">판매자 직접 관리 — Tiptap 에디터(이미지·표·영상 등 전체 기능)</div></div>' +
         '<div class="field full"><div class="tt-toolbar" id="pdescBar"></div><div class="tt-body"><div id="pdescEditor"></div></div></div>' +
 
-        '<div class="full" style="border-top:1px solid var(--line-soft);padding-top:18px"><b>이미지</b><div class="pc-sub" style="margin-top:2px">대표 1장 · 추가 갤러리 · 상세 이미지 — 선택 즉시 미리보기 (IndexedDB 저장)</div></div>' +
+        '<div class="full form-sec"><b>이미지</b><div class="pc-sub">대표 1장 · 추가 갤러리 · 상세 이미지 — 선택 즉시 미리보기 (IndexedDB 저장)</div></div>' +
         '<div class="field"><label>대표 이미지</label><input type="file" accept="image/*" id="pImgMain"></div>' +
         '<div class="field"><label>추가 이미지 (여러 장)</label><input type="file" accept="image/*" multiple id="pImgExtra"></div>' +
         '<div class="field"><label>상세 이미지 (여러 장)</label><input type="file" accept="image/*" multiple id="pImgDetail"></div>' +
-        '<div class="full"><div class="pc-sub" style="margin-bottom:6px">미리보기</div><div id="pImgList" class="pimg-grid"></div><div id="pImgNew" class="pimg-grid"></div></div>' +
+        '<div class="full"><div class="pc-sub lbl-gap">미리보기</div><div id="pImgList" class="pimg-grid"></div><div id="pImgNew" class="pimg-grid"></div></div>' +
 
         '<div class="full" style="border-top:1px solid var(--line-soft);padding-top:18px;display:flex;align-items:center;gap:12px"><b>옵션</b>' +
           '<label style="display:inline-flex;gap:7px;align-items:center;font-size:13.5px;cursor:pointer"><input type="checkbox" id="optUse"' + (opt ? ' checked' : '') + ' style="accent-color:var(--main)">옵션 사용</label></div>' +
         '<div class="full" id="optWrap" style="' + (opt ? '' : 'display:none') + '">' +
-          '<div class="field" style="max-width:280px;margin-bottom:10px"><label>옵션명 (예: 포장, 용량)</label><input id="optName" value="' + esc(opt ? opt.name : '') + '"></div>' +
+          '<div class="field opt-name"><label>옵션명 (예: 포장, 용량)</label><input id="optName" value="' + esc(opt ? opt.name : '') + '"></div>' +
           '<div id="optRows">' + optRows + '</div>' +
-          '<button type="button" class="btn btn-ghost" data-act="optadd" style="padding:8px 14px;margin-top:8px"><i data-lucide="plus"></i>옵션값 추가</button>' +
+          '<button type="button" class="btn btn-ghost gap-tight" data-act="optadd" style="padding:8px 14px"><i data-lucide="plus"></i>옵션값 추가</button>' +
         '</div>' +
 
-        '<div class="full" style="border-top:1px solid var(--line-soft);padding-top:18px"><b>상품정보고시</b><div class="pc-sub" style="margin-top:2px">식품 필수 항목: 원재료 · 소비기한 · 보관방법</div></div>' +
+        '<div class="full form-sec"><b>상품정보고시</b><div class="pc-sub">식품 필수 항목: 원재료 · 소비기한 · 보관방법</div></div>' +
         gosiField('pname', '품명 및 모델명', g.pname) + gosiField('maker', '제조사', g.maker) +
         gosiField('country', '제조국', g.country) + gosiField('origin', '원산지', g.origin) +
         gosiField('volume', '용량 · 중량', g.volume) + gosiField('ingredients', '원재료명 및 함량', g.ingredients, true) +
         gosiField('expiry', '소비기한', g.expiry, true) + gosiField('storage', '보관방법', g.storage, true) +
         gosiField('phone', '소비자상담 전화번호', g.phone) + gosiField('warranty', '품질보증 기준', g.warranty) +
 
-        '<div class="full" style="border-top:1px solid var(--line-soft);padding-top:18px"><b>배송 / 교환·반품·환불 안내</b></div>' +
-        '<div class="field full"><label>배송안내 <button type="button" class="btn-text" data-act="tpl-ship" style="font-size:12px;margin-left:8px">기본 템플릿 불러오기</button></label><textarea name="ship" rows="4">' + esc(p ? p.ship : S.SHIP_TPL) + '</textarea></div>' +
-        '<div class="field full"><label>교환·반품·환불 안내 <button type="button" class="btn-text" data-act="tpl-refund" style="font-size:12px;margin-left:8px">기본 템플릿 불러오기</button></label><textarea name="refund" rows="4">' + esc(p ? p.refund : S.REFUND_TPL) + '</textarea></div>' +
+        '<div class="full form-sec"><b>배송 / 교환·반품·환불 안내</b></div>' +
+        '<div class="field full"><label>배송안내 <button type="button" class="btn-text ml-tight" data-act="tpl-ship" style="font-size:12px">기본 템플릿 불러오기</button></label><textarea name="ship" rows="4">' + esc(p ? p.ship : S.SHIP_TPL) + '</textarea></div>' +
+        '<div class="field full"><label>교환·반품·환불 안내 <button type="button" class="btn-text ml-tight" data-act="tpl-refund" style="font-size:12px">기본 템플릿 불러오기</button></label><textarea name="refund" rows="4">' + esc(p ? p.refund : S.REFUND_TPL) + '</textarea></div>' +
 
-        '<div class="full" style="border-top:1px solid var(--line-soft);padding-top:18px"><b>관련 상품</b><div class="pc-sub" style="margin-top:2px">상세페이지 하단에 노출 · 드롭다운에서 여러 개 선택</div></div>' +
+        '<div class="full form-sec"><b>관련 상품</b><div class="pc-sub">상세페이지 하단에 노출 · 드롭다운에서 여러 개 선택</div></div>' +
         '<div class="full"><div class="ms" id="relMS">' +
           '<button type="button" class="ms-toggle" data-act="msopen"><span class="ms-label">관련 상품 선택</span><i data-lucide="chevron-down"></i></button>' +
           '<div class="ms-panel" id="relPanel" hidden><input type="text" class="ms-search" id="relSearch" placeholder="상품 검색…"><div class="ms-list">' + (relItems || '<div class="pc-sub" style="padding:10px">다른 상품이 없습니다.</div>') + '</div></div>' +
@@ -505,7 +505,7 @@
       '</form></div>';
   }
   function optRowHTML(v) {
-    return '<div class="opt-row" style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap">' +
+    return '<div class="opt-row gap-tight">' +
       '<input placeholder="옵션값 (예: 전통 보자기 포장)" class="ov-label" value="' + esc(v ? v.label : '') + '" style="flex:2;min-width:160px">' +
       '<input placeholder="추가금액" type="number" class="ov-add" value="' + (v ? v.add : 0) + '" style="flex:1;min-width:90px">' +
       '<input placeholder="재고" type="number" class="ov-stock" value="' + (v ? v.stock : 10) + '" style="flex:1;min-width:70px">' +
@@ -733,9 +733,9 @@
     var list = ordersOf(orderTab);
     var rows = list.length ? list.map(function (o) {
       var item = o.kind === 'seedjang' ? (o.amount || '씨장 분양') : (o.product || '-');
-      var shipInfo = o.tracking ? '<div class="pc-sub" style="margin-top:3px">' + esc(o.courier || '') + ' ' + esc(o.tracking) + '</div>'
-        : (o.shipMethod ? '<div class="pc-sub" style="margin-top:3px">' + esc(o.shipMethod) + '</div>' : '');
-      var reason = o.cancelReason || o.rmaReason ? '<div class="pc-sub" style="margin-top:3px">사유: ' + esc(o.cancelReason || o.rmaReason) + '</div>' : '';
+      var shipInfo = o.tracking ? '<div class="pc-sub">' + esc(o.courier || '') + ' ' + esc(o.tracking) + '</div>'
+        : (o.shipMethod ? '<div class="pc-sub">' + esc(o.shipMethod) + '</div>' : '');
+      var reason = o.cancelReason || o.rmaReason ? '<div class="pc-sub">사유: ' + esc(o.cancelReason || o.rmaReason) + '</div>' : '';
       return '<tr><td><input type="checkbox" class="osel" data-id="' + o.id + '" style="width:16px;height:16px;accent-color:var(--main)"></td>' +
         '<td><b style="font-variant-numeric:tabular-nums">' + esc(o.orderNo || '-') + '</b><div class="dt">' + fmtDate(o.at) + '</div></td>' +
         '<td>' + (o.kind === 'seedjang' ? '<span class="tag point">씨장분양</span>' : '<span class="tag">제품</span>') + '</td>' +
@@ -751,7 +751,7 @@
 
     return '<div class="panel" style="max-width:none"><div class="panel-head"><h3>주문 관리</h3><span class="ph-sub">주문을 선택한 뒤 단계 버튼으로 처리 · 자동 알림(메일/SMS)은 운영 연동 시 발송</span><div class="panel-tools">' + csvBtn('orders') + '</div></div>' +
       '<div style="padding:16px 22px 0">' + orderGuide() + tabHtml + bar +
-        '<div style="margin-top:12px"><input id="oSearch" type="search" autocomplete="off" placeholder="주문번호 · 주문자 · 연락처 · 입금자명 · 상품 검색" style="width:380px;max-width:100%;padding:12px 15px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:16px;background:var(--surface)"></div>' +
+        '<div class="gap-related"><input id="oSearch" type="search" autocomplete="off" placeholder="주문번호 · 주문자 · 연락처 · 입금자명 · 상품 검색" style="width:380px;max-width:100%;padding:12px 15px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:16px;background:var(--surface)"></div>' +
       '</div>' +
       '<div style="overflow-x:auto"><table class="admin-table" style="font-size:13px"><thead><tr>' +
         '<th><input type="checkbox" id="oselAll" style="width:16px;height:16px;accent-color:var(--main)"></th>' +
@@ -776,7 +776,7 @@
       return;
     }
     var info = '<div class="proc-info">선택하신 <b>' + sel.length + '개</b>의 주문 중 처리 가능한 주문은 <b style="color:var(--point)">' + elig.length + '건</b>입니다.</div>' +
-      '<div class="modal-note" style="margin-bottom:14px"><i data-lucide="info"></i><span>' + esc(def.desc) + '</span></div>';
+      '<div class="modal-note mb-related"><i data-lucide="info"></i><span>' + esc(def.desc) + '</span></div>';
     var table = '<div style="overflow-x:auto;border:1px solid var(--line-soft);border-radius:10px"><table class="admin-table" style="font-size:13px"><thead><tr><th>주문번호</th><th>현재 상태</th><th>상품명</th>' +
       (def.kind === 'ship' ? '<th>운송장번호</th>' : '') + '</tr></thead><tbody>' +
       elig.map(function (o) {
@@ -786,22 +786,22 @@
 
     var extra = '';
     if (def.kind === 'ship') {
-      extra = '<div class="form-grid" style="margin-top:14px">' +
+      extra = '<div class="form-grid gap-related">' +
         '<div class="field"><label>배송수단</label><select id="procMethod">' +
           ['택배', '소포', '등기', '기타택배', '직접배송(화물)', '방문수령', '퀵서비스', '배송없음'].map(function (m) { return '<option>' + m + '</option>'; }).join('') + '</select></div>' +
         '<div class="field"><label>택배사</label><select id="procCourier">' + COURIERS.map(function (c) { return '<option>' + c + '</option>'; }).join('') + '</select></div>' +
       '</div>' +
-      '<div class="modal-note" style="margin-top:12px"><i data-lucide="info"></i><span>택배·소포·등기는 운송장번호가 필수입니다(미입력 시 처리 불가). ‘배송없음’ 상품은 즉시 배송완료됩니다. 추적 불가 수단은 발송 후 ‘강제 배송완료’로 마감하세요.</span></div>';
+      '<div class="modal-note gap-related"><i data-lucide="info"></i><span>택배·소포·등기는 운송장번호가 필수입니다(미입력 시 처리 불가). ‘배송없음’ 상품은 즉시 배송완료됩니다. 추적 불가 수단은 발송 후 ‘강제 배송완료’로 마감하세요.</span></div>';
     } else if (def.kind === 'reason') {
-      extra = '<div class="form-grid" style="margin-top:14px">' +
+      extra = '<div class="form-grid gap-related">' +
         '<div class="field"><label>판매취소 사유</label><select id="procReason"><option>구매자 요청</option><option>재고 없음</option><option>주문 오류</option><option>기타</option></select></div>' +
         '<div class="field"><label>상세 메모 (선택)</label><input id="procMemo" placeholder="구매자 안내 메모"></div></div>' +
-        '<div class="modal-note" style="margin-top:12px"><i data-lucide="info"></i><span>무통장입금 주문은 입금 여부를 확인한 뒤 환불 계좌를 구매자와 협의해 주세요.</span></div>';
+        '<div class="modal-note gap-related"><i data-lucide="info"></i><span>무통장입금 주문은 입금 여부를 확인한 뒤 환불 계좌를 구매자와 협의해 주세요.</span></div>';
     } else if (def.kind === 'rma') {
-      extra = '<div class="form-grid" style="margin-top:14px">' +
+      extra = '<div class="form-grid gap-related">' +
         '<div class="field"><label>' + (def.to === '반품요청' ? '반품' : '교환') + ' 사유</label><select id="procReason"><option>단순 변심</option><option>상품 하자</option><option>오배송</option><option>기타</option></select></div>' +
         '<div class="field"><label>수거 주소</label><input id="procPickup" placeholder="기본: 주문 배송지" value="' + esc(elig.length === 1 ? (elig[0].address || '') : '') + '"></div></div>' +
-        '<div class="modal-note" style="margin-top:12px"><i data-lucide="info"></i><span>수거 완료 후 「' + (def.to === '반품요청' ? '반품 완료' : '교환 완료') + '」로 마감하세요.</span></div>';
+        '<div class="modal-note gap-related"><i data-lucide="info"></i><span>수거 완료 후 「' + (def.to === '반품요청' ? '반품 완료' : '교환 완료') + '」로 마감하세요.</span></div>';
     }
 
     S.rawModal(
@@ -904,7 +904,7 @@
     var per = applicantsPerCohort();
     var open = list.filter(function (c) { return c.status === '모집중' || c.status === '상시'; });
     var total = Object.keys(per).reduce(function (s, k) { return s + per[k]; }, 0);
-    return '<div class="modal-note" style="margin-bottom:18px"><i data-lucide="info"></i><span>' +
+    return '<div class="modal-note"><i data-lucide="info"></i><span>' +
         '여기서 만든 기수가 <b>지도사 과정 페이지의 일정표</b>와 <b>신청서의 기수 선택칸</b>에 그대로 나옵니다. ' +
         '일정이 확정되기 전에는 <b>예정</b>으로 두세요 — <b>모집중</b>으로 두면 홈페이지에 잘못된 일정이 안내됩니다.</span></div>' +
       '<div class="stat-grid">' +
@@ -913,7 +913,7 @@
         kpi(total + '명', '기수별 신청 합계', '') +
         kpi(list.filter(function (c) { return c.status === '마감'; }).length + '개', '마감', '') +
       '</div>' +
-      '<div style="margin-top:24px">' + cohortPanel() + '</div>';
+      '<div>' + cohortPanel() + '</div>';
   }
 
   function viewApps() {
@@ -959,8 +959,8 @@
         panelWrap('기수별 신청 현황', cohorts.length + '개 기수', '<div class="src-list">' + cBars + '</div>') +
         panelWrap('처리 상태', '전체 ' + a.length + '명', '<div class="src-list">' + stBars + '</div>') +
       '</div>' +
-      '<div style="margin-top:24px">' + miniTable('최근 신청', '최신 5명', ['일시', '이름', '연락처', '지역', '신청 기수', '상태'], recent, '아직 신청이 없습니다.') + '</div>' +
-      '<div class="panel" style="margin-top:24px"><div class="panel-head"><h3>신청자 명단</h3><span class="ph-sub">총 ' + a.length + '명 — 연락처를 눌러 전화할 수 있습니다</span>' +
+      '<div>' + miniTable('최근 신청', '최신 5명', ['일시', '이름', '연락처', '지역', '신청 기수', '상태'], recent, '아직 신청이 없습니다.') + '</div>' +
+      '<div class="panel"><div class="panel-head"><h3>신청자 명단</h3><span class="ph-sub">총 ' + a.length + '명 — 연락처를 눌러 전화할 수 있습니다</span>' +
         '<div class="panel-tools">' + listSearch('appsTable', '이름 · 연락처 · 지역 검색') + csvBtn('apps') + '</div></div>' +
       '<div style="overflow-x:auto"><table class="admin-table" id="appsTable"><thead><tr><th>일시</th><th>이름</th><th>연락처</th><th>지역</th><th>신청 기수</th><th>상태</th><th>처리</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
   }
@@ -1023,7 +1023,7 @@
         '<td class="dt">' + fmtDate(p.at) + '</td><td>' + delBtn(K.posts, p.id) + '</td></tr>';
     }).join('') : emptyRow(4, '등록된 게시글이 없습니다.');
     return '<div class="panel"><div class="panel-head"><h3>게시글 관리</h3><a class="btn btn-point" href="news.html" target="_blank" style="padding:10px 18px"><i data-lucide="pen-line"></i>소식마당에서 글쓰기</a></div>' +
-      '<div class="modal-note" style="margin:16px 22px 0"><i data-lucide="info"></i><span>글 작성·수정(Tiptap 에디터, 첨부파일)은 소식마당의 ‘글쓰기’ 버튼에서 진행합니다.</span></div>' +
+      '<div class="modal-note gap-related"><i data-lucide="info"></i><span>글 작성·수정(Tiptap 에디터, 첨부파일)은 소식마당의 ‘글쓰기’ 버튼에서 진행합니다.</span></div>' +
       '<div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>제목</th><th>분류</th><th>등록일</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
   }
 
@@ -1052,7 +1052,7 @@
     var a = gj(K.popups, []);
     var rows = a.length ? a.map(function(p){
       return '<tr><td style="width:74px">' + (p.img ? '<img src="' + esc(p.img) + '" style="width:64px;height:44px;object-fit:cover;border-radius:7px">' : '<span class="pc-sub">없음</span>') + '</td>' +
-        '<td><b>' + esc(p.title) + '</b><div class="pc-sub" style="margin-top:3px">' + esc((p.body||'').replace(/\n/g,' ')).slice(0,50) + '</div></td>' +
+        '<td><b>' + esc(p.title) + '</b><div class="pc-sub">' + esc((p.body||'').replace(/\n/g,' ')).slice(0,50) + '</div></td>' +
         '<td class="dt">' + (p.startsAt||'상시') + (p.endsAt?(' ~ '+p.endsAt):'') + '</td>' +
         '<td><button class="toggle ' + (p.active?'on':'') + '" data-act="poptoggle" data-id="' + p.id + '"><i></i></button></td>' +
         '<td>' + delBtn(K.popups, p.id) + '</td></tr>';
@@ -1106,9 +1106,9 @@
 
     var file = IMG_PAGE_FILES[imgPageTab] || 'index.html';
     var devLabel = imgDevice === 'mb' ? '모바일' : 'PC';
-    return '<div class="modal-note" style="margin-bottom:18px"><i data-lucide="image"></i><span>사진을 올리면 오른쪽 <b>미리보기에 즉시 반영</b>됩니다. 올린 뒤 왼쪽 미리보기 칸을 눌러 <b>상하좌우 위치</b>를 맞추세요 — <b>모바일·PC 각각 따로</b> 저장됩니다. 사진은 이 브라우저에 저장되니 <b>데이터 백업</b>으로 주기적으로 백업하세요.</span></div>' +
+    return '<div class="modal-note"><i data-lucide="image"></i><span>사진을 올리면 오른쪽 <b>미리보기에 즉시 반영</b>됩니다. 올린 뒤 왼쪽 미리보기 칸을 눌러 <b>상하좌우 위치</b>를 맞추세요 — <b>모바일·PC 각각 따로</b> 저장됩니다. 사진은 이 브라우저에 저장되니 <b>데이터 백업</b>으로 주기적으로 백업하세요.</span></div>' +
       subtabs(pages.map(function (pg) { return { id: pg, label: pg }; }), imgPageTab) +
-      '<div class="simg-devbar" style="display:flex;align-items:center;gap:12px;margin:0 0 16px;flex-wrap:wrap">' +
+      '<div class="simg-devbar mb-related">' +
         '<div class="dev-toggle">' +
           '<button data-imgdev="pc" class="' + (imgDevice === 'pc' ? 'on' : '') + '"><i data-lucide="monitor"></i>PC 화면</button>' +
           '<button data-imgdev="mb" class="' + (imgDevice === 'mb' ? 'on' : '') + '"><i data-lucide="smartphone"></i>모바일 화면</button>' +
@@ -1332,7 +1332,7 @@
     var defs = { standard: { label: '표준 KMS', icon: 'book-text', hint: '개발 관련 규칙 및 원칙' },
                  design: { label: '디자인 룰북', icon: 'palette', hint: '홈페이지 디자인 표준 기록·관리' } };
     var cur = defs[kmsTab];
-    return '<div class="modal-note" style="margin-bottom:18px"><i data-lucide="book-open"></i><span><b>KMS(지식관리시스템)</b> — 표준 KMS는 개발 규칙·원칙을, 디자인 룰북은 홈페이지의 모든 디자인 표준을 기록·관리합니다. 디자인 변경 시 site.css 토큰과 룰북을 함께 갱신하세요.</span></div>' +
+    return '<div class="modal-note"><i data-lucide="book-open"></i><span><b>KMS(지식관리시스템)</b> — 표준 KMS는 개발 규칙·원칙을, 디자인 룰북은 홈페이지의 모든 디자인 표준을 기록·관리합니다. 디자인 변경 시 site.css 토큰과 룰북을 함께 갱신하세요.</span></div>' +
       subtabs([{ id: 'standard', label: '표준 KMS', icon: 'book-text' }, { id: 'design', label: '디자인 룰북', icon: 'palette' }], kmsTab) +
       docPanel({ mode: kmsMode, dataAttr: 'data-kms', key: kmsTab, body: k[kmsTab],
         label: cur.label, hint: cur.hint, monospace: true,
@@ -1350,12 +1350,12 @@
 
   function viewBackup() {
     var orders = gj(K.orders, []).length, posts = gj(K.posts, []).length, prods = S.getProducts().length;
-    return '<div class="modal-note" style="margin-bottom:18px"><i data-lucide="info"></i><span>이 사이트의 데이터(주문·신청·문의·게시글·상품·파트너·팝업·동의문·KMS)와 <b>이미지(게시글 첨부·갤러리·상품 이미지)</b>는 이 브라우저에만 저장됩니다. 기기 변경·캐시 삭제 시 사라지므로, 아래 내보내기로 주기적으로 백업하세요.</span></div>' +
+    return '<div class="modal-note"><i data-lucide="info"></i><span>이 사이트의 데이터(주문·신청·문의·게시글·상품·파트너·팝업·동의문·KMS)와 <b>이미지(게시글 첨부·갤러리·상품 이미지)</b>는 이 브라우저에만 저장됩니다. 기기 변경·캐시 삭제 시 사라지므로, 아래 내보내기로 주기적으로 백업하세요.</span></div>' +
       '<div class="panel"><div class="panel-head"><h3>전체 내보내기</h3><span class="ph-sub">주문 ' + orders + ' · 게시글 ' + posts + ' · 상품 ' + prods + ' + 전체 이미지</span></div>' +
-        '<div style="padding:22px"><p class="muted" style="margin:0 0 16px">모든 데이터와 이미지를 JSON 파일 하나로 내려받습니다.</p>' +
+        '<div style="padding:22px var(--gutter-panel)"><p class="muted mb-related">모든 데이터와 이미지를 JSON 파일 하나로 내려받습니다.</p>' +
         '<button class="btn btn-point" data-act="exportAll"><i data-lucide="download"></i>백업 파일 내려받기</button></div></div>' +
-      '<div class="panel" style="margin-top:24px"><div class="panel-head"><h3>가져오기 (복원)</h3><span class="ph-sub">백업 JSON으로 현재 데이터를 덮어씁니다</span></div>' +
-        '<div style="padding:22px"><div class="modal-note" style="margin-bottom:14px"><i data-lucide="alert-triangle"></i><span>현재 브라우저의 데이터가 백업 내용으로 <b>모두 교체</b>됩니다. 되돌릴 수 없으니 필요하면 먼저 내보내기로 백업하세요.</span></div>' +
+      '<div class="panel"><div class="panel-head"><h3>가져오기 (복원)</h3><span class="ph-sub">백업 JSON으로 현재 데이터를 덮어씁니다</span></div>' +
+        '<div style="padding:22px var(--gutter-panel)"><div class="modal-note mb-related"><i data-lucide="alert-triangle"></i><span>현재 브라우저의 데이터가 백업 내용으로 <b>모두 교체</b>됩니다. 되돌릴 수 없으니 필요하면 먼저 내보내기로 백업하세요.</span></div>' +
         '<button class="btn btn-ghost" data-act="importPick"><i data-lucide="upload"></i>백업 파일 선택</button></div></div>';
   }
 
@@ -1504,7 +1504,7 @@
       return '<div class="field full"><label>' + label + (hint ? ' <span class="pc-sub" style="font-weight:400">' + hint + '</span>' : '') +
         '</label><textarea name="' + name + '" rows="' + (rows || 2) + '">' + esc(st[name] != null ? st[name] : '') + '</textarea></div>';
     }
-    return '<div class="modal-note" style="margin-bottom:18px"><i data-lucide="info"></i><span>여기서 바꾼 값은 <b>전 페이지 푸터 · 무통장입금 결제 안내 · 모바일 메뉴 · 문의 페이지 · 협동조합 소개(등록 정보)</b>에 모두 반영됩니다(저장 후 공개 페이지 새로고침 시). 약도 좌표는 오시는 길 지도에 적용됩니다.</span></div>' +
+    return '<div class="modal-note"><i data-lucide="info"></i><span>여기서 바꾼 값은 <b>전 페이지 푸터 · 무통장입금 결제 안내 · 모바일 메뉴 · 문의 페이지 · 협동조합 소개(등록 정보)</b>에 모두 반영됩니다(저장 후 공개 페이지 새로고침 시). 약도 좌표는 오시는 길 지도에 적용됩니다.</span></div>' +
       '<form class="admin-form set-form" id="settingsForm">' +
         '<div class="set-sec full"><i data-lucide="banknote"></i><b>무통장입금 계좌</b> <span class="pc-sub">— 주문 시 안내되는 입금 계좌입니다. 실제 계좌로 반드시 교체하세요.</span></div>' +
         field('bank', '입금 계좌', '(은행 + 계좌번호)', '농협 123-4567-8901-23') +
@@ -1530,9 +1530,9 @@
           '<span class="pc-sub">주소를 입력한 뒤 눌러 지도를 이동한 다음, 핀으로 정확히 맞추세요.</span></div></div>' +
         field('lat', '위도(latitude)', '', '37.50331') +
         field('lng', '경도(longitude)', '', '126.88262') +
-        '<div class="full" style="display:flex;gap:10px;align-items:center;border-top:1px solid var(--line-soft);padding-top:18px;margin-top:6px">' +
+        '<div class="full form-sec row-btns gap-tight">' +
           '<button class="btn btn-point" type="submit"><i data-lucide="check"></i>설정 저장</button>' +
-          '<button class="btn btn-ghost" type="button" data-act="settingsReset" style="margin-left:auto"><i data-lucide="rotate-ccw"></i>기본값 복원</button>' +
+          '<button class="btn btn-ghost push" type="button" data-act="settingsReset"><i data-lucide="rotate-ccw"></i>기본값 복원</button>' +
         '</div>' +
       '</form>';
   }
@@ -1662,14 +1662,14 @@
       return '<button data-speriod="' + p.id + '" class="' + (salesPeriod === p.id ? 'on' : '') + '">' + p.label + '</button>';
     }).join('') + '</div>';
 
-    return '<div class="sales-head" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px">' + tabs +
+    return '<div class="sales-head mb-related">' + tabs +
         '<span class="ph-sub" style="font-size:13px;color:var(--ink-mute)">' + rng.label + (salesPeriod !== 'all' && salesPeriod !== 'today' ? ' (' + rng.from + ' ~ ' + rng.to + ')' : '') + ' · 매출은 <b>결제완료 이후</b>만 집계(취소·반품 제외)</span>' +
-        '<span style="margin-left:auto">' + csvBtn('sales') + '</span>' +
+        '<span class="push">' + csvBtn('sales') + '</span>' +
       '</div>' +
       '<div class="stat-grid">' + kpiCards + '</div>' +
-      '<div class="dash-2col" style="margin-top:24px">' +
-        '<div class="panel"><div class="panel-head"><h3>상품별 판매 순위</h3><span class="ph-sub">' + prodKeys.length + '개 상품 · 금액순</span></div><div style="padding:20px 22px 24px"><div class="src-list">' + prodBars + '</div></div></div>' +
-        '<div class="panel"><div class="panel-head"><h3>결제수단별 매출</h3><span class="ph-sub">총 ' + fmtWon(revenue) + '원</span></div><div style="padding:20px 22px 24px"><div class="src-list">' + payBars + '</div></div></div>' +
+      '<div class="dash-2col">' +
+        '<div class="panel"><div class="panel-head"><h3>상품별 판매 순위</h3><span class="ph-sub">' + prodKeys.length + '개 상품 · 금액순</span></div><div style="padding:20px var(--gutter-panel) 24px"><div class="src-list">' + prodBars + '</div></div></div>' +
+        '<div class="panel"><div class="panel-head"><h3>결제수단별 매출</h3><span class="ph-sub">총 ' + fmtWon(revenue) + '원</span></div><div style="padding:20px var(--gutter-panel) 24px"><div class="src-list">' + payBars + '</div></div></div>' +
       '</div>';
   }
 
@@ -1712,7 +1712,7 @@
         '<td style="white-space:nowrap"><button class="btn btn-ghost" data-act="memEdit" data-id="' + m.id + '" style="padding:7px 13px"><i data-lucide="pen-line"></i>상세</button></td></tr>';
     }) : [];
     return acctTabs() +
-      '<div class="modal-note" style="margin-bottom:18px"><i data-lucide="shield-check"></i><span>' +
+      '<div class="modal-note"><i data-lucide="shield-check"></i><span>' +
         '<b>개인정보입니다.</b> 이름·연락처·주소는 수집·이용 동의를 받은 범위에서만 쓰고, 화면을 켜 둔 채 자리를 비우지 마세요. ' +
         '필요 없어진 계정은 지우지 말고 <b>사용 중지</b>로 두면 주문 기록의 주인은 남습니다.</span></div>' +
       '<div class="stat-grid">' +
@@ -1721,7 +1721,7 @@
         kpi((members.length - live) + '명', '중지', '') +
         kpi(members.filter(function (m) { return m.marketingOptin; }).length + '명', '광고 수신 동의', '선택 항목') +
       '</div>' +
-      '<div class="panel" style="margin-top:24px"><div class="panel-head"><h3>일반 계정</h3>' +
+      '<div class="panel"><div class="panel-head"><h3>일반 계정</h3>' +
         '<span class="ph-sub">총 ' + members.length + '명</span>' +
         '<div class="panel-tools"><input class="list-search" id="memSearch" type="search" autocomplete="off" placeholder="이름 · 연락처 · 아이디 검색" value="' + esc(memberQ) + '">' +
         (iCan('members.manage') ? '<button class="btn btn-point" data-act="memNew" style="padding:9px 16px"><i data-lucide="user-plus"></i>회원 등록</button>' : '') + '</div></div>' +
@@ -1757,12 +1757,12 @@
       '</div>';
     }).join('');
     return acctTabs() +
-      '<div class="modal-note" style="margin-bottom:18px"><i data-lucide="key-square"></i><span>' +
+      '<div class="modal-note"><i data-lucide="key-square"></i><span>' +
         '권한 그룹으로 <b>누가 무엇까지 할 수 있는지</b>를 정합니다. 계정은 그룹 하나에 속합니다. ' +
         '<b>기본</b> 그룹은 지우거나 권한을 바꿀 수 없습니다 — 필요하면 새 그룹을 만들어 쓰세요.</span></div>' +
       '<div class="role-grid">' + cards + '</div>' +
       (iCan('accounts.manage')
-        ? '<div style="margin-top:20px"><button class="btn btn-point" data-act="roleNew"><i data-lucide="plus"></i>권한 그룹 만들기</button></div>' : '');
+        ? '<div class="gap-block"><button class="btn btn-point" data-act="roleNew"><i data-lucide="plus"></i>권한 그룹 만들기</button></div>' : '');
   }
 
   function viewAccounts() {
@@ -1789,7 +1789,7 @@
     }).join('') : emptyRow(6, '계정이 없습니다.');
 
     return acctTabs() +
-      '<div class="modal-note" style="margin-bottom:18px"><i data-lucide="users"></i><span>' +
+      '<div class="modal-note"><i data-lucide="users"></i><span>' +
         '사이트를 운영하는 사람의 계정입니다. 할 수 있는 일은 <b>권한 그룹</b>에서 정합니다. ' +
         '새로 만든 계정은 <b>첫 로그인 때 본인이 비밀번호를 바꿔야</b> 합니다.</span></div>' +
       '<div class="panel"><div class="panel-head"><h3>관리자 계정</h3><span class="ph-sub">총 ' + accounts.length + '개</span></div>' +
@@ -1905,7 +1905,7 @@
         '</div>' +
         '<div class="login-msg" id="mfMsg"></div>' +
         '<div class="modal-foot">' +
-          (isNew ? '' : '<button type="button" class="btn btn-ghost" data-act="memToggle" data-id="' + m.id + '" style="margin-right:auto">' +
+          (isNew ? '' : '<button type="button" class="btn btn-ghost pull" data-act="memToggle" data-id="' + m.id + '">' +
             (m.status === 'active' ? '사용 중지' : '다시 사용') + '</button>') +
           '<button type="button" class="btn btn-ghost" data-modal-close>취소</button>' +
           '<button type="button" class="btn btn-point" data-act="memSave"><i data-lucide="check"></i>저장</button>' +
@@ -2103,7 +2103,7 @@
   function panelWrap(title, sub, body) {
     return '<div class="panel"><div class="panel-head"><h3>' + title + '</h3>' +
       (sub ? '<span class="ph-sub">' + sub + '</span>' : '') + '</div>' +
-      '<div style="padding:20px 22px 24px">' + body + '</div></div>';
+      '<div style="padding:20px var(--gutter-panel) 24px">' + body + '</div></div>';
   }
 
   function shortcut(id, icon, label, desc, note) {
@@ -2365,7 +2365,7 @@
 
     return groupHead('운영 설정', '계좌·연락처 같은 운영 정보와 관리자 계정을 관리합니다.') +
       (todo.length
-        ? '<div class="modal-note" style="border-color:var(--danger);background:var(--surface);margin-bottom:18px">' +
+        ? '<div class="modal-note note-danger mb-related">' +
           '<i data-lucide="alert-triangle"></i><span><b>' + todo.map(function (c) { return c.label; }).join(' · ') +
           '</b>가 아직 기본값입니다. 이대로 두면 <b>손님이 예시 계좌로 입금합니다.</b> ' +
           '아래 ‘설정’에서 실제 값으로 바꿔 주세요.</span></div>'
@@ -2390,10 +2390,10 @@
                   '<td class="dt">' + (u.lastLoginAt ? fmtDate(u.lastLoginAt) : '기록 없음') + '</td></tr>';
               }), '계정을 불러오지 못했습니다.')
           : panelWrap('약도 위치', '오시는 길 지도에 찍히는 자리',
-              '<p class="muted" style="margin:0">위도 ' + esc(String(st.lat)) + ' · 경도 ' + esc(String(st.lng)) + '</p>' +
+              '<p class="muted">위도 ' + esc(String(st.lat)) + ' · 경도 ' + esc(String(st.lng)) + '</p>' +
               '<p class="note">설정 화면의 지도에서 핀을 끌어 맞춥니다.</p>')) +
       '</div>' +
-      '<div style="margin-top:24px">' +
+      '<div>' +
         panelWrap('바꾸면 어디에 반영되나',
           '저장 후 공개 페이지를 새로고침하면 보입니다',
           '<ul class="iconlist">' +
@@ -2430,7 +2430,7 @@
     });
 
     return groupHead('시스템', '평소에는 손대지 않는 항목입니다. 담당자와 상의해 바꾸세요.') +
-      '<div class="modal-note" style="margin-bottom:18px"><i data-lucide="database"></i><span>' +
+      '<div class="modal-note"><i data-lucide="database"></i><span>' +
         '자료는 서버에 저장되지만 <b>실수로 지우거나 잘못 덮어쓴 것은 되돌릴 수 없습니다.</b> ' +
         '<b>데이터 백업</b>으로 주기적으로 내려받아 보관하세요.</span></div>' +
       '<div class="gs-grid">' +

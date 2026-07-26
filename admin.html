@@ -558,10 +558,34 @@
   .tel-link { color: var(--info); font-weight: 600; font-variant-numeric: tabular-nums; }
   .tel-link:hover { text-decoration: underline; }
   /* 그룹 요약은 블록이 여럿이라 사이 간격을 한 곳에서 준다 */
-  /* 대시보드 세로 리듬 — 짝을 하나하나 적으면 새 블록이 들어올 때마다 빠진다.
-     실제로 맨 위 두 패널이 간격 0 으로 맞붙어 한 덩어리로 보였다.
-     컨테이너가 직계 형제 사이를 책임진다(rules/spacing-rhythm.md 3절). */
+  /* ---------- 세로 리듬 ----------
+     화면 최상위 블록 사이 간격은 **컨테이너가** 정한다 — 공개 페이지에서 `.wrap` 이 하는 일과 같다.
+     블록마다 인라인 margin 을 적어 오면서 값이 6·10·12·14·18·20·24 로 갈렸고,
+     인라인은 미디어쿼리를 이겨 좁은 화면에서 조정할 수도 없었다
+     (rules/spacing-rhythm.md 3·5절). 실제로 대시보드 맨 위 두 패널은 간격이 0이었다. */
+  #adminView > * + * { margin-top: var(--gap-block); }
   #adminView .dash > * + * { margin-top: var(--gap-block); }
+
+  /* 컨테이너 리듬에서 벗어나야 하는 자리 — 쓰는 값은 허용 5종뿐이다 */
+  .gap-tight   { margin-top: var(--gap-tight); }
+  .gap-related { margin-top: var(--gap-related); }
+  .gap-block   { margin-top: var(--gap-block); }
+  .mb-related  { margin-bottom: var(--gap-related); }
+  .lbl-gap     { margin-bottom: var(--gap-tight); }   /* 라벨 → 그 아래 내용 */
+  .ml-tight    { margin-left: var(--gap-tight); }
+  .push        { margin-left: auto; }                 /* 줄 오른쪽으로 밀기 */
+  .pull        { margin-right: auto; }
+  /* 제목 바로 아래 붙는 보조 줄 — 두 줄이 한 항목으로 읽혀야 한다 */
+  #adminView b + .pc-sub, .modal b + .pc-sub { margin-top: 4px; }
+  /* 문단 꼬리 여백은 마지막 줄에서 지운다 — 상자 아래가 비어 보인다 */
+  #adminView p:last-child, .modal p:last-child { margin-bottom: 0; }
+  /* 폼 안에서 성격이 바뀌는 구역 */
+  .form-sec { border-top: 1px solid var(--line-soft); padding-top: var(--gap-related); }
+  .row-btns { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .opt-name { max-width: 280px; margin-bottom: var(--gap-tight); }
+  .opt-row  { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .sales-head, .simg-devbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .note-danger { border-color: var(--danger); background: var(--surface); }
   #adminView .gs-head + .stat-grid,
   #adminView .stat-grid + .gs-grid,
   #adminView .gs-grid + .dash-2col,
