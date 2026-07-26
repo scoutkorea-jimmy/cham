@@ -3119,7 +3119,29 @@
     return d;
   }
 
-  // 설명서 본문을 절 단위로 쪼갠다(한 번만)
+  /* 찾은 절을 채팅 안에 '그대로' 보여 주기 위해 손질한다.
+     설명서는 우리가 쓴 파일이라 내용 자체는 믿을 수 있지만, 문서에 두 번 들어가면
+     곤란한 것들이 있다:
+       · id — 같은 id 가 둘이 되면 '설명서에서 열기'가 엉뚱한 곳으로 간다
+       · reveal — 등장 애니메이션 대기 상태다. 관리자 본문에는 해제 규칙이 있지만
+                  챗봇 패널은 그 바깥이라 그대로 두면 투명한 채 남는다(빈 화면으로 보인다)
+       · #앵커 링크 — 채팅 안에서 눌러도 갈 곳이 없다. 절 이동 버튼으로 바꾼다 */
+  function cbClean(root) {
+    [].slice.call(root.querySelectorAll('[id]')).forEach(function (e) { e.removeAttribute('id'); });
+    [].slice.call(root.querySelectorAll('.reveal')).forEach(function (e) { e.classList.remove('reveal'); });
+    [].slice.call(root.querySelectorAll('.jump, .page-hero')).forEach(function (e) { e.remove(); });
+    [].slice.call(root.querySelectorAll('a[href^="#"]')).forEach(function (a) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'cb-link';
+      b.setAttribute('data-cbgo', a.getAttribute('href').slice(1));
+      b.innerHTML = a.innerHTML;
+      a.parentNode.replaceChild(b, a);
+    });
+    return root;
+  }
+
+  // 설명서 본문을 절 단위로 쪼갠다(한 번만). text 는 검색·모델용, html 은 화면에 그대로 보여 주는 용도
   function cbIndex() {
     if (cbSections) return Promise.resolve(cbSections);
     var build = function (htmlText) {
@@ -3128,7 +3150,8 @@
       cbSections = [].slice.call(box.querySelectorAll('section[id]')).map(function (sec) {
         var h = sec.querySelector('h2');
         return { id: sec.id, title: (h ? h.textContent : sec.id).trim(),
-                 text: (sec.textContent || '').replace(/\s+/g, ' ').trim() };
+                 text: (sec.textContent || '').replace(/\s+/g, ' ').trim(),
+                 html: cbClean(sec.cloneNode(true)).innerHTML };
       });
       return cbSections;
     };
@@ -3172,6 +3195,47 @@
     }, 400);
   }
 
+  /* 모델이 준 문장을 읽기 좋게 — 내용은 글자 그대로 두고(escape) 모양만 만든다.
+     "1. …" 로 시작하는 줄은 단계 목록으로, **강조** 는 굵게. 모델 출력을 HTML 로
+     그냥 넣지 않는다 — 설명서와 달리 우리가 쓴 글이 아니다. */
+  function cbFormat(text) {
+    var lines = String(text).replace(/\r/g, '').split('\n');
+    var out = [], list = null;
+    var inline = function (s) {
+      return esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+                   .replace(/\[([^\]]{1,20})\]/g, '<span class="ui">$1</span>');
+    };
+    lines.forEach(function (raw) {
+      var line = raw.trim();
+      if (!line) return;
+      var m = line.match(/^(\d+)[.)]\s*(.+)$/);
+      if (m) { if (!list) { list = []; out.push(list); } list.push(inline(m[2])); return; }
+      list = null;
+      out.push('<p>' + inline(line.replace(/^[-·•]\s*/, '')) + '</p>');
+    });
+    return out.map(function (x) {
+      return Array.isArray(x) ? '<ol class="cb-steps"><li>' + x.join('</li><li>') + '</li></ol>' : x;
+    }).join('');
+  }
+
+  // 찾은 절을 채팅 안에 펼친다 — 글자만 잘라 보여 주는 것보다 표·단계·아이콘이 그대로 보이는 편이 낫다
+  function cbDocHTML(hits) {
+    var top = hits[0];
+    var more = hits.slice(1).map(function (h) {
+      return '<button data-cbgo="' + h.id + '">' + esc(h.title) + '</button>';
+    }).join('');
+    return '<div class="cb-doc-wrap">' +
+      '<div class="cb-doc-h"><i data-lucide="book-open"></i><b>' + esc(top.title) + '</b>' +
+        '<span>사용 설명서</span></div>' +
+      '<div class="cb-doc man-body man-embed" data-cbzoom="' + top.id + '">' + top.html + '</div>' +
+      '<div class="cb-acts">' +
+        '<button class="cb-main" data-cbzoom="' + top.id + '"><i data-lucide="maximize-2"></i>크게 보기</button>' +
+        '<button data-cbgo="' + top.id + '"><i data-lucide="book-open"></i>설명서에서 열기</button>' +
+      '</div>' +
+      (more ? '<div class="cb-src"><span>관련된 곳</span>' + more + '</div>' : '') +
+      '</div>';
+  }
+
   function cbAsk(q) {
     if (cbBusy) return;
     cbBusy = true;
@@ -3184,28 +3248,92 @@
           '<b>사용 설명서</b>를 직접 훑어봐 주세요.';
         cbBusy = false; return;
       }
-      var srcHTML = '<div class="cb-src">' + hits.map(function (h) {
-        return '<button data-cbgo="' + h.id + '">' + esc(h.title) + ' 보기</button>';
-      }).join('') + '</div>';
+
+      /* 모델을 기다리는 동안 빈 화면을 두지 않는다 — 근거는 이미 찾았으니 먼저 펼쳐 준다.
+         모델 답은 도착하는 대로 위쪽 자리에 들어간다. 늦어도 읽을 것이 있는 상태가 된다. */
+      wait.innerHTML = '<div class="cb-ans">' +
+        '<span class="cb-dots"><span></span><span></span><span></span></span>' +
+        '<span class="cb-wait">설명서에서 찾은 내용을 먼저 보여 드립니다</span></div>' + cbDocHTML(hits);
+      var ansEl = wait.querySelector('.cb-ans');
+      icons();
+      var b = cbEl('cbBody'); if (b) b.scrollTop = b.scrollHeight;
+
+      var done = function (html) {
+        if (ansEl) ansEl.innerHTML = html;
+        icons(); cbBusy = false;
+        var bd = cbEl('cbBody'); if (bd) bd.scrollTop = bd.scrollHeight;
+      };
 
       S.api('/api/admin/assist', { method: 'POST', body: {
         question: q,
         context: hits.map(function (h) { return { title: h.title, text: h.text.slice(0, 2200) }; }),
       } }).then(function (r) {
         var ans = r.ok && r.data && r.data.answer;
-        if (ans) wait.innerHTML = esc(ans).replace(/\n/g, '<br>') + srcHTML;
-        else {
-          // 모델을 못 쓰는 상황 — 찾은 절로 곧장 안내한다
-          wait.innerHTML = '<b>' + esc(hits[0].title) + '</b> 부분에 나와 있습니다.<br>' +
-            esc(hits[0].text.slice(0, 180)) + '…' + srcHTML;
-        }
-        icons(); cbBusy = false;
-        var b = cbEl('cbBody'); if (b) b.scrollTop = b.scrollHeight;
+        // 모델을 못 쓰는 상황이어도 아래에 절이 펼쳐져 있다 — 한 줄만 바꿔 준다
+        done(ans ? cbFormat(ans)
+                 : '<p><b>' + esc(hits[0].title) + '</b> 부분에 나와 있습니다. 아래를 읽어 보세요.</p>');
       }).catch(function () {
-        wait.innerHTML = '<b>' + esc(hits[0].title) + '</b> 부분을 확인해 보세요.' + srcHTML;
-        cbBusy = false;
+        done('<p><b>' + esc(hits[0].title) + '</b> 부분을 확인해 보세요.</p>');
       });
     });
+  }
+
+  /* 크게 보기 — 좁은 채팅 칸에서는 표도 단계도 다 보이지 않는다.
+     전체 화면으로 펼치고, 글자 크기를 단계로 키울 수 있게 한다(50~60대가 읽는다). */
+  var CB_ZOOM = [1, 1.2, 1.45, 1.75, 2.1];
+  var cbZoomStep = 0;
+
+  function cbApplyZoom() {
+    var body = cbEl('cbZoomBody'), pct = cbEl('cbZoomPct');
+    if (!body) return;
+    body.style.zoom = CB_ZOOM[cbZoomStep];
+    if (pct) pct.textContent = Math.round(CB_ZOOM[cbZoomStep] * 100) + '%';
+    var out = cbEl('cbZoomOut'), inn = cbEl('cbZoomIn');
+    if (out) out.disabled = cbZoomStep === 0;
+    if (inn) inn.disabled = cbZoomStep === CB_ZOOM.length - 1;
+  }
+
+  function cbZoomOpen(id) {
+    cbIndex().then(function (secs) {
+      var sec = null;
+      secs.forEach(function (s) { if (s.id === id) sec = s; });
+      if (!sec) return;
+      var lay = cbEl('cbZoom'), body = cbEl('cbZoomBody'), title = cbEl('cbZoomTitle'), go = cbEl('cbZoomGo');
+      if (!lay || !body) return;
+      title.textContent = sec.title;
+      body.innerHTML = sec.html;
+      body.scrollTop = 0;
+      if (go) go.setAttribute('data-cbgo', sec.id);
+      cbZoomStep = 0; cbApplyZoom();
+      lay.classList.add('open');
+      document.body.classList.add('cb-locked');
+      icons();
+    });
+  }
+
+  function cbZoomClose() {
+    var lay = cbEl('cbZoom');
+    if (lay) lay.classList.remove('open');
+    document.body.classList.remove('cb-locked');
+    cbImgClose();
+  }
+
+  /* 사진은 한 번 더 키운다 — 설명서에 사진을 넣으면 눌러서 원본 크기로 볼 수 있어야 한다 */
+  function cbImgOpen(src, alt) {
+    var lay = cbEl('cbImg');
+    if (!lay) return;
+    var img = lay.querySelector('img');
+    img.src = src; img.alt = alt || '';
+    lay.classList.add('open');
+    document.body.classList.add('cb-locked');
+  }
+  function cbImgClose() {
+    var lay = cbEl('cbImg');
+    if (lay && lay.classList.contains('open')) {
+      lay.classList.remove('open');
+      lay.querySelector('img').removeAttribute('src');
+      if (!(cbEl('cbZoom') && cbEl('cbZoom').classList.contains('open'))) document.body.classList.remove('cb-locked');
+    }
   }
 
   function cbOpen(open) {
@@ -3227,10 +3355,22 @@
   document.addEventListener('click', function (e) {
     if (e.target.closest('#cbFab')) { cbOpen(true); return; }
     if (e.target.closest('#cbClose')) { cbOpen(false); return; }
+
+    // 사진은 어디에 있든(설명서 본문·챗봇·크게 보기) 눌러서 키운다
+    var img = e.target.closest('.man-body img, .cb-doc img, #cbZoomBody img');
+    if (img && img.getAttribute('src')) { cbImgOpen(img.getAttribute('src'), img.alt); return; }
+    if (e.target.closest('#cbImg')) { cbImgClose(); return; }
+
+    if (e.target.closest('#cbZoomClose') || e.target.id === 'cbZoom') { cbZoomClose(); return; }
+    if (e.target.closest('#cbZoomIn')) { cbZoomStep = Math.min(CB_ZOOM.length - 1, cbZoomStep + 1); cbApplyZoom(); return; }
+    if (e.target.closest('#cbZoomOut')) { cbZoomStep = Math.max(0, cbZoomStep - 1); cbApplyZoom(); return; }
+
     var q = e.target.closest('[data-cbq]');
     if (q) { cbAsk(q.dataset.cbq); return; }
     var g = e.target.closest('[data-cbgo]');
-    if (g) { cbGoto(g.dataset.cbgo); cbOpen(false); return; }
+    if (g && g.dataset.cbgo) { cbZoomClose(); cbGoto(g.dataset.cbgo); cbOpen(false); return; }
+    var z = e.target.closest('[data-cbzoom]');
+    if (z) { cbZoomOpen(z.dataset.cbzoom); return; }
   });
   document.addEventListener('submit', function (e) {
     if (e.target && e.target.id === 'cbForm') {
@@ -3243,7 +3383,11 @@
     }
   });
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && cbEl('cbPanel') && cbEl('cbPanel').classList.contains('open')) cbOpen(false);
+    if (e.key !== 'Escape') return;
+    // 겹쳐 뜬 순서의 역순으로 닫는다 — 사진 → 크게 보기 → 챗봇
+    if (cbEl('cbImg') && cbEl('cbImg').classList.contains('open')) { cbImgClose(); return; }
+    if (cbEl('cbZoom') && cbEl('cbZoom').classList.contains('open')) { cbZoomClose(); return; }
+    if (cbEl('cbPanel') && cbEl('cbPanel').classList.contains('open')) cbOpen(false);
   });
 
   function ready(fn){

@@ -12,16 +12,41 @@
  */
 import { json, badRequest, methodNotAllowed, readJson } from '../../_shared/http.js';
 
-/* 쓸 수 있는 모델은 계정·시점에 따라 다르다. 하나가 막히면 다음 것으로 넘어간다 —
-   챗봇이 통째로 죽는 것보다 낫다. 앞쪽일수록 한국어 응답이 낫다. */
+/* 순서가 곧 응답 속도다 — 앞에서부터 시도하고 되는 것에서 멈춘다.
+   운영에서 같은 질문으로 잰 값(2026-07-26):
+
+     @cf/meta/llama-3.2-3b-instruct    0.7초   ← 기본
+     @cf/meta/llama-3.1-8b-instruct   16.7초
+     @cf/mistral/mistral-7b-...       25.7초
+     @cf/qwen/qwen1.5-*, @cf/meta/llama-3-8b   폐기됨(5028)
+
+   전에는 폐기된 모델이 앞에 있어 매 질문마다 헛걸음을 한 뒤 16초짜리에 닿았다.
+   폐기 모델은 뺐고, 뒤의 둘은 3b 가 막혔을 때를 위한 보험으로만 남긴다. */
 const MODELS = [
-  '@cf/qwen/qwen1.5-14b-chat-awq',
+  '@cf/meta/llama-3.2-3b-instruct',
   '@cf/meta/llama-3.1-8b-instruct',
-  '@cf/meta/llama-3-8b-instruct',
   '@cf/mistral/mistral-7b-instruct-v0.1',
 ];
 const MAX_Q = 300;
 const MAX_CTX = 6000;
+const MODEL_TIMEOUT_MS = 12_000;   // 응답 없는 모델에 매달려 있지 않는다
+
+/* 한 번 된 모델을 기억한다. 같은 인스턴스가 살아 있는 동안은 앞의 것이 막혀도 다시 헛걸음하지 않는다.
+   인스턴스가 바뀌면 초기값으로 돌아가는데, 그때는 MODELS 순서가 다시 답을 준다. */
+let preferred = '';
+
+function order() {
+  if (!preferred) return MODELS;
+  return [preferred].concat(MODELS.filter((m) => m !== preferred));
+}
+
+/* AI.run 이 응답하지 않는 경우가 있다 — 기다리다 전체가 죽느니 다음 모델로 넘어간다 */
+function withTimeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout ' + ms + 'ms')), ms)),
+  ]);
+}
 
 const SYSTEM = [
   '너는 한국참전통발효식품협동조합 홈페이지 관리자 화면의 도움말이다.',
@@ -61,15 +86,18 @@ export async function onRequestPost({ request, env }) {
     { role: 'user', content: `[설명서]\n${passages.join('\n\n')}\n\n[질문]\n${question}` },
   ];
   let lastErr = '';
-  const list = body.model ? [body.model] : MODELS;   // 진단용 — 특정 모델만 시험
-  for (const model of list) {
+  for (const model of order()) {
     try {
-      const res = await env.AI.run(model, { messages, max_tokens: 420, temperature: 0.2 });
+      const res = await withTimeout(
+        env.AI.run(model, { messages, max_tokens: 420, temperature: 0.2 }),
+        MODEL_TIMEOUT_MS,
+      );
       const answer = String((res && (res.response || res.result || '')) || '').trim();
-      if (answer) return json({ answer, model });
+      if (answer) { preferred = model; return json({ answer, model }); }
       lastErr = 'empty';
     } catch (err) {
       lastErr = String((err && err.message) || err).slice(0, 200);
+      if (preferred === model) preferred = '';   // 기억해 둔 모델이 막혔다 — 다시 순서대로
     }
   }
   // 전부 막혔다 — 근거 절은 화면이 이미 갖고 있으므로 그것만으로도 쓸 수 있다.

@@ -59,8 +59,8 @@
   .cb-fab:hover { transform: translateY(-2px) scale(1.04); }
   .cb-fab i[data-lucide] { width: 26px; height: 26px; }
   .cb-fab.hide { display: none; }
-  .cb-panel { position: fixed; right: 22px; bottom: 22px; z-index: 951; width: min(400px, calc(100vw - 32px));
-    height: min(620px, calc(100vh - 44px)); background: var(--surface); border-radius: var(--r-xl);
+  .cb-panel { position: fixed; right: 22px; bottom: 22px; z-index: 951; width: min(440px, calc(100vw - 32px));
+    height: min(680px, calc(100vh - 44px)); background: var(--surface); border-radius: var(--r-xl);
     box-shadow: var(--sh-lg); display: none; flex-direction: column; overflow: hidden; border: 1px solid var(--line-soft); }
   .cb-panel.open { display: flex; }
   .cb-head { display: flex; align-items: center; gap: 10px; padding: 16px 18px;
@@ -72,14 +72,90 @@
   .cb-head button:hover { background: rgba(255,255,255,.14); color: #fff; }
   .cb-body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px;
     background: var(--surface-2); }
-  .cb-msg { max-width: 88%; padding: 11px 14px; border-radius: 14px; font-size: 14.5px; line-height: 1.7; white-space: pre-wrap; }
-  .cb-msg.me { align-self: flex-end; background: var(--point); color: var(--point-ink); border-bottom-right-radius: 5px; font-weight: 600; }
-  .cb-msg.bot { align-self: flex-start; background: var(--surface); border: 1px solid var(--line-soft); border-bottom-left-radius: 5px; }
+  .cb-msg { max-width: 88%; padding: 11px 14px; border-radius: 14px; font-size: 14.5px; line-height: 1.7; }
+  .cb-msg.me { align-self: flex-end; background: var(--point); color: var(--point-ink); border-bottom-right-radius: 5px;
+    font-weight: 600; white-space: pre-wrap; }
+  /* 답에 설명서 본문이 딸려 오므로 말풍선을 좁게 두면 표·단계가 다 접힌다 */
+  .cb-msg.bot { align-self: stretch; max-width: 100%; background: var(--surface);
+    border: 1px solid var(--line-soft); border-bottom-left-radius: 5px; }
   .cb-msg.bot b { color: var(--ink); }
-  .cb-src { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .cb-ans p { margin: 0; }
+  .cb-ans p + p { margin-top: 7px; }
+  .cb-ans .cb-wait { color: var(--ink-faint); font-size: 13px; margin-left: 4px; }
+  .cb-steps { margin: 7px 0 0; padding: 0; list-style: none; counter-reset: cbs; display: grid; gap: 7px; }
+  .cb-steps li { counter-increment: cbs; display: grid; grid-template-columns: 22px 1fr; gap: 8px; align-items: start; }
+  .cb-steps li::before { content: counter(cbs); grid-column: 1; grid-row: 1; width: 22px; height: 22px;
+    border-radius: 50%; background: var(--main); color: #fff; font-size: 12px; font-weight: 800;
+    display: grid; place-items: center; margin-top: 2px; }
+  .cb-steps li > * { grid-column: 2; }
+
+  /* 찾은 설명서 절을 그대로 펼쳐 놓는 칸 */
+  .cb-doc-wrap { margin-top: 12px; border-top: 1px solid var(--line-soft); padding-top: 11px; }
+  .cb-doc-h { display: flex; align-items: center; gap: 7px; font-size: 13.5px; }
+  .cb-doc-h i[data-lucide] { width: 15px; height: 15px; color: var(--main); }
+  .cb-doc-h b { font-size: 14px; }
+  .cb-doc-h span { margin-left: auto; font-size: 11.5px; color: var(--ink-faint); }
+  .cb-doc { position: relative; max-height: 260px; overflow: hidden; margin-top: 9px; cursor: zoom-in;
+    border: 1px solid var(--line-soft); border-radius: var(--r-md); padding: 12px 14px; background: var(--surface-2);
+    -webkit-mask-image: linear-gradient(180deg, #000 200px, transparent);
+    mask-image: linear-gradient(180deg, #000 200px, transparent); }
+  .cb-acts { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
+  .cb-acts button { font: inherit; font-size: 13px; font-weight: 700; padding: 8px 13px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--surface); color: var(--ink-soft); cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px; }
+  .cb-acts button i[data-lucide] { width: 15px; height: 15px; }
+  .cb-acts button:hover { border-color: var(--main); color: var(--main-deep); }
+  .cb-acts .cb-main { background: var(--main); border-color: var(--main); color: #fff; }
+  .cb-acts .cb-main:hover { background: var(--main-deep); color: #fff; }
+  .cb-src { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
+  .cb-src > span { font-size: 12px; color: var(--ink-faint); }
   .cb-src button { font: inherit; font-size: 12.5px; font-weight: 700; padding: 5px 11px; border-radius: 99px;
     border: 1px solid var(--line); background: var(--surface-2); color: var(--main-deep); cursor: pointer; }
   .cb-src button:hover { border-color: var(--main); background: var(--main-tint); }
+  .cb-link { font: inherit; font-size: inherit; padding: 0; border: none; background: none; cursor: pointer;
+    color: var(--main-deep); text-decoration: underline; }
+
+  /* 설명서 본문을 관리자 화면 밖(챗봇·크게 보기)에 끼워 넣을 때의 보정.
+     .admin-view .man-body 규칙이 닿지 않는 자리라 같은 것을 여기서 다시 준다. */
+  .man-embed .section { padding-block: 0 !important; background: none !important; border-radius: 0; }
+  .man-embed .wrap { max-width: none; padding-inline: 0; }
+  .man-embed .reveal { opacity: 1 !important; transform: none !important; animation: none !important; }
+  .man-embed .page-hero, .man-embed .jump { display: none; }
+  .man-embed img { max-width: 100%; height: auto; cursor: zoom-in; border-radius: var(--r-md); }
+  .cb-doc.man-embed { font-size: 14.5px; line-height: 1.75; }
+  .cb-doc.man-embed h2 { font-size: 17px; }
+  .cb-doc.man-embed h3 { font-size: 15px; }
+  .cb-doc.man-embed .table { font-size: 13px; }
+
+  /* 크게 보기 — 전체 화면 + 글자 배율 */
+  .cb-zoom { position: fixed; inset: 0; z-index: 970; background: rgba(23,26,22,.62);
+    display: none; padding: 24px; overflow: auto; }
+  .cb-zoom.open { display: block; }
+  .cb-zoom-card { background: var(--surface); border-radius: var(--r-xl); box-shadow: var(--sh-lg);
+    width: min(940px, 100%); margin: 0 auto; display: flex; flex-direction: column;
+    max-height: calc(100vh - 48px); overflow: hidden; }
+  .cb-zoom-bar { display: flex; align-items: center; gap: 10px; padding: 14px 18px;
+    background: var(--main-deeper); color: #fff; flex: none; }
+  .cb-zoom-bar > b { font-size: 16px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cb-zoom-tools { margin-left: auto; display: flex; align-items: center; gap: 6px; flex: none; }
+  .cb-zoom-tools button { font: inherit; font-size: 13px; font-weight: 700; background: rgba(255,255,255,.12);
+    border: none; color: #fff; cursor: pointer; border-radius: 9px; padding: 7px 10px;
+    display: inline-flex; align-items: center; gap: 5px; }
+  .cb-zoom-tools button:hover { background: rgba(255,255,255,.24); }
+  .cb-zoom-tools button:disabled { opacity: .35; cursor: default; }
+  .cb-zoom-tools button i[data-lucide] { width: 16px; height: 16px; }
+  .cb-zoom-tools #cbZoomPct { font-size: 13px; font-weight: 700; min-width: 46px; text-align: center;
+    color: rgba(255,255,255,.9); }
+  .cb-zoom-body { overflow: auto; padding: 22px 26px 30px; }
+  .cb-locked { overflow: hidden; }
+
+  /* 사진 원본 보기 */
+  .cb-img { position: fixed; inset: 0; z-index: 980; background: rgba(23,26,22,.86);
+    display: none; place-items: center; padding: 24px; cursor: zoom-out; }
+  .cb-img.open { display: grid; }
+  .cb-img img { max-width: 100%; max-height: calc(100vh - 48px); border-radius: var(--r-md); box-shadow: var(--sh-lg); }
+  .cb-img p { position: absolute; bottom: 16px; left: 0; right: 0; text-align: center;
+    color: rgba(255,255,255,.75); font-size: 13px; }
   .cb-quick { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 12px; background: var(--surface-2); }
   .cb-quick button { font: inherit; font-size: 12.5px; padding: 7px 12px; border-radius: 99px;
     border: 1px solid var(--line); background: var(--surface); color: var(--ink-soft); cursor: pointer; }
@@ -94,7 +170,16 @@
     background: var(--ink-faint); animation: cbBlink 1.2s infinite; }
   .cb-dots span:nth-child(2){ animation-delay:.2s } .cb-dots span:nth-child(3){ animation-delay:.4s }
   @keyframes cbBlink { 0%,60%,100%{opacity:.25} 30%{opacity:1} }
-  @media (max-width: 760px){ .cb-fab { right: 14px; bottom: 14px; } .cb-panel { right: 8px; bottom: 8px; } }
+  @media (max-width: 760px){
+    .cb-fab { right: 14px; bottom: 14px; }
+    .cb-panel { right: 8px; bottom: 8px; }
+    .cb-zoom { padding: 0; }
+    .cb-zoom-card { max-height: 100vh; border-radius: 0; }
+    .cb-zoom-body { padding: 16px 14px 26px; }
+    .cb-zoom-bar { padding: 12px 14px; }
+    .cb-zoom-bar > b { font-size: 14.5px; }
+    .cb-zoom-tools #cbZoomGo { display: none; }   /* 좁은 화면에선 배율·닫기만 */
+  }
   .nav-group { padding-top: 8px; margin-top: 4px; }
   .nav-group:first-child { border-top: none; }
   /* 상위 메뉴는 하위 항목과 무게가 달라야 한다 — 아이콘을 상자에 담고 글자를 키운다 */
@@ -725,6 +810,29 @@
     <button type="submit" id="cbSend" aria-label="보내기"><i data-lucide="send-horizontal"></i></button>
   </form>
 </section>
+
+<!-- 크게 보기 — 좁은 채팅 칸에 담기지 않는 설명서 절을 전체 화면으로 펼치고 글자를 키운다 -->
+<div class="cb-zoom" id="cbZoom" role="dialog" aria-modal="true" aria-label="설명서 크게 보기">
+  <div class="cb-zoom-card">
+    <div class="cb-zoom-bar">
+      <b id="cbZoomTitle"></b>
+      <div class="cb-zoom-tools">
+        <button id="cbZoomOut" aria-label="글자 작게" title="글자 작게"><i data-lucide="zoom-out"></i></button>
+        <span id="cbZoomPct">100%</span>
+        <button id="cbZoomIn" aria-label="글자 크게" title="글자 크게"><i data-lucide="zoom-in"></i></button>
+        <button id="cbZoomGo" data-cbgo=""><i data-lucide="book-open"></i>설명서에서 열기</button>
+        <button id="cbZoomClose" aria-label="닫기"><i data-lucide="x"></i></button>
+      </div>
+    </div>
+    <div class="cb-zoom-body man-body man-embed" id="cbZoomBody"></div>
+  </div>
+</div>
+
+<!-- 사진 원본 보기 -->
+<div class="cb-img" id="cbImg" role="dialog" aria-modal="true" aria-label="사진 크게 보기">
+  <img alt="">
+  <p>아무 곳이나 누르면 닫힙니다</p>
+</div>
 
 <script defer src="https://unpkg.com/lucide@1.17.0"></script>
 <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
