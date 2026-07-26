@@ -93,10 +93,20 @@ curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' https://<프로젝트>.
 
 Pages 프로젝트 > Custom domains > 도메인 추가 → 안내되는 DNS 레코드 등록.
 
-도메인이 정해지면 아래 파일의 절대 URL 을 실제 도메인으로 바꾼다.
+`robots.txt` 와 `sitemap.xml` 은 **손볼 것이 없다** — Functions 가 요청 호스트로 주소를
+만들기 때문에 도메인을 붙이는 즉시 맞는다. `llms.txt` 의 주소만 한 번 바꾸면 된다.
 
-- `sitemap.xml` · `robots.txt` · `llms.txt`
-- 각 HTML 의 `og:image` (상대경로는 site.js 가 절대경로로 만들지만, 정식 도메인으로 두는 편이 낫다)
+## 검색 노출 — 옛 주소와 새 주소
+
+두 주소에 같은 내용이 있으면 검색엔진이 원본을 못 정해 **양쪽 순위가 함께 내려간다**.
+그래서 옛 주소(GitHub Pages)만 닫아 두었다.
+
+| | 파일 | 내용 |
+|---|---|---|
+| 옛 주소 | 정적 `robots.txt` | `Disallow: /` — 통째로 색인 제외 |
+| 새 주소 | `functions/robots.txt.js` | 정상 허용. Functions 가 정적 파일보다 먼저 응답한다 |
+
+옛 주소를 완전히 닫을 때는 저장소 Settings > Pages > Source 를 **None** 으로 바꾼다.
 
 ---
 
