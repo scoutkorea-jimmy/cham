@@ -34,6 +34,7 @@ db/0002_data.sql    orders · applications · inquiries · products · posts · 
 wrangler.toml       Pages 설정 · D1(DB) · R2(MEDIA) 바인딩
 docs/migration-cloudflare.md   서버 이전 계획 — 단계·스키마
 docs/deploy.md      배포 절차 — Cloudflare 설정 · 확인 · 정리 · 되돌리기
+docs/handoff.md     **요청 추적** — 받은 요청·상태·검증 도구. 작업 시작 전에 여기부터 본다
 terms.html / privacy.html                robots.txt / sitemap.xml / llms.txt
 
 assets/
@@ -56,7 +57,8 @@ Basic_Infomation/   고객사 원본 자료(pptx·jpg) — 콘텐츠 근거. 편
 
 | 상황 | 문서 |
 |---|---|
-| **모든 작업 시작 전** | [rules/workflow.md](rules/workflow.md) — 외부 변경 감지 · 조사 · 계획 · 검증 · 보고 |
+| **모든 작업 시작 전** | [docs/handoff.md](docs/handoff.md) — 받은 요청과 상태. 새 요청은 여기 먼저 적는다 |
+| 작업 절차 | [rules/workflow.md](rules/workflow.md) — 외부 변경 감지 · 조사 · 계획 · 검증 · 보고 |
 | 코드를 쓰거나 고칠 때 | [rules/code-quality.md](rules/code-quality.md) — 중복 · 책임 분리 · 타입 · 오류 · 네이밍 |
 | 색 · 글꼴 · 그림자 · 모션 | [rules/design-tokens.md](rules/design-tokens.md) |
 | 여백 · 간격 · 리듬 | [rules/spacing-rhythm.md](rules/spacing-rhythm.md) |
