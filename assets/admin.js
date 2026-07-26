@@ -858,14 +858,28 @@
     return '<select class="st-sel" data-act="cstatus" data-id="' + c.id + '">' +
       ['모집중', '예정', '상시', '마감'].map(function (s) { return '<option' + (c.status === s ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select>';
   }
+  // 기수 이름 → 신청 인원. 신청서의 '신청 기수'는 '31기 (2026.05.15 ~ 07.24)' 형태로
+  // 저장되므로 기수명으로 시작하는지로 센다.
+  function applicantsPerCohort() {
+    var apps = gj(K.apps, []);
+    var map = {};
+    S.getCohorts().forEach(function (c) {
+      map[c.id] = apps.filter(function (r) { return String(r.course || '').indexOf(c.name) === 0; }).length;
+    });
+    return map;
+  }
   function cohortPanel() {
     var list = S.getCohorts();
+    var per = applicantsPerCohort();
     var rows = list.length ? list.map(function (c) {
-      return '<tr><td><b>' + esc(c.name) + '</b></td><td>' + esc(c.period || '-') + '</td><td>' + esc(c.schedule || '-') + '</td><td>' + esc(c.place || '-') + '</td><td>' + cohortStatusSel(c) +
+      var nApp = per[c.id] || 0;
+      return '<tr><td><b>' + esc(c.name) + '</b></td><td>' + esc(c.period || '-') + '</td><td>' + esc(c.schedule || '-') + '</td><td>' + esc(c.place || '-') + '</td>' +
+        '<td>' + (nApp ? '<b>' + nApp + '명</b>' : '<span class="pc-sub">0명</span>') + '</td>' +
+        '<td>' + cohortStatusSel(c) +
         '</td><td><button class="icon-btn" data-act="cdel" data-id="' + c.id + '" title="기수 삭제"><i data-lucide="trash-2"></i></button></td></tr>';
-    }).join('') : emptyRow(6, '등록된 기수가 없습니다. 아래에서 추가하세요.');
-    return '<div class="panel"><div class="panel-head"><h3>모집 기수 관리</h3><span class="ph-sub">여기서 추가·수정한 기수가 지도사 과정 페이지와 신청서에 그대로 반영됩니다</span></div>' +
-      '<div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>기수명</th><th>교육 기간</th><th>요일·시간</th><th>장소</th><th>모집 상태</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+    }).join('') : emptyRow(7, '등록된 기수가 없습니다. 아래에서 추가하세요.');
+    return '<div class="panel"><div class="panel-head"><h3>모집 기수</h3><span class="ph-sub">여기서 추가·수정한 기수가 지도사 과정 페이지와 신청서에 그대로 반영됩니다</span></div>' +
+      '<div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>기수명</th><th>교육 기간</th><th>요일·시간</th><th>장소</th><th>신청 인원</th><th>모집 상태</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
       '<form class="admin-form" id="cohortForm" style="border-top:1px solid var(--line-soft)">' +
         '<div class="field"><label>기수명 <span style="color:var(--point)">*</span></label><input name="name" required placeholder="예) 2026년 3기"></div>' +
         '<div class="field"><label>교육 기간</label><input name="period" placeholder="예) 2026.09.05 ~ 09.26"></div>' +
@@ -883,14 +897,70 @@
   function handledMark(r) {
     return r.adminMemo ? '<span class="hd-dot" title="처리 메모 있음 · ' + esc(fmtDate(r.handledAt)) + '"></span>' : '';
   }
+  /* 교육과정(기수) 관리 — 신청자 명단과 하는 일이 다르다.
+     기수를 짜는 일과 신청자에게 연락하는 일은 시점도 사람도 다르므로 화면을 나눈다. */
+  function viewCohorts() {
+    var list = S.getCohorts();
+    var per = applicantsPerCohort();
+    var open = list.filter(function (c) { return c.status === '모집중' || c.status === '상시'; });
+    var total = Object.keys(per).reduce(function (s, k) { return s + per[k]; }, 0);
+    return '<div class="modal-note" style="margin-bottom:18px"><i data-lucide="info"></i><span>' +
+        '여기서 만든 기수가 <b>지도사 과정 페이지의 일정표</b>와 <b>신청서의 기수 선택칸</b>에 그대로 나옵니다. ' +
+        '일정이 확정되기 전에는 <b>예정</b>으로 두세요 — <b>모집중</b>으로 두면 홈페이지에 잘못된 일정이 안내됩니다.</span></div>' +
+      '<div class="stat-grid">' +
+        kpi(list.length + '개', '등록된 기수', '') +
+        kpi(open.length + '개', '접수 중', open.length ? open.map(function (c) { return esc(c.name); }).join(' · ') : '신청서에 선택지가 없습니다') +
+        kpi(total + '명', '기수별 신청 합계', '') +
+        kpi(list.filter(function (c) { return c.status === '마감'; }).length + '개', '마감', '') +
+      '</div>' +
+      '<div style="margin-top:24px">' + cohortPanel() + '</div>';
+  }
+
   function viewApps() {
     var a = gj(K.apps, []);
     var rows = a.length ? a.map(function(r){
-      return '<tr><td class="dt">' + fmtDate(r.at) + '</td><td>' + handledMark(r) + esc(r.name||'-') + '</td><td>' + esc(r.phone||'-') + '</td><td>' + esc(r.region||'-') + '</td><td>' + esc(r.course||'-') + '</td><td>' + statusSelect(K.apps,'apps',r) + '</td>' +
+      var tel = String(r.phone || '').replace(/[^0-9+]/g, '');
+      return '<tr><td class="dt">' + fmtDate(r.at) + '</td><td>' + handledMark(r) + '<b>' + esc(r.name||'-') + '</b></td>' +
+        '<td>' + (tel ? '<a href="tel:' + tel + '" class="tel-link">' + esc(r.phone) + '</a>' : '-') + '</td>' +
+        '<td>' + esc(r.region||'-') + '</td><td>' + esc(r.course||'-') + '</td><td>' + statusSelect(K.apps,'apps',r) + '</td>' +
         '<td><button class="btn btn-ghost" data-detail="apps" data-id="' + r.id + '" style="padding:7px 12px"><i data-lucide="pen-line"></i>상세·처리</button></td><td>' + delBtn(K.apps, r.id) + '</td></tr>';
     }).join('') : emptyRow(8, '신청 내역이 없습니다.');
-    return cohortPanel() +
-      '<div class="panel" style="margin-top:24px"><div class="panel-head"><h3>전통발효식품 체험지도사 신청 관리</h3><span class="ph-sub">총 ' + a.length + '명</span>' +
+    var byStatus = {};
+    STATUS.apps.forEach(function (st) { byStatus[st] = a.filter(function (r) { return r.status === st; }).length; });
+    var per = applicantsPerCohort();
+    var cohorts = S.getCohorts();
+    var cMax = Math.max.apply(null, cohorts.map(function (c) { return per[c.id] || 0; }).concat([1]));
+    var cBars = cohorts.length
+      ? cohorts.map(function (c) {
+          return bar(esc(c.name) + ' <span class="pc-sub">' + esc(c.status) + '</span>',
+                     (per[c.id] || 0) + '명', Math.round((per[c.id] || 0) / cMax * 100),
+                     c.status === '모집중' || c.status === '상시' ? 'var(--point)' : 'var(--ink-faint)');
+        }).join('')
+      : '<div class="admin-empty" style="padding:26px 10px"><i data-lucide="calendar"></i><div>등록된 기수가 없습니다.<br>‘교육과정 관리’에서 먼저 기수를 만드세요.</div></div>';
+
+    var stBars = STATUS.apps.map(function (st) {
+      var c = { '신규': 'var(--point)', '상담': 'var(--info)', '확정': 'var(--main)', '수료': 'var(--ok)', '취소': 'var(--ink-faint)' }[st];
+      return bar(st, byStatus[st] + '명', a.length ? Math.round(byStatus[st] / a.length * 100) : 0, c);
+    }).join('');
+
+    var recent = a.slice(0, 5).map(function (r) {
+      return '<tr><td class="dt">' + fmtDate(r.at) + '</td><td><b>' + esc(r.name || '-') + '</b></td>' +
+        '<td>' + esc(r.phone || '-') + '</td><td>' + esc(r.region || '-') + '</td>' +
+        '<td>' + esc(r.course || '-') + '</td><td>' + stTag(r.status || '신규') + '</td></tr>';
+    });
+
+    return '<div class="stat-grid">' +
+        kpi(a.length + '명', '전체 신청자', '누적') +
+        kpi(byStatus['신규'] + '명', '연락 안 한 신청', byStatus['신규'] ? '먼저 전화해 주세요' : '모두 연락함') +
+        kpi(byStatus['확정'] + '명', '수강 확정', '') +
+        kpi(byStatus['수료'] + '명', '수료', '') +
+      '</div>' +
+      '<div class="dash-2col">' +
+        panelWrap('기수별 신청 현황', cohorts.length + '개 기수', '<div class="src-list">' + cBars + '</div>') +
+        panelWrap('처리 상태', '전체 ' + a.length + '명', '<div class="src-list">' + stBars + '</div>') +
+      '</div>' +
+      '<div style="margin-top:24px">' + miniTable('최근 신청', '최신 5명', ['일시', '이름', '연락처', '지역', '신청 기수', '상태'], recent, '아직 신청이 없습니다.') + '</div>' +
+      '<div class="panel" style="margin-top:24px"><div class="panel-head"><h3>신청자 명단</h3><span class="ph-sub">총 ' + a.length + '명 — 연락처를 눌러 전화할 수 있습니다</span>' +
         '<div class="panel-tools">' + listSearch('appsTable', '이름 · 연락처 · 지역 검색') + csvBtn('apps') + '</div></div>' +
       '<div style="overflow-x:auto"><table class="admin-table" id="appsTable"><thead><tr><th>일시</th><th>이름</th><th>연락처</th><th>지역</th><th>신청 기수</th><th>상태</th><th>처리</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
   }
@@ -1769,6 +1839,31 @@
      그룹 요약 화면 — 사이드바의 그룹 이름을 누르면 나온다.
      그 묶음에서 지금 무엇을 봐야 하는지 숫자로 먼저 보여 주고, 하위 화면으로 보낸다.
      ============================================================ */
+  var pageImgs = null;   // 페이지 사진 목록 — 한 번 받아 두고 재사용
+  function loadPageImgs(onDone) {
+    S.Media.list('page').then(function (recs) { pageImgs = recs || []; onDone && onDone(); });
+  }
+  // 표 한 덩어리 — 그룹 요약에서 되풀이해 쓴다
+  function miniTable(title, sub, head, rows, emptyMsg, foot) {
+    return '<div class="panel"><div class="panel-head"><h3>' + title + '</h3>' +
+      (sub ? '<span class="ph-sub">' + sub + '</span>' : '') + (foot || '') + '</div>' +
+      '<div style="overflow-x:auto"><table class="admin-table"><thead><tr>' +
+        head.map(function (h) { return '<th>' + h + '</th>'; }).join('') +
+      '</tr></thead><tbody>' + (rows.length ? rows.join('') : emptyRow(head.length, emptyMsg)) +
+      '</tbody></table></div></div>';
+  }
+  // 가로 막대 한 줄 (유입·상태 분포와 같은 모양)
+  function bar(label, num, pct, color) {
+    return '<div class="src-row"><div class="src-top"><span class="src-name">' + label + '</span>' +
+      '<span class="src-num">' + num + '</span></div>' +
+      '<div class="src-track"><div class="src-fill" style="width:' + Math.max(3, pct) + '%;background:' + color + '"></div></div></div>';
+  }
+  function panelWrap(title, sub, body) {
+    return '<div class="panel"><div class="panel-head"><h3>' + title + '</h3>' +
+      (sub ? '<span class="ph-sub">' + sub + '</span>' : '') + '</div>' +
+      '<div style="padding:20px 22px 24px">' + body + '</div></div>';
+  }
+
   function shortcut(id, icon, label, desc, note) {
     return '<button class="gs-card" data-nav="' + id + '">' +
       '<span class="gs-i"><i data-lucide="' + icon + '"></i></span>' +
@@ -1798,6 +1893,51 @@
       var st = p.option && p.option.values ? p.option.values.reduce(function (s, v) { return s + (Number(v.stock) || 0); }, 0) : Number(p.stock) || 0;
       return st > 0 && st <= 5;
     }).length;
+    // 상품별 판매 순위 (이번 달)
+    var byProd = {};
+    mo.forEach(function (o) {
+      var k = o.product || o.amount || '기타';
+      if (!byProd[k]) byProd[k] = { q: 0, amt: 0 };
+      byProd[k].q += Number(o.qty) || 0; byProd[k].amt += Number(o.total) || 0;
+    });
+    var pk = Object.keys(byProd).sort(function (x, y) { return byProd[y].amt - byProd[x].amt; }).slice(0, 5);
+    var pMax = pk.length ? byProd[pk[0]].amt : 1;
+    var rankBody = pk.length
+      ? pk.map(function (k) { return bar(esc(k), fmtWon(byProd[k].amt) + '원 <em>' + byProd[k].q + '개</em>',
+          Math.round(byProd[k].amt / pMax * 100), 'var(--olive)'); }).join('')
+      : '<div class="admin-empty" style="padding:26px 10px"><i data-lucide="inbox"></i><div>이번 달 판매가 아직 없습니다.</div></div>';
+
+    // 주문 상태 분포
+    var stMap = {}; orders.forEach(function (o) { var st = o.status || '기타'; stMap[st] = (stMap[st] || 0) + 1; });
+    var sk = Object.keys(stMap).sort(function (x, y) { return stMap[y] - stMap[x]; });
+    var sMax2 = sk.length ? stMap[sk[0]] : 1;
+    var stBody = sk.length
+      ? sk.map(function (k) { return bar(stTag(k), stMap[k] + '건', Math.round(stMap[k] / sMax2 * 100),
+          (S.ST_COLOR && S.ST_COLOR[k]) || '#6E8252'); }).join('')
+      : '<div class="admin-empty" style="padding:26px 10px"><i data-lucide="inbox"></i><div>주문이 없습니다.</div></div>';
+
+    // 재고 주의 — 품절이거나 5개 이하
+    var careRows = prods.filter(function (p) {
+      if (p.status === '숨김') return false;
+      var st = p.option && p.option.values ? p.option.values.reduce(function (a, v) { return a + (Number(v.stock) || 0); }, 0) : Number(p.stock) || 0;
+      return p.status === '품절' || st <= 5;
+    }).slice(0, 8).map(function (p) {
+      var st = p.option && p.option.values ? p.option.values.reduce(function (a, v) { return a + (Number(v.stock) || 0); }, 0) : Number(p.stock) || 0;
+      return '<tr><td><b>' + esc(p.name) + '</b><div class="pc-sub">' + esc(p.cat || '') + '</div></td>' +
+        '<td>' + (p.status === '품절' ? '<span class="tag" style="background:var(--danger);color:#fff">품절</span>' : '<span class="tag point">재고 ' + st + '</span>') + '</td>' +
+        '<td style="text-align:right"><button class="btn btn-ghost" data-act="pedit" data-id="' + p.id + '" style="padding:7px 13px">수정</button></td></tr>';
+    });
+
+    // 최근 주문
+    var recent = orders.slice(0, 6).map(function (o) {
+      return '<tr><td class="dt">' + fmtDate(o.at) + '</td>' +
+        '<td><b style="font-variant-numeric:tabular-nums">' + esc(o.orderNo || '-') + '</b></td>' +
+        '<td>' + esc(o.product || o.amount || '-') + (o.optionLabel ? '<div class="pc-sub">' + esc(o.optionLabel) + '</div>' : '') + '</td>' +
+        '<td>' + esc(o.name || '-') + '</td>' +
+        '<td style="white-space:nowrap">' + (o.total ? fmtWon(o.total) + '원' : '-') + '</td>' +
+        '<td>' + stTag(o.status) + '</td></tr>';
+    });
+
     return groupHead('판매 관리', '상품을 올리고, 주문을 처리하고, 얼마나 팔렸는지 봅니다.') +
       '<div class="stat-grid">' +
         kpi(fmtWon(sum(wk)) + '원', '이번 주 매출', '주문 ' + wk.length + '건') +
@@ -1811,6 +1951,14 @@
         shortcut('products', 'package', '상품 관리', '상품 등록 · 가격 · 재고 · 사진',
                  soldout || low ? (soldout ? '품절 ' + soldout : '') + (soldout && low ? ' · ' : '') + (low ? '재고 적음 ' + low : '') : '전체 ' + prods.length + '개') +
         shortcut('sales', 'trending-up', '매출 · 정산', '기간별 매출 · 상품별 순위 · CSV', '') +
+      '</div>' +
+      '<div class="dash-2col">' +
+        panelWrap('이번 달 상품별 판매', pk.length ? pk.length + '개 상품 · 금액순' : '', '<div class="src-list">' + rankBody + '</div>') +
+        panelWrap('주문 상태 분포', '전체 ' + orders.length + '건', '<div class="src-list">' + stBody + '</div>') +
+      '</div>' +
+      '<div class="dash-2col">' +
+        miniTable('재고 주의', '품절이거나 5개 이하', ['상품', '상태', ''], careRows, '재고가 넉넉합니다.') +
+        miniTable('최근 주문', '', ['일시', '주문번호', '상품', '주문자', '금액', '상태'], recent, '아직 주문이 없습니다.') +
       '</div>';
   }
 
@@ -1818,17 +1966,59 @@
     var apps = gj(K.apps, []), inq = gj(K.inq, []);
     var na = apps.filter(function (r) { return r.status === '신규'; }).length;
     var ni = inq.filter(function (r) { return r.status === '신규'; }).length;
-    var cohorts = S.getCohorts().filter(function (c) { return c.status === '모집중' || c.status === '상시'; }).length;
-    return groupHead('고객 관리', '교육 신청과 문의를 확인하고 답합니다.') +
+    var cohorts = S.getCohorts();
+    var openC = cohorts.filter(function (c) { return c.status === '모집중' || c.status === '상시'; });
+    var per = applicantsPerCohort();
+    var cMax = Math.max.apply(null, cohorts.map(function (c) { return per[c.id] || 0; }).concat([1]));
+
+    var cBars = cohorts.length
+      ? cohorts.slice(0, 6).map(function (c) {
+          return bar(esc(c.name) + ' <span class="pc-sub">' + esc(c.status) + '</span>', (per[c.id] || 0) + '명',
+            Math.round((per[c.id] || 0) / cMax * 100),
+            (c.status === '모집중' || c.status === '상시') ? 'var(--point)' : 'var(--ink-faint)');
+        }).join('')
+      : '<div class="admin-empty" style="padding:26px 10px"><i data-lucide="calendar"></i><div>등록된 기수가 없습니다.</div></div>';
+
+    var tMap = {}; inq.forEach(function (r) { var t = r.type || '일반 문의'; tMap[t] = (tMap[t] || 0) + 1; });
+    var tk = Object.keys(tMap).sort(function (x, y) { return tMap[y] - tMap[x]; });
+    var tMax = tk.length ? tMap[tk[0]] : 1;
+    var tBars = tk.length
+      ? tk.map(function (k) { return bar(esc(k), tMap[k] + '건', Math.round(tMap[k] / tMax * 100), 'var(--info)'); }).join('')
+      : '<div class="admin-empty" style="padding:26px 10px"><i data-lucide="message-square"></i><div>문의가 없습니다.</div></div>';
+
+    var appRows = apps.slice(0, 5).map(function (r) {
+      var tel = String(r.phone || '').replace(/[^0-9+]/g, '');
+      return '<tr><td class="dt">' + fmtDate(r.at) + '</td><td><b>' + esc(r.name || '-') + '</b></td>' +
+        '<td>' + (tel ? '<a href="tel:' + tel + '" class="tel-link">' + esc(r.phone) + '</a>' : '-') + '</td>' +
+        '<td>' + esc(r.course || '-') + '</td><td>' + stTag(r.status || '신규') + '</td></tr>';
+    });
+    var inqRows = inq.slice(0, 5).map(function (r) {
+      var tel = String(r.phone || '').replace(/[^0-9+]/g, '');
+      return '<tr><td class="dt">' + fmtDate(r.at) + '</td><td><b>' + esc(r.name || '-') + '</b></td>' +
+        '<td>' + (tel ? '<a href="tel:' + tel + '" class="tel-link">' + esc(r.phone) + '</a>' : '-') + '</td>' +
+        '<td class="cell-clip">' + esc(r.memo || '-') + '</td><td>' + stTag(r.status || '신규') + '</td></tr>';
+    });
+
+    return groupHead('고객 관리', '교육과정을 열고, 신청자에게 연락하고, 문의에 답합니다.') +
       '<div class="stat-grid">' +
-        kpi(na + '명', '새 지도사 신청', '전체 ' + apps.length + '명') +
+        kpi(na + '명', '연락 안 한 신청', '전체 ' + apps.length + '명') +
         kpi(ni + '건', '답변 안 한 문의', '전체 ' + inq.length + '건') +
-        kpi(cohorts + '개', '접수 중인 기수', '지도사 신청 화면에서 관리') +
+        kpi(openC.length + '개', '접수 중인 기수', openC.length ? openC.map(function (c) { return esc(c.name); }).join(' · ') : '신청서에 선택지가 없습니다') +
         kpi(apps.filter(function (r) { return r.status === '확정' || r.status === '수료'; }).length + '명', '확정 · 수료', '') +
       '</div>' +
       '<div class="gs-grid">' +
-        shortcut('apps', 'user-plus', '지도사 신청', '신청자 연락 · 처리 기록 · 기수 등록', na ? '새 신청 ' + na + '명' : '') +
+        shortcut('cohorts', 'calendar-days', '교육과정 관리', '기수 등록 · 모집 상태',
+                 cohorts.length ? cohorts.length + '개 기수' : '기수 없음') +
+        shortcut('apps', 'user-plus', '신청자 관리', '신청자 명단 · 연락처 · 처리 기록', na ? '새 신청 ' + na + '명' : '') +
         shortcut('inq', 'message-square', '문의 내역', '문의 확인 · 답변 기록', ni ? '미답변 ' + ni + '건' : '') +
+      '</div>' +
+      '<div class="dash-2col">' +
+        panelWrap('기수별 신청 현황', cohorts.length + '개 기수', '<div class="src-list">' + cBars + '</div>') +
+        panelWrap('문의 유형', '전체 ' + inq.length + '건', '<div class="src-list">' + tBars + '</div>') +
+      '</div>' +
+      '<div class="dash-2col">' +
+        miniTable('최근 신청자', '', ['일시', '이름', '연락처', '신청 기수', '상태'], appRows, '아직 신청이 없습니다.') +
+        miniTable('최근 문의', '', ['일시', '이름', '연락처', '내용', '상태'], inqRows, '아직 문의가 없습니다.') +
       '</div>';
   }
 
@@ -1837,36 +2027,155 @@
     var pops = gj(K.popups, []) || [];
     var live = pops.filter(function (p) { return p.active; }).length;
     var partners = (S.getPartners() || []).length;
+    if (pageImgs === null) loadPageImgs(function () { if (current === 'g_content') render(); });
+    var slots = S.IMG_SLOTS || [];
+    var upl = {}; (pageImgs || []).forEach(function (r) { upl[r.id] = true; });
+    var byPage = {}, pageOrder = [];
+    slots.forEach(function (sl) {
+      if (!byPage[sl.page]) { byPage[sl.page] = { all: 0, up: 0 }; pageOrder.push(sl.page); }
+      byPage[sl.page].all += 1;
+      if (upl[sl.id]) byPage[sl.page].up += 1;
+    });
+    var upTotal = Object.keys(upl).length;
+    var imgBars = pageImgs === null
+      ? '<div class="admin-empty" style="padding:26px 10px"><i data-lucide="loader"></i><div>사진 현황을 불러오는 중…</div></div>'
+      : pageOrder.map(function (pg) {
+          var d = byPage[pg];
+          return bar(esc(pg), d.up + ' / ' + d.all + '자리', Math.round(d.up / d.all * 100),
+                     d.up ? 'var(--main)' : 'var(--line)');
+        }).join('');
+
+    var catMap = {}; posts.forEach(function (x) { var c = x.cat || '공지'; catMap[c] = (catMap[c] || 0) + 1; });
+    var ck = Object.keys(catMap);
+    var cMaxP = ck.length ? Math.max.apply(null, ck.map(function (k) { return catMap[k]; })) : 1;
+    var catBars = ck.length
+      ? ck.map(function (k) { return bar(esc(k), catMap[k] + '건', Math.round(catMap[k] / cMaxP * 100), 'var(--olive)'); }).join('')
+      : '<div class="admin-empty" style="padding:26px 10px"><i data-lucide="file-text"></i><div>등록된 글이 없습니다.</div></div>';
+
+    var postRows = posts.slice().sort(function (x, y) { return (y.at || '').localeCompare(x.at || ''); })
+      .slice(0, 6).map(function (x) {
+        return '<tr><td><b>' + esc(x.title) + '</b></td><td><span class="tag">' + esc(x.cat) + '</span></td>' +
+          '<td class="dt">' + fmtDate(x.at) + '</td></tr>';
+      });
+    var popRows = pops.slice(0, 6).map(function (x) {
+      return '<tr><td>' + (x.img ? '<img src="' + esc(x.img) + '" style="width:52px;height:34px;object-fit:cover;border-radius:6px">' : '<span class="pc-sub">없음</span>') + '</td>' +
+        '<td><b>' + esc(x.title) + '</b></td>' +
+        '<td>' + (x.active ? '<span class="tag olive">게시 중</span>' : '<span class="tag">중지</span>') + '</td>' +
+        '<td class="dt">' + (x.startsAt || '상시') + (x.endsAt ? ' ~ ' + x.endsAt : '') + '</td></tr>';
+    });
+
     return groupHead('콘텐츠 관리', '홈페이지에 보이는 글·사진·알림을 관리합니다.') +
       '<div class="stat-grid">' +
-        kpi(posts.length + '건', '게시글', '공지 · 언론 · 교육') +
+        kpi(posts.length + '건', '게시글', ck.length ? ck.map(function (k) { return k + ' ' + catMap[k]; }).join(' · ') : '없음') +
         kpi(live + '개', '게시 중인 팝업', '전체 ' + pops.length + '개') +
+        kpi(upTotal + '장', '올린 사진', '전체 ' + slots.length + '자리') +
         kpi(partners + '곳', '파트너', '홈 하단 로고 띠') +
-        kpi((S.IMG_SLOTS || []).length + '자리', '사진 자리', '7개 페이지') +
       '</div>' +
       '<div class="gs-grid">' +
         shortcut('posts', 'file-text', '게시글 관리', '소식마당 글 목록 · 삭제', posts.length ? posts.length + '건' : '없음') +
-        shortcut('images', 'image', '페이지 이미지', '홈페이지 사진 교체 · 위치 조정', '') +
+        shortcut('images', 'image', '페이지 이미지', '홈페이지 사진 교체 · 위치 조정', upTotal + ' / ' + slots.length) +
         shortcut('popups', 'bell', '팝업 관리', '홈 첫 화면 알림', live ? '게시 중 ' + live + '개' : '없음') +
         shortcut('partners', 'handshake', '파트너 관리', '로고 띠', partners ? partners + '곳' : '없음') +
+      '</div>' +
+      '<div class="dash-2col">' +
+        panelWrap('페이지별 사진 채움', '올린 사진이 없으면 기본 사진이 나옵니다', '<div class="src-list">' + imgBars + '</div>') +
+        panelWrap('게시글 분류', '전체 ' + posts.length + '건', '<div class="src-list">' + catBars + '</div>') +
+      '</div>' +
+      '<div class="dash-2col">' +
+        miniTable('최근 게시글', '', ['제목', '분류', '등록일'], postRows, '등록된 글이 없습니다.') +
+        miniTable('팝업', '', ['이미지', '제목', '상태', '기간'], popRows, '등록된 팝업이 없습니다.') +
       '</div>';
   }
 
   function viewGroupSite() {
+    var st = S.getSettings ? S.getSettings() : {};
+    var D = S.SETTINGS_DEFAULTS || {};
+    // 기본값 그대로면 아직 손대지 않은 것 — 계좌는 그대로 두면 손님이 엉뚱한 곳에 입금한다
+    var isDefault = function (k) { return String(st[k] || '') === String(D[k] || ''); };
+    var checks = [
+      { k: 'bank',        label: '입금 계좌',      crit: true },
+      { k: 'holder',      label: '예금주',        crit: true },
+      { k: 'phone',       label: '대표 전화',      crit: false },
+      { k: 'email',       label: '이메일',        crit: false },
+      { k: 'address',     label: '주소',          crit: false },
+      { k: 'bizNo',       label: '사업자등록번호', crit: false },
+      { k: 'mailOrderNo', label: '통신판매업 신고', crit: false },
+    ];
+    var todo = checks.filter(function (c) { return c.crit && isDefault(c.k); });
+    var rows = checks.map(function (c) {
+      var def = isDefault(c.k);
+      return '<tr><td><b>' + c.label + '</b></td>' +
+        '<td class="cell-clip">' + esc(String(st[c.k] || '-')) + '</td>' +
+        '<td>' + (def
+          ? (c.crit ? '<span class="tag" style="background:var(--danger);color:#fff">기본값 — 꼭 바꾸세요</span>'
+                    : '<span class="tag">기본값</span>')
+          : '<span class="tag olive">설정함</span>') + '</td></tr>';
+    });
+
+    var acctNote = '';
+    if (accounts === null && myRole === 'owner' && S.isServer && S.isServer()) {
+      loadAccounts();
+    } else if (accounts) {
+      var own = accounts.filter(function (u) { return u.role === 'owner' && u.status === 'active'; }).length;
+      var stf = accounts.filter(function (u) { return u.role === 'staff' && u.status === 'active'; }).length;
+      acctNote = '관리자 ' + own + ' · 직원 ' + stf;
+    }
+
     return groupHead('운영 설정', '계좌·연락처 같은 운영 정보와 관리자 계정을 관리합니다.') +
+      (todo.length
+        ? '<div class="modal-note" style="border-color:var(--danger);background:var(--surface);margin-bottom:18px">' +
+          '<i data-lucide="alert-triangle"></i><span><b>' + todo.map(function (c) { return c.label; }).join(' · ') +
+          '</b>가 아직 기본값입니다. 이대로 두면 <b>손님이 예시 계좌로 입금합니다.</b> ' +
+          '아래 ‘설정’에서 실제 값으로 바꿔 주세요.</span></div>'
+        : '') +
       '<div class="gs-grid">' +
-        shortcut('settings', 'settings', '설정', '계좌 · 연락처 · 사업자정보 · 약도', '') +
+        shortcut('settings', 'settings', '설정', '계좌 · 연락처 · 사업자정보 · 약도',
+                 todo.length ? '확인 필요 ' + todo.length + '건' : '설정 완료') +
         (myRole === 'owner' && S.isServer && S.isServer()
-          ? shortcut('accounts', 'users', '계정 관리', '직원 계정 · 권한 · 사용 중지', '') : '') +
+          ? shortcut('accounts', 'users', '계정 관리', '직원 계정 · 권한 · 사용 중지', acctNote) : '') +
+      '</div>' +
+      '<div style="margin-top:24px">' +
+        miniTable('지금 설정된 운영 정보', '홈페이지 푸터 · 결제 안내 · 문의 페이지에 그대로 나갑니다',
+                  ['항목', '현재 값', '상태'], rows, '') +
       '</div>';
   }
 
   function viewGroupSystem() {
+    if (pageImgs === null) loadPageImgs(function () { if (current === 'g_system') render(); });
+    var orders = gj(K.orders, []), apps = gj(K.apps, []), inq = gj(K.inq, []);
+    var posts = gj(K.posts, []), prods = S.getProducts();
+    var cRaw = gj(K.consents, {}) || {}, kRaw = gj(K.kms, {}) || {};
+    var rows = [
+      ['주문',        orders.length + '건'],
+      ['지도사 신청', apps.length + '명'],
+      ['문의',        inq.length + '건'],
+      ['상품',        prods.length + '개'],
+      ['게시글',      posts.length + '건'],
+      ['올린 사진',   (pageImgs === null ? '…' : Object.keys(pageImgs).length + '장') + ' (페이지 자리)'],
+    ].map(function (r) { return '<tr><td><b>' + r[0] + '</b></td><td>' + r[1] + '</td></tr>'; });
+
+    var docs = [
+      ['개인정보 수집·이용 동의문', !!(cRaw.privacy && cRaw.privacy.body)],
+      ['제3자 제공 동의문',        !!(cRaw.third && cRaw.third.body)],
+      ['표준 KMS',                 !!kRaw.standard],
+      ['디자인 룰북',              !!kRaw.design],
+    ].map(function (d) {
+      return '<tr><td><b>' + d[0] + '</b></td><td>' +
+        (d[1] ? '<span class="tag olive">수정함</span>' : '<span class="tag">표준안 그대로</span>') + '</td></tr>';
+    });
+
     return groupHead('시스템', '평소에는 손대지 않는 항목입니다. 담당자와 상의해 바꾸세요.') +
+      '<div class="modal-note" style="margin-bottom:18px"><i data-lucide="database"></i><span>' +
+        '자료는 서버에 저장되지만 <b>실수로 지우거나 잘못 덮어쓴 것은 되돌릴 수 없습니다.</b> ' +
+        '<b>데이터 백업</b>으로 주기적으로 내려받아 보관하세요.</span></div>' +
       '<div class="gs-grid">' +
-        shortcut('backup', 'database', '데이터 백업', '자료 내려받기 · 되살리기', '정기적으로') +
+        shortcut('backup', 'database', '데이터 백업', '자료 내려받기 · 되살리기', '주기적으로') +
         shortcut('consents', 'shield-check', '동의문 관리', '개인정보 수집·이용 · 제3자 제공', '') +
         shortcut('kms', 'book-open', 'KMS', '개발 규칙 · 디자인 룰북', '') +
+      '</div>' +
+      '<div class="dash-2col">' +
+        miniTable('지금 담긴 자료', '백업 한 번이면 이 전부가 파일 하나로 저장됩니다', ['항목', '수량'], rows, '') +
+        miniTable('문서 상태', '표준안을 고쳤는지', ['문서', '상태'], docs, '') +
       '</div>';
   }
 
@@ -1876,7 +2185,8 @@
     { id: 'products', label: '상품 관리', icon: 'package', view: viewProducts, title: '상품 관리' },
     { id: 'orders', label: '주문 관리', icon: 'shopping-cart', view: viewOrders, title: '주문 관리', countKey: K.orders },
     { id: 'sales', label: '매출 · 정산', icon: 'trending-up', view: viewSales, title: '매출 · 정산 리포트' },
-    { id: 'apps', label: '지도사 신청', icon: 'user-plus', view: viewApps, title: '참가자 신청 관리', countKey: K.apps },
+    { id: 'cohorts', label: '교육과정 관리', icon: 'calendar-days', view: viewCohorts, title: '교육과정(기수) 관리' },
+    { id: 'apps', label: '신청자 관리', icon: 'user-plus', view: viewApps, title: '지도사 과정 신청자 관리', countKey: K.apps },
     { id: 'inq', label: '문의 내역', icon: 'message-square', view: viewInq, title: '문의 내역 관리', countKey: K.inq },
     { id: 'posts', label: '게시글 관리', icon: 'file-text', view: viewPosts, title: '게시글 관리', countKey: K.posts },
     { id: 'images', label: '페이지 이미지', icon: 'image', view: viewImages, title: '페이지 이미지 관리' },
@@ -1903,7 +2213,7 @@
     { solo: 'manual' },
     { solo: 'dashboard' },
     { group: 'g_sales',    items: ['products', 'orders', 'sales'] },
-    { group: 'g_customer', items: ['apps', 'inq'] },
+    { group: 'g_customer', items: ['cohorts', 'apps', 'inq'] },
     { group: 'g_content',  items: ['posts', 'images', 'popups', 'partners'] },
     { group: 'g_site',     items: ['settings', 'accounts'] },
     { group: 'g_system',   items: ['backup', 'consents', 'kms'], collapsed: true },

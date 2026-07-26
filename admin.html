@@ -31,22 +31,30 @@
      평평한 목록 15개는 눈으로 훑기 어렵다. 하는 일이 같은 것끼리 묶는다. */
   .admin-nav .nav-solo { font-weight: 700; }
   .admin-nav .nav-solo + .nav-group { margin-top: 6px; }
-  .nav-group { border-top: 1px solid rgba(255,255,255,.10); padding-top: 6px; margin-top: 2px; }
+  .nav-group { padding-top: 8px; margin-top: 4px; }
   .nav-group:first-child { border-top: none; }
+  /* 상위 메뉴는 하위 항목과 무게가 달라야 한다 — 아이콘을 상자에 담고 글자를 키운다 */
   .nav-gh { display: flex; align-items: center; gap: 11px; width: 100%; text-align: left;
-    padding: 11px 14px; border: none; background: transparent; color: rgba(255,255,255,.62);
-    font: inherit; font-size: 13.5px; font-weight: 800; letter-spacing: .02em;
-    border-radius: 10px; cursor: pointer; transition: all var(--dur-fast) var(--ease); }
-  .nav-gh:hover { background: rgba(255,255,255,.08); color: #fff; }
-  .nav-gh.on { background: rgba(255,255,255,.14); color: #fff; }
+    padding: 12px 12px; border: none; background: transparent; color: #fff;
+    font: inherit; font-size: 15.5px; font-weight: 800; letter-spacing: -0.01em;
+    border-radius: 11px; cursor: pointer; transition: all var(--dur-fast) var(--ease); }
+  .nav-gh > i[data-lucide]:first-child { width: 20px; height: 20px; flex-shrink: 0;
+    box-sizing: content-box; padding: 6px; border-radius: 9px;
+    background: rgba(255,255,255,.12); color: var(--point); }
+  .nav-gh:hover { background: rgba(255,255,255,.08); }
+  .nav-gh:hover > i[data-lucide]:first-child { background: rgba(255,255,255,.20); }
+  .nav-gh.on { background: var(--point); color: var(--point-ink); }
+  .nav-gh.on > i[data-lucide]:first-child { background: rgba(0,0,0,.12); color: var(--point-ink); }
+  .nav-gh.on .nav-caret { opacity: .8; }
   .nav-gh > span { flex: 1; min-width: 0; }
   .nav-gh i[data-lucide] { width: 18px; height: 18px; }
   .nav-caret { transition: transform var(--dur-fast) var(--ease); opacity: .6; width: 15px !important; height: 15px !important; }
   .nav-group.open .nav-caret { transform: rotate(180deg); }
   /* 접힘은 높이가 아니라 표시 여부로 — 항목 수가 달라도 애니메이션이 어긋나지 않는다 */
-  .nav-sub { display: none; padding: 2px 0 6px 10px; }
+  .nav-sub { display: none; padding: 4px 0 8px 16px; margin-left: 18px; border-left: 1px solid rgba(255,255,255,.12); }
   .nav-group.open .nav-sub { display: block; }
-  .nav-sub button { font-size: 14.5px; font-weight: 600; padding-left: 16px; }
+  .nav-sub button { font-size: 14.5px; font-weight: 600; padding-left: 14px; }
+  .nav-sub button i[data-lucide] { width: 16px; height: 16px; opacity: .8; }
   .nav-sub button::before { content: ""; position: absolute; left: 6px; width: 3px; height: 16px;
     border-radius: 2px; background: transparent; }
   .nav-sub button { position: relative; }
@@ -353,6 +361,14 @@
   .src-num em { color: var(--ink-mute); font-style: normal; font-weight: 600; margin-left: 5px; }
   .src-track { height: 13px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }
   .src-fill { height: 100%; border-radius: 99px; min-width: 6px; transition: width .45s var(--ease); }
+
+  .tel-link { color: var(--info); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tel-link:hover { text-decoration: underline; }
+  /* 그룹 요약은 블록이 여럿이라 사이 간격을 한 곳에서 준다 */
+  #adminView .gs-head + .stat-grid,
+  #adminView .stat-grid + .gs-grid,
+  #adminView .gs-grid + .dash-2col,
+  #adminView .dash-2col + .dash-2col { margin-top: 24px; }
 
   /* 판매 현황 — 주간·월간 카드 + 일별 막대 */
   .sale-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 18px 22px 4px; }
