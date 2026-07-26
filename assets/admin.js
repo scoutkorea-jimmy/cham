@@ -1163,10 +1163,15 @@
         var inner = el.querySelector('img');
         if (inner) src = inner.currentSrc || inner.src;
         else {
-          // 히어로처럼 CSS 배경으로 깔린 자리
-          var bg = doc.defaultView.getComputedStyle(el).backgroundImage || '';
-          var m = /url\(["']?(.*?)["']?\)/.exec(bg);
-          if (m && m[1] && m[1] !== 'none') src = m[1];
+          // 히어로처럼 CSS 배경으로 깔린 자리. 배경이 요소 자신이 아니라
+          // ::before 에 얹힌 경우가 있어(홈 히어로) 의사요소까지 살핀다.
+          var win = doc.defaultView;
+          var cands = [null, '::before', '::after'];
+          for (var ci = 0; ci < cands.length && !src; ci++) {
+            var bg = win.getComputedStyle(el, cands[ci]).backgroundImage || '';
+            var m = /url\(["']?(.*?)["']?\)/.exec(bg);
+            if (m && m[1] && m[1] !== 'none') src = m[1];
+          }
         }
       }
       if (!src) return;   // 정말 자리표시(아이콘)만 있는 자리는 '사진 없음' 그대로
