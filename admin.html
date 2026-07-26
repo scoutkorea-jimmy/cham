@@ -660,8 +660,11 @@
   .seo-prev.bad img { display: none; }
   .seo-prev.bad .seo-bad { display: block; }
   .seo-prev.bad { border-color: var(--danger); }
+  /* 주소·코드 — 좁은 화면에서 상자 밖으로 나가지 않게 반드시 끊어 준다.
+     .ui(버튼·메뉴 이름 배지)는 nowrap 이라 주소를 넣으면 넘친다 — 주소는 여기에 넣는다. */
   #adminView code { background: var(--surface-2); border: 1px solid var(--line-soft);
-    border-radius: var(--r-xs); padding: 2px 6px; font-size: 13px; word-break: break-all; }
+    border-radius: var(--r-xs); padding: 2px 6px; font-size: 13px;
+    word-break: break-all; overflow-wrap: anywhere; }
 
   /* ============================================================
      사용 설명서 (assets/manual.html 을 읽어 표시)
