@@ -117,10 +117,12 @@ python3 -m http.server 8777 --bind 127.0.0.1     # 서버
 ## 운영 전 남은 항목
 
 무통장입금 실제 계좌번호(**관리자 > 설정**에서 입력 — 기본값은 placeholder) ·
-Cloudflare 에 실제 배포([docs/deploy.md](docs/deploy.md)) · 도메인 확정 후 SEO 파일 URL 교체 ·
-샘플 데이터를 실데이터로 · 약관·개인정보처리방침 법무 검토
+도메인 연결 · 약관·개인정보처리방침 법무 검토 ·
+GitHub Pages 병행 종료 후 로컬 어댑터 정리([docs/deploy.md](docs/deploy.md) 5절)
 
-관리자 인증은 서버 세션/토큰으로 이전 완료(계정별 로그인 · owner/staff 권한 · 실패 시 잠금).
+완료: 서버 인증(계정별 로그인 · owner/staff 권한 · 실패 시 잠금) ·
+데이터 D1/R2 이전 · Cloudflare Pages 배포(https://cham-3ef.pages.dev · main push 시 자동) ·
+예시 데이터 제거(코드·운영 DB 모두)
 
 > 운영 정보(계좌·연락처·사업자정보·약도 좌표)는 `site.js` 의 `SETTINGS_DEFAULTS` 가 기본값이고,
 > **관리자 > 설정**에서 덮어씁니다. 반영: 전 페이지 푸터·결제 안내·모바일 메뉴·약도.
