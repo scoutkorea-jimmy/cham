@@ -592,25 +592,45 @@
 
   /* ---------------- 게시글 (소식마당) ---------------- */
   var POSTS_KEY = 'kach_posts_v1';
-  var POST_SEEDS = [
-    { id: 'sp1', cat: '공지', important: true, sample: true, title: '2026년 봄학기 전통발효식품 체험지도사 과정 모집 안내', at: '2026-03-04T09:00:00',
-      html: '<p>전통발효식품 체험지도사 2026년 1기 교육생을 모집합니다.</p><ul><li>교육 기간: 2026.04.04 ~ 04.25 (매주 토요일)</li><li>장소: 구로 본원</li><li>신청 방법: 홈페이지 신청서 접수 후 담당자 안내</li></ul><p>많은 관심 부탁드립니다.</p>' },
-    { id: 'sp2', cat: '공지', sample: true, title: '홈페이지 리뉴얼 오픈 안내', at: '2026-02-28T09:00:00',
-      html: '<p>홈페이지가 새 단장을 마치고 오픈했습니다. 이용에 불편이 없도록 계속 다듬어가겠습니다.</p>' },
-    { id: 'sp3', cat: '공지', sample: true, title: '설 연휴 배송 및 고객센터 운영 일정', at: '2026-02-05T09:00:00',
-      html: '<p>설 연휴 기간의 배송 마감 일정과 고객센터 운영 시간을 안내드립니다.</p>' },
-    { id: 'sp4', cat: '언론', sample: true, title: '[언론보도] 사라지는 씨장 지키는 사람들 — 전통발효명가 정선만장대', at: '2026-01-18T09:00:00',
-      html: '<p>정선만장대의 씨장 보존 활동이 언론에 소개되었습니다.</p>' },
-    { id: 'sp5', cat: '공지', sample: true, title: '씨장 분양 신청 상시 접수 안내', at: '2026-01-10T09:00:00',
-      html: '<p>전국민 씨장 갖기 운동 — 씨장 분양 신청을 상시 접수하고 있습니다.</p>' },
-    { id: 'sp6', cat: '교육', sample: true, badge: '모집중', title: '전통발효식품 체험지도사 2026년 1기 (4/4 개강)', at: '2026-02-20T09:00:00',
-      html: '<p>모집 마감: 2026.03.28 · 매주 토요일 10:00–16:00 · 구로 본원</p>' },
-    { id: 'sp7', cat: '교육', sample: true, badge: '원데이', title: '된장·고추장 담그기 원데이 체험 클래스 (3월)', at: '2026-02-15T09:00:00',
-      html: '<p>2026.03.21 (토) 13:00–16:00 · 구로 본원</p>' },
-    { id: 'sp8', cat: '교육', sample: true, badge: '원데이', title: '정선 장독대 견학 + 씨장 체험 프로그램', at: '2026-02-10T09:00:00',
-      html: '<p>2026.04.12 (일) · 강원 정선</p>' },
-  ];
-  function seedPosts(){ if (!localStorage.getItem(POSTS_KEY)) setJSON(POSTS_KEY, POST_SEEDS); }
+  /* 예전에 심어 둔 예시 데이터 청소 (로컬 모드 전용).
+     실데이터로 운영하기로 하면서 씨앗 데이터를 코드에서 없앴는데, 이미 한 번 접속했던
+     브라우저에는 그때 심어진 예시 글·주문이 남아 있다. 그것까지 지운다.
+     지우는 대상은 코드가 만든 것뿐이다 — 사람이 쓴 글(sample 표시 없음)은 건드리지 않는다. */
+  // 관리자 콘솔이 심던 예시 주문의 주문번호. 이 값과 정확히 일치하는 것만 지운다 —
+  // '오래된 주문'처럼 어림짐작으로 지우면 실제 주문을 날릴 수 있다.
+  var DEMO_ORDER_NOS = ['2026030912341', '2026030787720', '2026030554102',
+                        '2026030248873', '2026022633019', '2026030411208'];
+  function dropDemoData() {
+    try {
+      if (localStorage.getItem('kach_demo_cleared') === '1') return;
+
+      var posts = getJSON(POSTS_KEY, []);
+      if (posts.length) setJSON(POSTS_KEY, posts.filter(function (p) { return !p.sample; }));
+
+      var orders = getJSON('kach_orders', []);
+      if (orders.length) setJSON('kach_orders', orders.filter(function (o) {
+        return DEMO_ORDER_NOS.indexOf(String(o.orderNo)) === -1;
+      }));
+
+      // 신청·문의는 씨앗의 접수시각이 고정값이라 그것으로 집는다
+      var apps = getJSON('kach_applications', []);
+      if (apps.length) setJSON('kach_applications', apps.filter(function (r) {
+        return !(r.name === '박발효' && r.at === '2026-03-01T09:05:00');
+      }));
+      var inq = getJSON('kach_inquiries', []);
+      if (inq.length) setJSON('kach_inquiries', inq.filter(function (r) {
+        return !(r.name === '정문의' && r.at === '2026-02-28T11:20:00');
+      }));
+
+      var pops = getJSON('kach_popups_v1', []);
+      if (pops && pops.length) setJSON('kach_popups_v1', pops.filter(function (p) {
+        return String(p.title || '').indexOf('[샘플]') !== 0;
+      }));
+
+      localStorage.setItem('kach_demo_cleared', '1');
+    } catch (e) {}
+  }
+
   function getPosts(){ return getJSON(POSTS_KEY, []); }
   function setPosts(a){ return setJSON(POSTS_KEY, a); }
 
@@ -621,7 +641,6 @@
     box.innerHTML = posts.length ? posts.map(function (p) {
       var anchor = p.cat === '교육' ? '#edu' : '#notice';
       return '<a class="news-row" href="news.html' + anchor + '">' +
-        (p.sample ? '<span class="tag sample">샘플</span>' : '') +
         '<span class="tag' + (p.important ? ' point' : '') + '">' + esc(p.badge || p.cat) + '</span>' +
         '<span class="nr-title">' + esc(p.title) + '</span>' +
         '<span class="nr-date">' + fmtYMD(p.at) + '</span></a>';
@@ -1481,7 +1500,7 @@
   }
 
   function start() {
-    if (!SERVER) { seedPosts(); seedProducts(); }   // 로컬 모드에서만 기본 데이터를 심는다
+    if (!SERVER) { seedProducts(); dropDemoData(); }   // 로컬 모드에서만 상품 카탈로그를 심는다
     if (!isPreviewFrame) trackVisit();
     mountChrome();
     applySiteSettings();

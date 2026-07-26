@@ -36,7 +36,6 @@
       var list = postsOf(pair[1]);
       box.innerHTML = list.length ? list.map(function (p) {
         return '<div class="board-row" data-post="' + p.id + '" role="button" tabindex="0">' +
-          (p.sample ? '<span class="tag sample">샘플</span>' : '') +
           '<span class="tag' + (p.important ? ' point' : '') + '">' + esc(p.badge || (p.important ? '중요' : p.cat)) + '</span>' +
           '<span class="bt">' + esc(p.title) + '</span>' +
           '<span class="bd">' + S.fmtYMD(p.at) + '</span></div>';
@@ -78,8 +77,7 @@
       S.rawModal(
         '<div class="modal-head"><div>' +
           '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">' +
-            (p.sample ? '<span class="tag sample">샘플</span>' : '') +
-            '<span class="tag' + (p.important ? ' point' : '') + '">' + esc(p.badge || (p.important ? '중요' : p.cat)) + '</span>' +
+              '<span class="tag' + (p.important ? ' point' : '') + '">' + esc(p.badge || (p.important ? '중요' : p.cat)) + '</span>' +
             '<span class="muted" style="font-size:13px">' + S.fmtYMD(p.at) + '</span></div>' +
           '<h3 style="margin-top:10px">' + esc(p.title) + '</h3></div>' +
           '<button class="modal-close" data-modal-close aria-label="닫기"><i data-lucide="x"></i></button></div>' +
@@ -225,7 +223,6 @@
         rec.cat = document.getElementById('edCat').value;
         rec.important = document.getElementById('edImp').checked;
         rec.html = editor.getHTML();
-        rec.sample = false;
         rec.updatedAt = new Date().toISOString();
         S.setPosts(posts);
 
@@ -249,10 +246,6 @@
 
   /* ================= 현장 갤러리 (페이지당 10장) ================= */
   var galPage = 1;
-  var GAL_SAMPLES = [
-    ['tone-oat', '[샘플] 장 담그기 체험'], ['tone-main', '[샘플] 장독대 풍경'], ['tone-deep', '[샘플] 지도사 교육 현장'],
-    ['tone-point', '[샘플] 메주 띄우기'], ['tone-main', '[샘플] 씨장 체험'], ['tone-oat', '[샘플] 수료식 단체사진'],
-  ];
 
   function renderGallery() {
     var grid = document.getElementById('gallery-grid');
@@ -261,9 +254,8 @@
     S.Media.list('gallery').then(function (items) {
       items.sort(function (a, b) { return (b.at || '').localeCompare(a.at || ''); });
       if (!items.length) {
-        grid.innerHTML = GAL_SAMPLES.map(function (s) {
-          return '<div class="ph ' + s[0] + ' ratio-43" data-label="' + s[1] + '"><i data-lucide="image"></i></div>';
-        }).join('');
+        // 사진이 없을 때 예시 자리표시를 깔면 실제로 올린 것처럼 보인다 — 빈 상태로 둔다
+        grid.innerHTML = '<p class="muted" style="grid-column:1/-1;text-align:center;padding:40px 0">등록된 사진이 없습니다.</p>';
         pager.innerHTML = '';
         icons();
         return;

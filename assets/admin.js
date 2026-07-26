@@ -45,26 +45,6 @@
     try { localStorage.removeItem('kach_members'); localStorage.removeItem('kach_admin'); } catch (e) {}
   }
 
-  /* ---------- 데모 시드 ---------- */
-  function seed() {
-    if (!localStorage.getItem(K.popups)) sj(K.popups, [
-      { id: uid(), title: '[샘플] 2026 봄학기 지도사 과정 모집', body: '전통발효식품 체험지도사 2026년 1기를 모집합니다.\n4월 4일 개강 · 선착순 마감.', link: 'instructor.html', linkLabel: '과정 보러가기', active: true, startsAt: '', endsAt: '', img: '' },
-    ]);
-    if (!localStorage.getItem(K.orders)) sj(K.orders, [
-      { id: uid(), kind: 'order', orderNo: '2026030912341', product: '전통 된장 (1kg)', productId: 'p_doenjang', qty: '2', unitPrice: 25000, total: 50000, depositor: '김참살', name: '김참살', phone: '010-2241-7780', address: '서울 구로구 구로동 123', payMethod: '무통장입금', status: '주문접수', at: '2026-03-09T10:12:00' },
-      { id: uid(), kind: 'order', orderNo: '2026030787720', product: '태양초 고추장 (1kg)', productId: 'p_gochujang', qty: '1', unitPrice: 28000, total: 28000, depositor: '이정선', name: '이정선', phone: '010-9930-1187', address: '강원 정선군 정선읍 45', payMethod: '무통장입금', status: '결제완료', at: '2026-03-07T15:40:00' },
-      { id: uid(), kind: 'order', orderNo: '2026030554102', product: '명절 장 3종 세트 (세트)', productId: 'p_set3', optionLabel: '포장: 전통 보자기 포장', qty: '3', unitPrice: 42000, total: 126000, depositor: '박발효', name: '박발효', phone: '010-4456-2093', address: '경기 성남시 분당구 67', payMethod: '무통장입금', status: '배송준비중', at: '2026-03-05T09:05:00' },
-      { id: uid(), kind: 'order', orderNo: '2026030248873', product: '전통 청국장 (500g)', productId: 'p_cheongguk', qty: '4', unitPrice: 12000, total: 48000, depositor: '최씨장', name: '최씨장', phone: '010-7788-5521', address: '서울 강서구 화곡동 89', payMethod: '무통장입금', status: '배송중', shipMethod: '택배', courier: 'CJ대한통운', tracking: '688123456789', at: '2026-03-02T11:20:00' },
-      { id: uid(), kind: 'order', orderNo: '2026022633019', product: '정선 막장 (1kg)', productId: 'p_makjang', qty: '1', unitPrice: 22000, total: 22000, depositor: '정장맛', name: '정장맛', phone: '010-3322-1100', address: '인천 남동구 구월동 12', payMethod: '무통장입금', status: '배송완료', shipMethod: '택배', courier: '우체국택배', tracking: '612398745601', at: '2026-02-26T14:00:00' },
-      { id: uid(), kind: 'seedjang', orderNo: '2026030411208', amount: '씨장 30kg 분양', name: '이정선', phone: '010-9930-1187', region: '강원 정선', memo: '펜션 무료사용 문의', payMethod: '무통장입금', status: '주문접수', at: '2026-03-04T15:40:00' },
-    ]);
-    if (!localStorage.getItem(K.apps)) sj(K.apps, [
-      { id: uid(), name: '박발효', phone: '010-4456-2093', region: '경기 성남', course: '정규 지도사 과정', memo: '주말반 희망', status: '신규', at: '2026-03-01T09:05:00' },
-    ]);
-    if (!localStorage.getItem(K.inq)) sj(K.inq, [
-      { id: uid(), name: '정문의', phone: '010-3322-1100', type: '제휴 문의', memo: '지역 장터 입점 제안드립니다.', status: '신규', at: '2026-02-28T11:20:00' },
-    ]);
-  }
 
   /* ---------- KMS 기본 문서 ---------- */
   var KMS_DEFAULTS = {
@@ -910,7 +890,7 @@
   function viewPosts() {
     var a = gj(K.posts, []).slice().sort(function (x, y) { return (y.at || '').localeCompare(x.at || ''); });
     var rows = a.length ? a.map(function (p) {
-      return '<tr><td><b>' + esc(p.title) + '</b>' + (p.sample ? ' <span class="tag sample" style="font-size:10px">샘플</span>' : '') + '</td>' +
+      return '<tr><td><b>' + esc(p.title) + '</b></td>' +
         '<td><span class="tag' + (p.important ? ' point' : '') + '">' + esc(p.cat) + '</span></td>' +
         '<td class="dt">' + fmtDate(p.at) + '</td><td>' + delBtn(K.posts, p.id) + '</td></tr>';
     }).join('') : emptyRow(4, '등록된 게시글이 없습니다.');
@@ -2068,6 +2048,6 @@
       });
       return;
     }
-    migrate(); seed(); initAuth();
+    migrate(); initAuth();
   });
 })();
