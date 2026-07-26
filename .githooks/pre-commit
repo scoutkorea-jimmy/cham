@@ -1,0 +1,57 @@
+#!/bin/sh
+# cham · 커밋 전 비밀값 차단
+#
+# 켜기(저장소마다 한 번):  git config core.hooksPath .githooks
+# 검사만 돌리기:            npm run audit:secrets
+#
+# 이 저장소는 공개(public)다. 한 번 올라간 값은 커밋을 지워도
+# 다른 사람의 클론·GitHub 캐시·포크에 남는다고 보아야 한다 —
+# 그래서 '올라간 뒤 지우기'가 아니라 '올라가지 못하게' 막는다.
+
+fail=0
+say() { printf '  \033[31m✘\033[0m %s\n' "$1"; fail=1; }
+
+staged=$(git diff --cached --name-only --diff-filter=ACM)
+[ -z "$staged" ] && exit 0
+
+# 1) 절대 올리면 안 되는 파일
+for f in $staged; do
+  case "$f" in
+    .dev.vars|.env|.env.*|*.pem|*.key|*id_rsa*|.wrangler/*)
+      say "비밀 파일이 스테이지에 있습니다: $f" ;;
+  esac
+done
+
+# 2) 내용 검사 — 스테이지된 변경분만 본다
+diff=$(git diff --cached -U0 -- $staged | grep '^+' | grep -v '^+++')
+
+# 알려진 키 접두사
+echo "$diff" | grep -qE '(sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}|AKIA[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9-]{10,})' \
+  && say "API 키로 보이는 문자열이 있습니다 (sk- / ghp_ / AKIA / xox…)"
+
+# PEM 개인키 — 진짜 키는 줄 맨 앞에서 시작한다(문서 속 언급과 구분)
+echo "$diff" | grep -qE '^\+-----BEGIN [A-Z ]*PRIVATE KEY-----' \
+  && say "개인키(PEM)가 있습니다"
+
+# 시크릿 변수에 실제 값이 들어간 경우 (설명·플레이스홀더는 통과)
+echo "$diff" | grep -qE '(ADMIN_SECRET|CF_API_TOKEN|CLOUDFLARE_API_TOKEN|API_KEY|SECRET_KEY)[[:space:]]*=[[:space:]]*["'"'"']?[A-Za-z0-9+/_-]{24,}' \
+  && say "시크릿 변수에 실제 값이 들어 있습니다 (.dev.vars 나 Cloudflare 대시보드에 두세요)"
+
+# wrangler OAuth 토큰
+echo "$diff" | grep -qE 'oauth_token[[:space:]]*=[[:space:]]*"' \
+  && say "wrangler OAuth 토큰이 있습니다"
+
+if [ "$fail" = "1" ]; then
+  cat <<'MSG'
+
+  커밋을 중단했습니다.
+
+  · 값을 지우고 다시 커밋하세요.
+  · 비밀값은 .dev.vars(로컬) 또는 Cloudflare 대시보드 > Settings >
+    Variables and Secrets 에 Secret 으로 넣습니다.
+  · 정말 비밀이 아니라고 확신하면:  git commit --no-verify
+
+MSG
+  exit 1
+fi
+exit 0

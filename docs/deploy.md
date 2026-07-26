@@ -146,3 +146,39 @@ Pages 프로젝트 > Custom domains > 도메인 추가 → 안내되는 DNS 레�
 그 시점의 브라우저 저장소 데이터로 종전처럼 동작한다.
 단 **서버에 쌓인 주문은 그쪽에 남아 있으므로**, 되돌리기 전에 관리자 > 데이터 백업으로
 서버 자료를 내려받아 두어야 한다.
+
+
+---
+
+## 비밀값 관리
+
+**이 저장소는 공개(public)다.** 한 번 올라간 값은 커밋을 지워도 다른 사람의 클론·
+GitHub 캐시·포크에 남는다고 보아야 한다. 그래서 '올라간 뒤 지우기'가 아니라
+'올라가지 못하게' 막는다.
+
+| 무엇 | 어디에 두는가 |
+|---|---|
+| `ADMIN_SECRET` · `ADMIN_BOOTSTRAP_*` | Cloudflare 대시보드 > Settings > Variables and Secrets (**Secret** 타입) |
+| 로컬 개발용 같은 값 | `.dev.vars` — `.gitignore` 에 있음. 절대 커밋하지 않는다 |
+| Cloudflare 계정 토큰 | `~/.wrangler/config/default.toml` (저장소 밖) |
+
+커밋 전 검사를 켜 둔다(저장소를 새로 클론할 때마다 한 번).
+
+```bash
+npm run hooks:on        # git config core.hooksPath .githooks
+npm run audit:secrets   # 추적 중인 파일 전체 훑기
+```
+
+훅이 막는 것: `.dev.vars`·`.env`·`*.pem`·`*.key`·`.wrangler/` 스테이징,
+`sk-`/`ghp_`/`AKIA`/`xox` 접두 키, PEM 개인키, `ADMIN_SECRET=` 에 실제 값,
+wrangler OAuth 토큰. 오탐이면 `git commit --no-verify`.
+
+`wrangler.toml` 의 `database_id` 는 비밀이 아니다 — 식별자일 뿐이고, 쓰려면
+계정 인증이 따로 필요하다. 공개돼 있어도 문제되지 않는다.
+
+### 공개 저장소라서 남는 것
+
+`assets/site.js` 에는 정적 호스팅용 폴백 로그인이 남아 있다(`AUTH_HASH`).
+값 자체는 해시지만 공개 소스이므로 **아이디·비밀번호가 공개된 것과 같다.**
+GitHub Pages 병행을 끝내면서 이 폴백을 지우면 함께 사라진다
+(→ 5절 '기존 사이트 정리'). 그때까지는 **서버 계정 비밀번호를 이것과 다르게** 둬야 한다.

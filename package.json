@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "wrangler pages dev",
     "db:init": "wrangler d1 execute cham-db --local --file=db/0001_auth.sql",
-    "db:init:remote": "wrangler d1 execute cham-db --remote --file=db/0001_auth.sql"
+    "db:init:remote": "wrangler d1 execute cham-db --remote --file=db/0001_auth.sql",
+    "audit:secrets": "git ls-files -z | xargs -0 grep -nEi '(sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{30,}|AKIA[0-9A-Z]{16}|-----BEGIN .*PRIVATE KEY-----|oauth_token[[:space:]]*=)' || echo '비밀값 없음'",
+    "hooks:on": "git config core.hooksPath .githooks && echo '커밋 전 비밀값 검사를 켰습니다'"
   },
   "devDependencies": {
     "wrangler": "^4.97.0"
