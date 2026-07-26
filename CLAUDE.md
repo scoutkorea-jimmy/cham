@@ -28,7 +28,8 @@ functions/          Cloudflare Pages Functions. 정적 호스팅에서는 동작
   api/submit.js       주문·신청·문의 접수 — 주문번호와 금액을 서버가 정한다
   api/order-lookup.js 비회원 주문 조회 (서버 대조)
   api/images/…        R2 이미지 서빙·목록
-  api/admin/…         login · logout · session · password · users · data · images · import · export
+  api/admin/…         login · logout · session · password · users · roles · members ·
+                      data/[kind]/ (목록 · 한 건 PATCH/DELETE) · images · import · export · versions · assist
 db/0001_auth.sql    admin_users · admin_login_attempts
 db/0002_data.sql    orders · applications · inquiries · products · posts · collections ·
                     documents · images · visits
@@ -144,6 +145,10 @@ Cloudflare Pages 이전 중이라 `site.js` 가 부팅 때 `/api/bootstrap` 을 
 
 **읽기는 동기 그대로**입니다 — 서버 모드는 부팅 때 받은 값을 메모리에서 읽으므로
 `getProducts()` 같은 기존 호출부가 바뀌지 않습니다. 쓰기는 낙관적(메모리 먼저, 저장은 뒤에서)입니다.
+
+> **주문·신청·문의는 최근 1년만 메모리에 올립니다.** 그 이전은 운영자가 부를 때 가져옵니다.
+> 그래서 이 세 가지는 **목록을 통째로 저장하면 안 됩니다** — 화면이 안 들고 있는 자료가
+> 지워집니다. `S.patchItem` · `S.removeItem` 을 씁니다 → [docs/handoff.md](docs/handoff.md) '구조'
 이미지는 `Site.Media` 로 감싸 화면 코드가 항상 `rec.url` 만 씁니다.
 
 배포가 끝나면 로컬 모드를 **지웁니다** → [docs/deploy.md](docs/deploy.md) 5절.

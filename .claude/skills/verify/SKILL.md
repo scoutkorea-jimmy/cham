@@ -54,6 +54,8 @@ a.evaluate("""(id)=>{const g=document.querySelector(`[data-navgroup="${id}"]`);
 | `./venv/bin/python .claude/skills/verify/tools/fixed_overlap.py` | 고정 버튼(챗봇·맨위로)이 눌러야 할 것을 덮는가 |
 | `./venv/bin/python .claude/skills/verify/tools/list_scale.py` | 목록 건수 상한 — 몇 건부터 저장이 실패하는가 |
 | `./venv/bin/python .claude/skills/verify/tools/concurrent_edit.py` | 두 사람이 동시에 저장하면 앞 사람 작업이 남는가 |
+| `./venv/bin/python .claude/skills/verify/tools/data_window.py` | **1년 이전 자료가 살아남는가** — 구조를 건드리면 반드시 돌린다 |
+| `./venv/bin/python .claude/skills/verify/tools/payload_size.py` | 시작 적재량·저장 1회 전송량 실측 |
 
 ## 재는 도구가 먼저 틀린다
 
