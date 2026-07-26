@@ -22,6 +22,7 @@ login.html          관리자 로그인 — 서버 세션(functions/api/admin/lo
 functions/          Cloudflare Pages Functions. 정적 호스팅에서는 동작하지 않는다
   _shared/auth.js     세션 토큰(HMAC) · PBKDF2 비밀번호 · 쿠키
   _shared/store.js    D1 ↔ 클라이언트 객체 변환 (읽기 API·가져오기가 공유)
+  _shared/seo.js      공개 HTML <head> 손질 — og:image 절대화 · canonical · 검색엔진 소유확인
   _middleware.js      admin.html 차단 → login.html · 설명서 본문(assets/manual.html) 차단 → 404
   api/bootstrap.js    공개 페이지가 첫 렌더 전에 받는 묶음(상품·소식·설정·이미지)
   api/submit.js       주문·신청·문의 접수 — 주문번호와 금액을 서버가 정한다
@@ -119,6 +120,8 @@ python3 -m http.server 8777 --bind 127.0.0.1     # 서버
 ## 운영 전 남은 항목
 
 무통장입금 실제 계좌번호(**관리자 > 설정**에서 입력 — 기본값은 placeholder) ·
+관리자 비밀번호 교체(**admin/admin** — 공개 저장소에 해시가 있다) ·
+구글·네이버 서치콘솔 등록(**관리자 > 운영 설정 > 검색 노출**) ·
 도메인 연결 · 약관·개인정보처리방침 법무 검토 ·
 GitHub Pages 병행 종료 후 로컬 어댑터 정리([docs/deploy.md](docs/deploy.md) 5절)
 
