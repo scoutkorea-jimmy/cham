@@ -210,7 +210,7 @@ export function imageRowToObj(r) {
   const o = {
     id: r.id, scope: r.scope, ref: r.ref, role: r.role, ord: r.ord,
     url: `/api/images/${encodeURIComponent(r.id)}`,
-    name: r.name, size: r.size,
+    name: r.name, size: r.size, type: r.mime,
   };
   if (r.scope === 'page') {
     o.pcx = r.pcx; o.pcy = r.pcy; o.mbx = r.mbx; o.mby = r.mby;

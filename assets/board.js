@@ -49,7 +49,7 @@
   function openPost(id) {
     var p = S.getPosts().filter(function (x) { return x.id === id; })[0];
     if (!p) return;
-    S.idb.byIndex('files', 'postId', id).then(function (files) {
+    S.Media.list('post', id).then(function (files) {
       var imgs = files.filter(function (f) { return /^image\//.test(f.type); });
       var docs = files.filter(function (f) { return !/^image\//.test(f.type); });
 
@@ -91,7 +91,7 @@
 
       // 이미지 슬라이더
       if (imgs.length) {
-        var urls = imgs.map(function (f) { return URL.createObjectURL(f.blob); });
+        var urls = imgs.map(function (f) { return f.url; });
         var idx = 0;
         var imgEl = document.getElementById('psImg');
         var dots = document.getElementById('psDots');
@@ -116,10 +116,8 @@
           e.preventDefault();
           var f = files.filter(function (x) { return x.id === a.dataset.dl; })[0];
           if (!f) return;
-          var u = URL.createObjectURL(f.blob);
           var link = document.createElement('a');
-          link.href = u; link.download = f.name; link.click();
-          setTimeout(function () { URL.revokeObjectURL(u); }, 4000);
+          link.href = f.url; link.download = f.name; link.click();
         });
       });
       // 관리자 수정/삭제 — 클릭할 때마다 인증
@@ -130,7 +128,7 @@
         S.requireAdmin(function () {
           if (!confirm('이 게시글을 삭제할까요? 첨부파일도 함께 삭제됩니다.')) return;
           S.setPosts(S.getPosts().filter(function (x) { return x.id !== p.id; }));
-          files.forEach(function (f) { S.idb.del('files', f.id); });
+          S.Media.delFor('post', p.id);
           S.closeModal(); renderBoards(); S.toast('게시글이 삭제되었습니다.');
         });
       });
@@ -232,9 +230,9 @@
         S.setPosts(posts);
 
         var jobs = [];
-        removedIds.forEach(function (fid) { jobs.push(S.idb.del('files', fid)); });
-        atts.forEach(function (a) {
-          if (a.file) jobs.push(S.idb.put('files', { id: uid(), postId: rec.id, name: a.name, size: a.size, type: a.type, blob: a.file }));
+        removedIds.forEach(function (fid) { jobs.push(S.Media.del('post', fid)); });
+        atts.forEach(function (a, i) {
+          if (a.file) jobs.push(S.Media.put('post', rec.id, a.file, { ord: i, name: a.name, size: a.size }));
         });
         Promise.all(jobs).then(function () {
           editor.destroy();
@@ -251,7 +249,6 @@
 
   /* ================= 현장 갤러리 (페이지당 10장) ================= */
   var galPage = 1;
-  var galUrls = [];
   var GAL_SAMPLES = [
     ['tone-oat', '[샘플] 장 담그기 체험'], ['tone-main', '[샘플] 장독대 풍경'], ['tone-deep', '[샘플] 지도사 교육 현장'],
     ['tone-point', '[샘플] 메주 띄우기'], ['tone-main', '[샘플] 씨장 체험'], ['tone-oat', '[샘플] 수료식 단체사진'],
@@ -261,9 +258,7 @@
     var grid = document.getElementById('gallery-grid');
     var pager = document.getElementById('gallery-pager');
     if (!grid) return;
-    galUrls.forEach(function (u) { URL.revokeObjectURL(u); });
-    galUrls = [];
-    S.idb.all('gallery').then(function (items) {
+    S.Media.list('gallery').then(function (items) {
       items.sort(function (a, b) { return (b.at || '').localeCompare(a.at || ''); });
       if (!items.length) {
         grid.innerHTML = GAL_SAMPLES.map(function (s) {
@@ -277,9 +272,7 @@
       if (galPage > pages) galPage = pages;
       var slice = items.slice((galPage - 1) * GAL_PER_PAGE, galPage * GAL_PER_PAGE);
       grid.innerHTML = slice.map(function (g) {
-        var u = URL.createObjectURL(g.blob);
-        galUrls.push(u);
-        return '<figure class="gal-item"><img src="' + u + '" alt="' + esc(g.name) + '" loading="lazy">' +
+        return '<figure class="gal-item"><img src="' + g.url + '" alt="' + esc(g.name) + '" loading="lazy">' +
           '<button class="gal-del" data-gdel="' + g.id + '" title="삭제 (관리자)"><i data-lucide="x"></i></button>' +
           '<figcaption>' + esc(g.name) + '</figcaption></figure>';
       }).join('');
@@ -309,7 +302,7 @@
       if (!b) return;
       S.requireAdmin(function () {
         if (!confirm('이 사진을 삭제할까요?')) return;
-        S.idb.del('gallery', b.dataset.gdel).then(renderGallery);
+        S.Media.del('gallery', b.dataset.gdel).then(renderGallery);
       });
     });
     var upBtn = document.querySelector('[data-gallery-upload]');
@@ -322,7 +315,7 @@
           var jobs = [];
           files.forEach(function (f) {
             if (f.size > MAX_SIZE) { alert('"' + f.name + '" — 사진은 10MB 이하만 올릴 수 있습니다.'); return; }
-            jobs.push(S.idb.put('gallery', { id: uid(), name: f.name.replace(/\.[^.]+$/, ''), at: new Date().toISOString(), blob: f }));
+            jobs.push(S.Media.put('gallery', null, f, { name: f.name.replace(/\.[^.]+$/, '') }));
           });
           Promise.all(jobs).then(function () {
             galPage = 1;
@@ -336,7 +329,11 @@
   }
 
   /* ================= init ================= */
-  function ready(fn){ if (document.readyState !== 'loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }
+  // Site.ready 는 DOM 과 데이터(서버 모드의 /api/bootstrap)를 모두 기다린다
+  function ready(fn){
+    if (S.ready) { S.ready(fn); return; }
+    if (document.readyState !== 'loading') fn(); else document.addEventListener('DOMContentLoaded', fn);
+  }
   ready(function () {
     renderBoards();
     renderGallery();

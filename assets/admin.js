@@ -8,8 +8,10 @@
 (function () {
   'use strict';
   var S = window.Site || {};
-  function gj(k, d){ try { var s = localStorage.getItem(k); return s ? JSON.parse(s) : d; } catch (e) { return d; } }
-  function sj(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }
+  // 저장소는 site.js 한 곳을 통한다(서버 모드면 D1, 아니면 localStorage).
+  // 여기서 localStorage 를 직접 읽으면 서버 모드에서 빈 화면이 된다.
+  function gj(k, d){ return S.getJSON(k, d); }
+  function sj(k, v){ return S.setJSON(k, v); }
   var esc = S.esc, fmtWon = S.fmtWon, stTag = S.stTag, uid = S.uid;
   function icons(){ if (window.lucide) window.lucide.createIcons(); }
   function fmtDate(iso){ if(!iso) return '-'; var d = new Date(iso); if(isNaN(d)) return esc(iso); return d.getFullYear()+'.'+('0'+(d.getMonth()+1)).slice(-2)+'.'+('0'+d.getDate()).slice(-2)+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2); }
@@ -389,10 +391,10 @@
   }
   function loadListThumbs() {
     document.querySelectorAll('[data-pthumb]').forEach(function (box) {
-      S.idb.byIndex('pimg', 'productId', box.dataset.pthumb).then(function (imgs) {
+      S.Media.list('product', box.dataset.pthumb).then(function (imgs) {
         imgs.sort(function (a, b) { return (a.ord || 0) - (b.ord || 0); });
         var main = imgs.filter(function (i) { return i.role === 'main'; })[0] || imgs[0];
-        if (main) box.innerHTML = '<img src="' + mkURL(main.blob) + '" alt="">';
+        if (main) box.innerHTML = '<img src="' + main.url + '" alt="">';
       });
     });
   }
@@ -477,12 +479,11 @@
     var box = document.getElementById('pImgList');
     var form = document.getElementById('productForm');
     if (!box || !form || !form.dataset.pid) return;
-    S.idb.byIndex('pimg', 'productId', form.dataset.pid).then(function (imgs) {
+    S.Media.list('product', form.dataset.pid).then(function (imgs) {
       imgs.sort(function (a, b) { return (a.ord || 0) - (b.ord || 0); });
       box.innerHTML = imgs.map(function (im) {
         if (pImgState.removed.indexOf(im.id) > -1) return '';
-        var u = mkURL(im.blob);
-        return '<div class="pimg-cell"><img src="' + u + '"><span class="pimg-role">' + (im.role === 'main' ? '대표' : im.role === 'detail' ? '상세' : '추가') + '</span>' +
+        return '<div class="pimg-cell"><img src="' + im.url + '"><span class="pimg-role">' + (im.role === 'main' ? '대표' : im.role === 'detail' ? '상세' : '추가') + '</span>' +
           '<button type="button" class="gal-del" data-act="pimgdel" data-id="' + im.id + '"><i data-lucide="x"></i></button></div>';
       }).join('');
       icons();
@@ -589,14 +590,15 @@
       if (!S.setProducts(products)) { toast('저장 공간이 부족합니다. 상세 설명의 첨부 이미지를 줄이거나 데이터를 백업·정리해 주세요.'); return; }
 
       var jobs = [];
-      pImgState.removed.forEach(function (iid) { jobs.push(S.idb.del('pimg', iid)); });
+      pImgState.removed.forEach(function (iid) { jobs.push(S.Media.del('product', iid)); });
       if (pImgState.main) {
-        jobs.push(S.idb.byIndex('pimg', 'productId', rec.id).then(function (imgs) {
-          return Promise.all(imgs.filter(function (i) { return i.role === 'main'; }).map(function (i) { return S.idb.del('pimg', i.id); }));
-        }).then(function () { return S.idb.put('pimg', { id: uid(), productId: rec.id, role: 'main', ord: 0, blob: pImgState.main }); }));
+        // 대표는 한 장뿐이라 새로 올리기 전에 기존 대표를 지운다
+        jobs.push(S.Media.list('product', rec.id).then(function (imgs) {
+          return Promise.all(imgs.filter(function (i) { return i.role === 'main'; }).map(function (i) { return S.Media.del('product', i.id); }));
+        }).then(function () { return S.Media.put('product', rec.id, pImgState.main, { role: 'main', ord: 0 }); }));
       }
-      pImgState.extra.forEach(function (f, i) { jobs.push(S.idb.put('pimg', { id: uid(), productId: rec.id, role: 'extra', ord: i + 1, blob: f })); });
-      pImgState.detail.forEach(function (f, i) { jobs.push(S.idb.put('pimg', { id: uid(), productId: rec.id, role: 'detail', ord: i, blob: f })); });
+      pImgState.extra.forEach(function (f, i) { jobs.push(S.Media.put('product', rec.id, f, { role: 'extra', ord: i + 1 })); });
+      pImgState.detail.forEach(function (f, i) { jobs.push(S.Media.put('product', rec.id, f, { role: 'detail', ord: i })); });
       Promise.all(jobs).then(function () {
         prodEditing = null;
         pImgState = { main: null, extra: [], detail: [], removed: [] };
@@ -1065,7 +1067,7 @@
     if (persist) {
       if (posState.dev === 'mb') { posState.rec.mbx = x; posState.rec.mby = y; }
       else { posState.rec.pcx = x; posState.rec.pcy = y; }
-      S.idb.put('simg', posState.rec);
+      S.Media.setPos(posState.rec, { pcx: posState.rec.pcx, pcy: posState.rec.pcy, mbx: posState.rec.mbx, mby: posState.rec.mby });
     }
   }
   function nudgePos(dir) {
@@ -1091,9 +1093,9 @@
         '<div class="pe-nocrop"><i data-lucide="info"></i> 이 자리는 사진 원본 전체를 그대로 보여 줍니다. 위치 조정이 필요 없습니다.</div></div>';
       icons(); return;
     }
-    S.idb.all('simg').then(function (recs) {
+    S.Media.list('page').then(function (recs) {
       var rec = recs.filter(function (r) { return r.id === imgSel; })[0];
-      if (!rec || !rec.blob) {
+      if (!rec || !rec.url) {
         box.innerHTML = '<div class="pos-editor"><div class="pe-head"><b>' + esc(meta.label) + '</b></div>' +
           '<div class="pe-nocrop">먼저 <b>사진 올리기</b>로 사진을 올리면, 여기서 상하좌우 위치를 맞출 수 있습니다.</div></div>';
         return;
@@ -1106,7 +1108,7 @@
       box.innerHTML = '<div class="pos-editor">' +
         '<div class="pe-head"><b>' + esc(meta.label) + '</b><span class="pe-dev">' + devLabel + ' 화면 위치</span></div>' +
         '<div class="pe-stage" id="peStage" style="aspect-ratio:' + (meta.ar || '4/3') + '">' +
-          '<div class="pe-img" id="peImg" style="background-image:url(' + mkURL(rec.blob) + ');background-position:' + x + '% ' + y + '%"></div>' +
+          '<div class="pe-img" id="peImg" style="background-image:url(' + rec.url + ');background-position:' + x + '% ' + y + '%"></div>' +
         '</div>' +
         '<div class="pe-ctrls">' +
           '<button class="pe-up" data-pe-nudge="up" title="사진을 위로"><i data-lucide="chevron-up"></i></button>' +
@@ -1141,12 +1143,12 @@
   }
 
   function fillSlotPreviews() {
-    S.idb.all('simg').then(function (recs) {
+    S.Media.list('page').then(function (recs) {
       var have = {};
       recs.forEach(function (r) {
         have[r.id] = true;
         var cell = document.querySelector('[data-slot-cell="' + r.id + '"]');
-        if (cell && r.blob) cell.innerHTML = '<img src="' + mkURL(r.blob) + '" alt="" style="width:100%;height:100%;object-fit:cover">';
+        if (cell && r.url) cell.innerHTML = '<img src="' + r.url + '" alt="" style="width:100%;height:100%;object-fit:cover">';
       });
       document.querySelectorAll('[data-slot-card]').forEach(function (card) {
         if (have[card.getAttribute('data-slot-card')]) card.classList.add('has-photo');
@@ -1206,6 +1208,21 @@
   }
 
   function doExport() {
+    if (S.isServer && S.isServer()) {
+      toast('백업 파일을 만드는 중…');
+      fetch('/api/admin/export', { credentials: 'same-origin' }).then(function (r) {
+        if (!r.ok) throw new Error('export failed');
+        return r.json();
+      }).then(function (dump) {
+        if (dump.skippedImages && dump.skippedImages.length) {
+          alert('사진 ' + dump.skippedImages.length + '장은 용량이 커서 이번 백업에 담기지 않았습니다.\n' +
+                '나머지 자료는 정상적으로 내려받았습니다.');
+        }
+        saveBlob(new Blob([JSON.stringify(dump)], { type: 'application/json' }), backupName());
+        toast('백업 파일을 내려받았습니다.');
+      }).catch(function () { toast('백업 파일을 만들지 못했습니다.'); });
+      return;
+    }
     var local = {};
     for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && k.indexOf('kach_') === 0) local[k] = localStorage.getItem(k); }
     Promise.all(IDB_STORES.map(function (st) {
@@ -1218,14 +1235,19 @@
     })).then(function (pairs) {
       var idbDump = {}; pairs.forEach(function (p) { idbDump[p[0]] = p[1]; });
       var dump = { app: 'kach', version: 1, exportedAt: new Date().toISOString(), local: local, idb: idbDump };
-      var blob = new Blob([JSON.stringify(dump)], { type: 'application/json' });
-      var u = URL.createObjectURL(blob), a = document.createElement('a');
-      var d = new Date(), p2 = function (x) { return ('0' + x).slice(-2); };
-      a.href = u; a.download = 'kach-backup-' + d.getFullYear() + p2(d.getMonth() + 1) + p2(d.getDate()) + '-' + p2(d.getHours()) + p2(d.getMinutes()) + '.json';
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(function () { URL.revokeObjectURL(u); }, 4000);
+      saveBlob(new Blob([JSON.stringify(dump)], { type: 'application/json' }), backupName());
       toast('백업 파일을 내려받았습니다.');
     });
+  }
+  function backupName() {
+    var d = new Date(), p2 = function (x) { return ('0' + x).slice(-2); };
+    return 'kach-backup-' + d.getFullYear() + p2(d.getMonth() + 1) + p2(d.getDate()) + '-' + p2(d.getHours()) + p2(d.getMinutes()) + '.json';
+  }
+  function saveBlob(blob, name) {
+    var u = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = u; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(u); }, 4000);
   }
 
   function doImport(file) {
@@ -1235,6 +1257,19 @@
       try { data = JSON.parse(rd.result); } catch (e) { alert('백업 파일을 읽을 수 없습니다.'); return; }
       if (!data || data.app !== 'kach') { alert('이 사이트의 백업 파일이 아닙니다.'); return; }
       if (!confirm('현재 데이터를 백업 내용으로 덮어씁니다. 계속할까요?')) return;
+      if (S.isServer && S.isServer()) {
+        toast('불러오는 중…');
+        fetch('/api/admin/import', {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+        }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+          .then(function (res) {
+            if (!res.ok) { alert('불러오지 못했습니다: ' + (res.d.error || '서버 오류')); return; }
+            alert('복원이 완료되었습니다. 페이지를 새로고침합니다.');
+            location.reload();
+          }).catch(function () { alert('불러오지 못했습니다. 인터넷 연결을 확인해 주세요.'); });
+        return;
+      }
       var rm = []; for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && k.indexOf('kach_') === 0) rm.push(k); }
       rm.forEach(function (k) { localStorage.removeItem(k); });
       Object.keys(data.local || {}).forEach(function (k) { try { localStorage.setItem(k, data.local[k]); } catch (e) {} });
@@ -1533,7 +1568,17 @@
     bindForms();
   }
 
-  /* ---------- 이미지 리사이즈 (팝업용) ---------- */
+  /* ---------- 이미지 리사이즈 ----------
+     팝업·파트너 로고는 문서 안에 dataURL 로 들어가므로 resizeToDataURL,
+     상품·페이지 사진은 R2/IndexedDB 에 파일로 들어가므로 resizeToFile 을 쓴다. */
+  function resizeToFile(file, maxW, cb) {
+    resizeToDataURL(file, maxW, function (durl) {
+      if (!durl) { cb(null); return; }
+      dataURLToBlob(durl).then(function (blob) {
+        cb(new File([blob], (file.name || 'image').replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' }));
+      }).catch(function () { cb(null); });
+    });
+  }
   function resizeToDataURL(file, maxW, cb) {
     var img = new Image();
     var url = URL.createObjectURL(file);
@@ -1636,14 +1681,13 @@
     if (t.dataset && t.dataset.simgUp) {
       var f = t.files && t.files[0]; if (!f) return;
       var slotId = t.dataset.simgUp;
-      resizeToDataURL(f, 1600, function (durl) {
-        if (!durl) { toast('이미지를 읽을 수 없습니다.'); return; }
-        dataURLToBlob(durl).then(function (blob) {
-          // 재업로드 시 기존 위치(pcx/pcy/mbx/mby)는 보존한다
-          return S.idb.all('simg').then(function (recs) {
-            var prev = recs.filter(function (r) { return r.id === slotId; })[0] || {};
-            return S.idb.put('simg', { id: slotId, blob: blob, at: new Date().toISOString(),
-              pcx: prev.pcx, pcy: prev.pcy, mbx: prev.mbx, mby: prev.mby });
+      resizeToFile(f, 1600, function (file) {
+        if (!file) { toast('이미지를 읽을 수 없습니다.'); return; }
+        // 재업로드 시 맞춰 둔 위치(pcx/pcy/mbx/mby)는 보존한다
+        S.Media.list('page', slotId).then(function (recs) {
+          var prev = recs[0] || {};
+          return S.Media.put('page', slotId, file, {
+            keep: { pcx: prev.pcx, pcy: prev.pcy, mbx: prev.mbx, mby: prev.mby },
           });
         }).then(function (r) {
           if (!r) { toast('이미지 저장에 실패했습니다. 브라우저 저장 공간을 확인해 주세요.'); return; }
@@ -1747,14 +1791,14 @@
     } else if (act === 'simgdel') {
       if (!confirm('이 자리의 사진을 내릴까요? 페이지는 기본 자리표시로 돌아갑니다.')) return;
       if (imgSel === b.dataset.id) imgSel = null;
-      S.idb.del('simg', b.dataset.id).then(function(){ render(); toast('사진을 내렸습니다.'); });
+      S.Media.del('page', b.dataset.id).then(function(){ render(); toast('사진을 내렸습니다.'); });
     } else if (act === 'pnew') { prodEditing = 'new'; pImgState.removed = []; render();
     } else if (act === 'pedit') { prodEditing = b.dataset.id; pImgState.removed = []; render();
     } else if (act === 'pback') { if (!confirmLeave()) return; prodEditing = null; pImgState = { main: null, extra: [], detail: [], removed: [] }; render();
     } else if (act === 'pdel') {
       if (!confirm('이 상품을 삭제할까요? 상품 이미지도 함께 삭제됩니다.')) return;
       S.setProducts(S.getProducts().filter(function (p) { return p.id !== b.dataset.id; }));
-      S.idb.byIndex('pimg', 'productId', b.dataset.id).then(function (imgs) { imgs.forEach(function (i) { S.idb.del('pimg', i.id); }); });
+      S.Media.delFor('product', b.dataset.id);
       render();
     } else if (act === 'pimgdel') {
       pImgState.removed.push(b.dataset.id);
@@ -1831,6 +1875,17 @@
   var authed = false;
   function unlock(){ document.getElementById('loginGate').style.display = 'none'; document.getElementById('adminApp').style.display = 'flex'; render(); icons(); }
   function initAuth() {
+    if (S.isServer && S.isServer()) {
+      // 서버가 이미 세션을 확인하고 들여보냈다. 여기서 또 묻지 않는다.
+      document.getElementById('logoutBtn').addEventListener('click', function () {
+        fetch('/api/admin/logout', { method: 'POST', credentials: 'same-origin' })
+          .catch(function () {})
+          .then(function () { location.href = '/login.html'; });
+      });
+      authed = true;
+      unlock();
+      return;
+    }
     document.getElementById('loginGate').style.display = 'grid';
     icons();
     var form = document.getElementById('loginForm');
@@ -1860,6 +1915,19 @@
     document.getElementById('logoutBtn').addEventListener('click', function(){ authed = false; location.reload(); });
   }
 
-  function ready(fn){ if (document.readyState !== 'loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }
-  ready(function(){ migrate(); seed(); initAuth(); });
+  function ready(fn){
+    if (S.ready) { S.ready(fn); return; }
+    if (document.readyState !== 'loading') fn(); else document.addEventListener('DOMContentLoaded', fn);
+  }
+  ready(function () {
+    if (S.isServer && S.isServer()) {
+      // 주문·신청·문의는 공개 bootstrap 에 없다 — 그리기 전에 따로 받는다
+      S.loadAdminData().then(function (ok) {
+        if (!ok) toast('일부 자료를 불러오지 못했습니다. 새로고침해 주세요.');
+        initAuth();
+      });
+      return;
+    }
+    migrate(); seed(); initAuth();
+  });
 })();

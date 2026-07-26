@@ -43,6 +43,8 @@
     map.on('click', function () { map.scrollWheelZoom.enable(); });
   }
 
-  if (document.readyState !== 'loading') renderMap();
+  // 좌표·주소를 설정에서 읽으므로, 서버 모드에서는 설정을 받아온 뒤에 그린다
+  if (window.Site && window.Site.ready) window.Site.ready(renderMap);
+  else if (document.readyState !== 'loading') renderMap();
   else document.addEventListener('DOMContentLoaded', renderMap);
 })();

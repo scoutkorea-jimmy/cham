@@ -12,17 +12,16 @@
   if (!S) return;
   var esc = S.esc, fmtWon = S.fmtWon, icons = S.icons;
 
-  // ObjectURL 수명 관리 — 문서 종료 시 일괄 회수
-  var objUrls = [];
-  function mkURL(blob){ var u = URL.createObjectURL(blob); objUrls.push(u); return u; }
-  window.addEventListener('pagehide', function () { objUrls.forEach(function (u) { try { URL.revokeObjectURL(u); } catch (e) {} }); objUrls = []; });
-
-  /* ---------- 상품 이미지 로드 (대표 1장) ---------- */
+  /* ---------- 상품 이미지 로드 (대표 1장) ----------
+     이미지 주소는 Site.Media 가 만든다 — 서버 모드는 R2 주소, 로컬 모드는 blob: 주소. */
   function mainImage(productId) {
-    return S.idb.byIndex('pimg', 'productId', productId).then(function (imgs) {
+    // 서버 모드에서는 bootstrap 이 대표 이미지를 이미 실어 왔다 — 카드마다 다시 묻지 않는다
+    var cached = S.Media.mainOf(productId);
+    if (cached !== undefined) return Promise.resolve(cached ? cached.url : null);
+    return S.Media.list('product', productId).then(function (imgs) {
       imgs.sort(function (a, b) { return (a.ord || 0) - (b.ord || 0); });
       var main = imgs.filter(function (i) { return i.role === 'main'; })[0] || imgs[0];
-      return main ? mkURL(main.blob) : null;
+      return main ? main.url : null;
     });
   }
 
@@ -210,22 +209,21 @@
     icons();
 
     /* --- 이미지 갤러리 (대표 + 추가, 스와이프) --- */
-    S.idb.byIndex('pimg', 'productId', p.id).then(function (imgs) {
-      imgs = imgs.filter(function (i) { return i.role !== 'detail'; });
+    // 한 번 읽어 상세 이미지와 갤러리로 나눠 쓴다(예전에는 같은 조회를 두 번 했다)
+    S.Media.list('product', p.id).then(function (all) {
+      var detailImgs = all.filter(function (i) { return i.role === 'detail'; })
+        .sort(function (a, b) { return (a.ord || 0) - (b.ord || 0); });
+      var dbox = document.getElementById('pdDetailImgs');
+      if (dbox && detailImgs.length) {
+        dbox.innerHTML = detailImgs.map(function (d) {
+          return '<img src="' + d.url + '" alt="' + esc(p.name) + ' 상세 이미지" style="width:100%;border-radius:var(--r-sm);margin-top:12px">';
+        }).join('');
+      }
+      var imgs = all.filter(function (i) { return i.role !== 'detail'; });
       imgs.sort(function (a, b) { return (a.role === 'main' ? -1 : 1) - (b.role === 'main' ? -1 : 1) || (a.ord || 0) - (b.ord || 0); });
-      var detailImgs = [];
-      S.idb.byIndex('pimg', 'productId', p.id).then(function (all) {
-        detailImgs = all.filter(function (i) { return i.role === 'detail'; }).sort(function (a, b) { return (a.ord || 0) - (b.ord || 0); });
-        var dbox = document.getElementById('pdDetailImgs');
-        if (dbox && detailImgs.length) {
-          dbox.innerHTML = detailImgs.map(function (d) {
-            return '<img src="' + mkURL(d.blob) + '" alt="' + esc(p.name) + ' 상세 이미지" style="width:100%;border-radius:var(--r-sm);margin-top:12px">';
-          }).join('');
-        }
-      });
       if (!imgs.length) return;
       var main = document.getElementById('pdMain');
-      var urls = imgs.map(function (i) { return mkURL(i.blob); });
+      var urls = imgs.map(function (i) { return i.url; });
       main.innerHTML = urls.map(function (u) {
         return '<div class="pd-slide"><img src="' + u + '" alt="' + esc(p.name) + '"></div>';
       }).join('');
@@ -310,7 +308,12 @@
     }
   }
 
-  function ready(fn){ if (document.readyState !== 'loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }
+  // Site.ready 는 DOM 과 데이터(서버 모드의 /api/bootstrap)를 모두 기다린다.
+  // 그냥 DOMContentLoaded 로 그리면 상품이 아직 없어 빈 목록이 나온다.
+  function ready(fn){
+    if (S.ready) { S.ready(fn); return; }
+    if (document.readyState !== 'loading') fn(); else document.addEventListener('DOMContentLoaded', fn);
+  }
   ready(function () {
     renderLists();
     renderDetail();

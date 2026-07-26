@@ -54,7 +54,7 @@ export async function onRequestPost({ request, env }) {
   ).run();
 
   const row = await env.DB.prepare(
-    `SELECT id, scope, ref, role, ord, name, size, pcx, pcy, mbx, mby FROM images WHERE id = ?`
+    `SELECT id, scope, ref, role, ord, mime, name, size, pcx, pcy, mbx, mby FROM images WHERE id = ?`
   ).bind(id).first();
   return json({ image: imageRowToObj(row) }, 201);
 }

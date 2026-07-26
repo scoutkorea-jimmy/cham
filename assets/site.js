@@ -87,9 +87,120 @@
     return '' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + ('0000' + Math.floor(Math.random() * 100000)).slice(-5);
   }
 
-  /* ---------------- localStorage stores ---------------- */
-  function getJSON(k, def){ try { var s = localStorage.getItem(k); return s ? JSON.parse(s) : def; } catch (e) { return def; } }
-  function setJSON(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }  // false=쿼터 초과 등 실패
+  /* ================================================================
+     저장소 — 서버(D1·R2) 또는 브라우저(localStorage·IndexedDB)
+     ================================================================
+     Cloudflare Pages 이전 중이라 두 곳 모두에서 돌아가야 한다.
+       · 서버 모드 — /api/bootstrap 이 응답하면. 데이터는 D1, 이미지는 R2.
+       · 로컬 모드 — 응답이 없으면(GitHub Pages). 지금까지의 동작 그대로.
+     3단계(배포 전환)에서 GitHub Pages 를 내리면 로컬 어댑터를 지운다.
+     → docs/migration-cloudflare.md
+
+     화면 코드가 바뀌지 않도록 **읽기는 동기 그대로** 둔다. 서버 모드에서는
+     부팅 때 한 번 받아 온 값을 메모리(cache)에서 읽고, 쓰기만 뒤에서 보낸다.
+  ---------------------------------------------------------------- */
+  var SERVER = false;      // bootstrap 성공 여부 — boot() 에서 정해진다
+  var cache = {};          // 서버 모드의 kach_* 값 보관
+
+  // kach_* 키가 서버의 어느 항목에 대응하는가. 여기 없는 키는 늘 로컬이다
+  // (로그인 잠금 카운터·팝업 '오늘 하루 보지 않기'는 브라우저마다 달라야 한다).
+  var KEY_MAP = {
+    'kach_products_v3':  'products',
+    'kach_posts_v1':     'posts',
+    'kach_cohorts_v1':   'cohorts',
+    'kach_partners_v1':  'partners',
+    'kach_popups_v1':    'popups',
+    'kach_settings_v1':  'settings',
+    'kach_consents_v1':  'consents',
+    'kach_kms_v1':       'kms',
+    'kach_orders':       'orders',
+    'kach_applications': 'applications',
+    'kach_inquiries':    'inquiries',
+  };
+  var DOC_KINDS = { settings: 1, consents: 1, kms: 1 };
+
+  function api(path, opts) {
+    var o = opts || {};
+    o.credentials = 'same-origin';
+    if (o.body && typeof o.body !== 'string' && !(o.body instanceof FormData)) {
+      o.headers = o.headers || {}; o.headers['Content-Type'] = 'application/json';
+      o.body = JSON.stringify(o.body);
+    }
+    return fetch(path, o).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, status: r.status, data: d }; });
+    });
+  }
+
+  function getJSON(k, def) {
+    if (SERVER && k === VISITS_KEY)  return cache.__visits  || def;
+    if (SERVER && k === SOURCES_KEY) return cache.__sources || def;
+    if (SERVER && KEY_MAP[k]) return cache[k] === undefined ? def : cache[k];
+    try { var s = localStorage.getItem(k); return s ? JSON.parse(s) : def; } catch (e) { return def; }
+  }
+
+  /* 서버 모드의 쓰기는 '낙관적'이다 — 메모리를 먼저 바꿔 화면이 즉시 갱신되고,
+     저장은 뒤에서 보낸다. 실패하면 알리고 서버 값으로 되돌린다.
+     이렇게 해야 `if (!setProducts(a))` 처럼 동기 반환을 쓰는 기존 호출부가 그대로 돈다. */
+  function setJSON(k, v) {
+    if (SERVER && KEY_MAP[k]) {
+      cache[k] = v;
+      var kind = KEY_MAP[k];
+      var body = DOC_KINDS[kind] ? { doc: v } : { items: v };
+      api('/api/admin/data/' + kind, { method: 'PUT', body: body }).then(function (r) {
+        if (r.ok) return;
+        toast(r.status === 401 || r.status === 403
+          ? '저장 권한이 없습니다. 다시 로그인해 주세요.'
+          : '저장하지 못했습니다: ' + (r.data.error || '서버 오류'));
+        reload(kind);   // 화면과 서버가 어긋난 채 남지 않게 되돌린다
+      }).catch(function () { toast('저장하지 못했습니다. 인터넷 연결을 확인해 주세요.'); });
+      return true;
+    }
+    try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; }  // false=쿼터 초과 등 실패
+  }
+
+  /* 관리자 전용 자료(주문·신청·문의·KMS)는 공개 bootstrap 에 없다 — 고객 개인정보이기 때문.
+     관리자 화면이 처음 그리기 전에 이걸로 채운다. */
+  function loadAdminData() {
+    if (!SERVER) return Promise.resolve(true);
+    return Promise.all(['orders', 'applications', 'inquiries', 'kms', 'visits'].map(function (kind) {
+      return api('/api/admin/data/' + kind).then(function (r) {
+        if (!r.ok) return false;
+        if (kind === 'visits') { cache.__visits = r.data.visits || {}; cache.__sources = r.data.sources || {}; return true; }
+        var key = null;
+        for (var k in KEY_MAP) if (KEY_MAP[k] === kind) key = k;
+        if (key) cache[key] = DOC_KINDS[kind] ? r.data.doc : r.data.items;
+        return true;
+      }).catch(function () { return false; });
+    })).then(function (oks) { return oks.every(Boolean); });
+  }
+
+  // 한 항목만 서버에서 다시 읽어 캐시를 맞춘다
+  function reload(kind) {
+    return api('/api/admin/data/' + kind).then(function (r) {
+      if (!r.ok) return false;
+      var key = null;
+      for (var k in KEY_MAP) if (KEY_MAP[k] === kind) key = k;
+      if (key) cache[key] = DOC_KINDS[kind] ? r.data.doc : r.data.items;
+      return true;
+    }).catch(function () { return false; });
+  }
+
+  /* 접수(주문·신청·문의) — 서버 모드에서는 서버가 주문번호와 금액을 정한다.
+     Promise<rec> 를 돌려주므로 호출부는 결과를 기다려야 한다. */
+  function submitRecord(kind, data) {
+    if (SERVER) {
+      return api('/api/submit', { method: 'POST', body: { kind: kind, data: data } }).then(function (r) {
+        if (!r.ok) throw new Error(r.data.error || '접수하지 못했습니다.');
+        var rec = {}; for (var k in data) rec[k] = data[k];
+        rec.id = r.data.id; rec.orderNo = r.data.orderNo; rec.at = new Date().toISOString();
+        if (r.data.total != null) rec.total = r.data.total;
+        return rec;
+      });
+    }
+    var storeKey = { order: 'kach_orders', seedjang: 'kach_orders', apply: 'kach_applications', inquiry: 'kach_inquiries' }[kind];
+    return Promise.resolve(pushRecord(storeKey, data));
+  }
+
   function pushRecord(key, rec){ var a = getJSON(key, []); rec.id = rec.id || uid(); rec.at = new Date().toISOString(); rec.status = rec.status || '신규'; a.unshift(rec); setJSON(key, a); return rec; }
 
   /* ---------------- IndexedDB (첨부 · 갤러리 · 상품 이미지) ---------------- */
@@ -120,6 +231,87 @@
     del: function (store, id) { return openDB().then(function (d) { return new Promise(function (res, rej) { var t = d.transaction(store, 'readwrite'); t.objectStore(store).delete(id); t.oncomplete = function(){ res(true); }; t.onerror = function(){ rej(t.error); }; }); }).catch(function(){ return false; }); },
     all: function (store) { return openDB().then(function (d) { return new Promise(function (res) { var q = d.transaction(store).objectStore(store).getAll(); q.onsuccess = function(){ res(q.result || []); }; q.onerror = function(){ res([]); }; }); }).catch(function(){ return []; }); },
     byIndex: function (store, index, val) { return openDB().then(function (d) { return new Promise(function (res) { var q = d.transaction(store).objectStore(store).index(index).getAll(val); q.onsuccess = function(){ res(q.result || []); }; q.onerror = function(){ res([]); }; }); }).catch(function(){ return []; }); },
+  };
+
+  /* ---------------- 이미지 (Media) ----------------
+     화면 코드는 blob 인지 URL 인지 알 필요가 없다 — 항상 `rec.url` 만 쓴다.
+     서버 모드는 R2 주소를, 로컬 모드는 blob: 주소를 넣어 준다.
+       scope  product | page | post | gallery
+       ref    product → 상품 id / page → 슬롯 id / post → 게시글 id
+  ------------------------------------------------- */
+  var SCOPE_STORE = {
+    product: { store: 'pimg', index: 'productId', refField: 'productId' },
+    page:    { store: 'simg' },
+    post:    { store: 'files', index: 'postId', refField: 'postId' },
+    gallery: { store: 'gallery' },
+  };
+  function withURL(rec) {
+    if (rec && rec.blob && !rec.url) { try { rec.url = URL.createObjectURL(rec.blob); } catch (e) {} }
+    return rec;
+  }
+  var Media = {
+    // 상품 목록 카드용 — bootstrap 이 실어 온 대표 이미지. 없으면 null(요청하지 않는다).
+    mainOf: function (productId) {
+      if (SERVER) return (cache.__mainImages || {})[productId] || null;
+      return undefined;   // 로컬 모드는 알 수 없다 → 호출부가 list() 로 찾는다
+    },
+    list: function (scope, ref) {
+      if (SERVER) {
+        var q = '/api/images?scope=' + encodeURIComponent(scope) + (ref ? '&ref=' + encodeURIComponent(ref) : '');
+        return api(q).then(function (r) { return (r.ok && r.data.images) || []; }).catch(function () { return []; });
+      }
+      var m = SCOPE_STORE[scope]; if (!m) return Promise.resolve([]);
+      var p = (ref && m.index) ? idb.byIndex(m.store, m.index, ref) : idb.all(m.store);
+      return p.then(function (recs) {
+        // 페이지 슬롯은 스토어 하나에 전 슬롯이 들어 있어 ref 로 걸러야 한다
+        if (ref && !m.index) recs = recs.filter(function (r) { return r.id === ref; });
+        return recs.map(withURL);
+      });
+    },
+    put: function (scope, ref, file, opts) {
+      var o = opts || {};
+      if (SERVER) {
+        var fd = new FormData();
+        fd.append('file', file, file.name || 'image');
+        fd.append('scope', scope);
+        if (ref) fd.append('ref', ref);
+        if (o.role) fd.append('role', o.role);
+        if (o.ord != null) fd.append('ord', String(o.ord));
+        return api('/api/admin/images', { method: 'POST', body: fd })
+          .then(function (r) { return r.ok ? r.data.image : null; })
+          .catch(function () { return null; });
+      }
+      var m = SCOPE_STORE[scope]; if (!m) return Promise.resolve(null);
+      var rec = { id: scope === 'page' ? ref : (o.id || uid()), blob: file, at: new Date().toISOString() };
+      if (m.refField && ref) rec[m.refField] = ref;
+      if (o.role) rec.role = o.role;
+      if (o.ord != null) rec.ord = o.ord;
+      if (o.name) rec.name = o.name;
+      if (o.size != null) rec.size = o.size;
+      if (o.keep) for (var k in o.keep) if (o.keep[k] != null) rec[k] = o.keep[k];
+      return idb.put(m.store, rec).then(function (r) { return withURL(r); });
+    },
+    del: function (scope, id) {
+      if (SERVER) return api('/api/admin/images', { method: 'DELETE', body: { id: id } }).then(function (r) { return r.ok; }).catch(function () { return false; });
+      var m = SCOPE_STORE[scope]; if (!m) return Promise.resolve(false);
+      return idb.del(m.store, id);
+    },
+    delFor: function (scope, ref) {
+      if (SERVER) return api('/api/admin/images', { method: 'DELETE', body: { scope: scope, ref: ref } }).then(function (r) { return r.ok; }).catch(function () { return false; });
+      return Media.list(scope, ref).then(function (recs) {
+        return Promise.all(recs.map(function (r) { return Media.del(scope, r.id); })).then(function () { return true; });
+      });
+    },
+    // 페이지 슬롯의 초점 위치만 저장(사진은 그대로)
+    setPos: function (rec, pos) {
+      if (SERVER) {
+        return api('/api/admin/images', { method: 'PATCH', body: {
+          id: rec.id, pcx: pos.pcx, pcy: pos.pcy, mbx: pos.mbx, mby: pos.mby,
+        } }).then(function (r) { return r.ok; }).catch(function () { return false; });
+      }
+      for (var k in pos) rec[k] = pos[k];
+      return idb.put('simg', rec).then(function () { return true; });
+    },
   };
 
   /* ---------------- 페이지 이미지 슬롯 (관리자 '페이지 이미지'에서 교체) ----------------
@@ -191,13 +383,15 @@
   function renderSlotImages() {
     var slots = document.querySelectorAll('[data-img-slot]');
     if (!slots.length) return;
-    idb.all('simg').then(function (recs) {
+    // 서버 모드에서는 bootstrap 이 이미 실어 왔다 — 사진 때문에 요청을 한 번 더 하지 않는다
+    var p = (SERVER && cache.__pageImages) ? Promise.resolve(cache.__pageImages) : Media.list('page');
+    p.then(function (recs) {
       var map = {};
       recs.forEach(function (r) { map[r.id] = r; });
       slots.forEach(function (el) {
         var rec = map[el.getAttribute('data-img-slot')];
-        if (!rec || !rec.blob) return;
-        applySlot(el, URL.createObjectURL(rec.blob), slotPos(rec));
+        if (!rec || !rec.url) return;
+        applySlot(el, rec.url, slotPos(rec));
       });
     });
   }
@@ -220,15 +414,22 @@
   function trackVisit() {
     if (currentPage() === 'admin') return;
     try {
-      var v = getJSON(VISITS_KEY, {});
       var d = todayStr();
+      var isNew = sessionStorage.getItem('kach_uv_' + d) !== '1';
+      if (isNew) sessionStorage.setItem('kach_uv_' + d, '1');
+      var cat = classifySource(document.referrer || '');
+
+      if (SERVER) {
+        // 집계는 실패해도 화면에 영향이 없어야 한다 — 응답을 기다리지 않는다
+        api('/api/visit', { method: 'POST', body: { newVisitor: isNew, source: cat } }).catch(function () {});
+        return;
+      }
+      var v = getJSON(VISITS_KEY, {});
       if (!v[d]) v[d] = { pv: 0, uv: 0 };
       v[d].pv += 1;
-      if (sessionStorage.getItem('kach_uv_' + d) !== '1') {
-        v[d].uv += 1; sessionStorage.setItem('kach_uv_' + d, '1');
-        // 신규 방문 1회당 유입 경로 1건 집계
+      if (isNew) {
+        v[d].uv += 1;
         var src = getJSON(SOURCES_KEY, {});
-        var cat = classifySource(document.referrer || '');
         src[cat] = (src[cat] || 0) + 1;
         setJSON(SOURCES_KEY, src);
       }
@@ -283,8 +484,18 @@
   var loginTimer = null;
   function clearLoginTimer(){ if (loginTimer) { clearTimeout(loginTimer); loginTimer = null; } }
 
-  // 관리 기능 게이팅 — 호출 시마다 새로 인증을 요구(상태를 보관하지 않음)
+  /* 관리 기능 게이팅.
+     서버 모드 — 세션이 있으면 그대로 통과, 없으면 로그인 페이지로 보낸다.
+       (여기서 아이디·비밀번호를 받지 않는 이유: 인증 판단은 서버 한 곳에서만 해야 한다.)
+     로컬 모드 — 지금까지처럼 호출 시마다 확인 모달을 띄운다. */
   function requireAdmin(cb) {
+    if (SERVER) {
+      api('/api/admin/session').then(function (r) {
+        if (r.ok && r.data.authenticated) { cb(); return; }
+        location.href = '/login.html?next=' + encodeURIComponent(location.pathname + location.search);
+      }).catch(function () { toast('인증을 확인할 수 없습니다. 인터넷 연결을 확인해 주세요.'); });
+      return;
+    }
     rawModal(
       '<div class="modal-head"><div><div class="eyebrow">관리자 인증</div><h3>관리자 로그인</h3>' +
         '<p>관리 기능은 인증 후 이용할 수 있습니다. 인증 정보는 저장되지 않으며, 작업할 때마다 다시 확인합니다.</p></div>' +
@@ -778,10 +989,12 @@
     toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 2600);
   }
 
-  /* ---------------- Modals (신청 · 주문 · 문의) ---------------- */
-  // 무통장입금 계좌·예금주는 관리자 '설정'에서 편집(getSettings). 페이지 로드 시점 값 사용.
-  var PAY_BANK = getSettings().bank;
-  var PAY_HOLDER = getSettings().holder;
+  /* ---------------- Modals (신청 · 주문 · 문의) ----------------
+     무통장입금 계좌·예금주는 관리자 '설정'에서 편집한다(getSettings).
+     모듈 로드 시점이 아니라 **모달을 그릴 때** 읽는다 — 서버 모드에서는 스크립트가
+     실행될 때 아직 설정을 받아오기 전이라, 미리 잡아 두면 기본값이 굳어 버린다. */
+  function payBank(){ return getSettings().bank; }
+  function payHolder(){ return getSettings().holder; }
 
   /* ---------------- 지도사 모집 기수(期數) ---------------- */
   var COHORTS_KEY = 'kach_cohorts_v1';
@@ -909,7 +1122,7 @@
       ? '<div class="pay-row"><span>분양 금액</span><span>1kg당 15만원 · 30kg 분양 가능 (상담 후 확정)</span></div>'
       : (unit ? '<div class="pay-row"><span>총 결제금액</span><b class="pay-total" id="payTotal">' + fmtWon(unit * qty) + '원</b></div>' : '');
     return '<div class="pay-box"><b><i data-lucide="landmark"></i>무통장입금(계좌이체) 안내</b>' +
-      '<div class="pay-row"><span>입금 계좌</span><span>' + PAY_BANK + '<br>(예금주: ' + PAY_HOLDER + ')</span></div>' +
+      '<div class="pay-row"><span>입금 계좌</span><span>' + esc(payBank()) + '<br>(예금주: ' + esc(payHolder()) + ')</span></div>' +
       totalRow +
       '<div class="pay-row"><span>입금 기한</span><span>주문 후 3일 이내</span></div>' +
       '<p>입금자명은 ‘입금자명’ 항목과 동일하게 입금해 주세요. 입금 확인 후 결제완료 처리되며 순차 배송됩니다. 주문 완료 시 발급되는 <b>주문번호</b>와 연락처(또는 이메일)로 언제든 주문을 조회할 수 있습니다.</p>' +
@@ -962,17 +1175,38 @@
   function submitModal(form) {
     var data = {}; var fd = new FormData(form);
     fd.forEach(function(v, k){ data[k] = v; });
-    var store = form.getAttribute('data-store');
     var type = form.getAttribute('data-type');
     data.kind = type;
     var isOrder = (type === 'order' || type === 'seedjang');
     if (isOrder) {
-      data.orderNo = genOrderNo();
       data.payMethod = '무통장입금';
       data.status = '주문접수';
-      if (data.unitPrice) data.total = Number(data.unitPrice) * (Number(data.qty) || 1);
+      // 서버 모드에서는 주문번호·금액을 서버가 정한다(브라우저 값은 버려진다).
+      // 로컬 모드에서만 여기서 만든다.
+      if (!SERVER) {
+        data.orderNo = genOrderNo();
+        if (data.unitPrice) data.total = Number(data.unitPrice) * (Number(data.qty) || 1);
+      }
     }
-    pushRecord(store, data);
+    var btn = form.querySelector('button[type=submit]');
+    if (btn) { btn.disabled = true; btn.textContent = '접수 중…'; }
+
+    submitRecord(type, data).then(function (rec) {
+      renderSubmitSuccess(form, type, rec, isOrder);
+    }).catch(function (err) {
+      if (btn) { btn.disabled = false; btn.textContent = MODALS[type].submit; }
+      var note = form.querySelector('.submit-error');
+      if (!note) {
+        note = document.createElement('div');
+        note.className = 'modal-note submit-error';
+        form.querySelector('.modal-foot').insertAdjacentElement('beforebegin', note);
+      }
+      note.innerHTML = '<i data-lucide="alert-circle"></i><span>' + esc(err.message || '접수하지 못했습니다. 잠시 후 다시 시도해 주세요.') + '</span>';
+      icons();
+    });
+  }
+
+  function renderSubmitSuccess(form, type, data, isOrder) {
     var title = MODALS[type].title;
     var body = form.closest('.modal-body');
     var orderInfo = '';
@@ -980,7 +1214,7 @@
       orderInfo = '<div class="pay-box" style="text-align:left;margin-top:18px"><b><i data-lucide="receipt"></i>주문번호</b>' +
         '<div class="pay-row"><span>주문번호</span><b class="pay-total" style="font-size:20px;letter-spacing:.04em">' + data.orderNo + '</b></div>' +
         (data.total ? '<div class="pay-row"><span>결제금액</span><b>' + fmtWon(data.total) + '원</b></div>' : '') +
-        '<div class="pay-row"><span>입금 계좌</span><span>' + PAY_BANK + ' (예금주: ' + PAY_HOLDER + ')</span></div>' +
+        '<div class="pay-row"><span>입금 계좌</span><span>' + esc(payBank()) + ' (예금주: ' + esc(payHolder()) + ')</span></div>' +
         '<p>주문번호를 꼭 보관해 주세요. 제품 페이지의 <b>비회원 주문 조회</b>에서 주문번호와 연락처(또는 이메일)로 진행 상태를 확인할 수 있습니다.</p></div>';
     }
     body.innerHTML =
@@ -1013,6 +1247,16 @@
       var fd = new FormData(f);
       var ono = String(fd.get('ono') || '').trim();
       var contact = String(fd.get('contact') || '').trim();
+      var box = document.getElementById('lookupResult');
+
+      if (SERVER) {
+        // 서버에서 대조한다 — 브라우저가 전체 주문을 훑지 않는다(남의 주문이 읽히면 안 된다)
+        box.innerHTML = '<p class="muted" style="margin-top:16px">조회 중…</p>';
+        api('/api/order-lookup', { method: 'POST', body: { orderNo: ono, contact: contact } })
+          .then(function (r) { showLookup(box, r.ok && r.data.found ? r.data.order : null); })
+          .catch(function () { showLookup(box, null, '조회하지 못했습니다. 인터넷 연결을 확인해 주세요.'); });
+        return;
+      }
       var digits = contact.replace(/\D/g, '');
       var orders = getJSON('kach_orders', []);
       var found = null;
@@ -1023,9 +1267,15 @@
         var mailOk = contact.indexOf('@') > -1 && String(o.email || '').toLowerCase() === contact.toLowerCase();
         if (phoneOk || mailOk) { found = o; break; }
       }
-      var box = document.getElementById('lookupResult');
+      showLookup(box, found);
+    });
+  }
+
+  // 조회 결과 그리기 — 서버·로컬 두 경로가 같은 모양을 쓴다
+  function showLookup(box, found, errMsg) {
       if (!found) {
-        box.innerHTML = '<div class="modal-note" style="margin-top:16px"><i data-lucide="alert-circle"></i><span>일치하는 주문을 찾을 수 없습니다. 주문번호와 연락처를 다시 확인해 주세요.</span></div>';
+        box.innerHTML = '<div class="modal-note" style="margin-top:16px"><i data-lucide="alert-circle"></i><span>' +
+          esc(errMsg || '일치하는 주문을 찾을 수 없습니다. 주문번호와 연락처를 다시 확인해 주세요.') + '</span></div>';
         icons(); return;
       }
       var special = ['취소', '반품요청', '반품완료', '교환요청', '교환완료'].indexOf(found.status) > -1;
@@ -1046,7 +1296,6 @@
           (found.tracking ? '<div class="muted" style="font-size:13px;margin-top:10px">운송장: ' + esc(found.courier || '') + ' ' + esc(found.tracking) + '</div>' : '') +
         '</div>';
       icons();
-    });
   }
 
   /* ---------------- 이벤트 위임 ---------------- */
@@ -1194,9 +1443,43 @@
   // 관리자 '페이지 이미지' 미리보기 iframe 안에서는 방문 집계·팝업을 건너뜀
   var isPreviewFrame = false;
   try { isPreviewFrame = window.self !== window.top; } catch (e) { isPreviewFrame = true; }
-  ready(function () {
-    seedPosts();
-    seedProducts();
+  /* 부팅 — 어느 저장소를 쓸지 정하고, 서버 모드면 첫 그리기 전에 데이터를 받는다.
+     받아 온 뒤에 그려야 상품·소식·설정이 한 번에 제자리로 나온다
+     (먼저 그리고 나중에 채우면 화면이 두 번 바뀐다). */
+  var NO_API_FLAG = 'kach_no_api';
+  function boot() {
+    // 정적 호스팅이라고 한 번 확인했으면 페이지마다 404 를 다시 부르지 않는다
+    // (콘솔에 오류가 쌓이고 요청도 헛돈다). 세션이 끝나면 다시 확인한다.
+    try { if (sessionStorage.getItem(NO_API_FLAG) === '1') return Promise.resolve(false); } catch (e) {}
+    return fetch('/api/bootstrap', { credentials: 'same-origin' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || !d.products) {               // 정적 호스팅의 404 HTML 등
+          try { sessionStorage.setItem(NO_API_FLAG, '1'); } catch (e) {}
+          return false;
+        }
+        SERVER = true;
+        cache['kach_products_v3']  = d.products;
+        cache['kach_posts_v1']     = d.posts;
+        cache['kach_cohorts_v1']   = d.cohorts;
+        cache['kach_partners_v1']  = d.partners;
+        cache['kach_popups_v1']    = d.popups;
+        cache['kach_settings_v1']  = d.settings || {};
+        cache['kach_consents_v1']  = d.consents || {};
+        cache.__pageImages = d.pageImages || [];
+        // 상품 대표 이미지: ref → 레코드. 목록 카드가 상품마다 요청하지 않도록 미리 담아 둔다
+        cache.__mainImages = {};
+        (d.productImages || []).forEach(function (im) { if (im.ref) cache.__mainImages[im.ref] = im; });
+        return true;
+      })
+      .catch(function () {
+        try { sessionStorage.setItem(NO_API_FLAG, '1'); } catch (e) {}
+        return false;
+      });
+  }
+
+  function start() {
+    if (!SERVER) { seedPosts(); seedProducts(); }   // 로컬 모드에서만 기본 데이터를 심는다
     if (!isPreviewFrame) trackVisit();
     mountChrome();
     applySiteSettings();
@@ -1213,14 +1496,22 @@
     icons();
     setTimeout(icons, 60);
     if (!isPreviewFrame) setTimeout(showPopup, 700);
-  });
+    document.documentElement.classList.add('site-ready');
+    try { document.dispatchEvent(new CustomEvent('site:ready', { detail: { server: SERVER } })); } catch (e) {}
+  }
+
+  // 데이터를 먼저 받고(서버 모드) DOM 이 준비되면 그린다. 순서가 어긋나지 않게 둘 다 기다린다.
+  var booted = boot();
+  ready(function () { booted.then(start); });
 
   /* expose for admin + page scripts */
   window.Site = {
     icons: icons, esc: esc, uid: uid, el: el,
-    getJSON: getJSON, setJSON: setJSON, pushRecord: pushRecord,
+    getJSON: getJSON, setJSON: setJSON, pushRecord: pushRecord, submitRecord: submitRecord,
     fmtWon: fmtWon, fmtYMD: fmtYMD, todayStr: todayStr, genOrderNo: genOrderNo,
-    idb: idb, toast: toast, revealScan: revealScan,
+    idb: idb, Media: Media, api: api, reload: reload, loadAdminData: loadAdminData,
+    isServer: function(){ return SERVER; }, ready: function(fn){ booted.then(function(){ ready(fn); }); },
+    toast: toast, revealScan: revealScan,
     IMG_SLOTS: IMG_SLOTS, renderSlotImages: renderSlotImages, slotPos: slotPos, applySlot: applySlot,
     requireAdmin: requireAdmin, verifyLogin: verifyLogin, lockMs: lockMs,
     openModal: openModal, closeModal: closeModal, rawModal: rawModal, openOrderLookup: openOrderLookup,
@@ -1233,7 +1524,7 @@
     OSTAT: OSTAT, stTag: stTag, ST_COLOR: ST_COLOR,
     VISITS_KEY: VISITS_KEY, SOURCES_KEY: SOURCES_KEY,
     COHORTS_KEY: COHORTS_KEY, getCohorts: getCohorts, setCohorts: setCohorts, cohortDefaults: COHORT_DEFAULTS,
-    PAY_BANK: PAY_BANK, PAY_HOLDER: PAY_HOLDER,
+    payBank: payBank, payHolder: payHolder,
     SETTINGS_KEY: SETTINGS_KEY, SETTINGS_DEFAULTS: SETTINGS_DEFAULTS, getSettings: getSettings, setSettings: setSettings, applySiteSettings: applySiteSettings,
   };
 })();
