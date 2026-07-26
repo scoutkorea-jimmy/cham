@@ -118,6 +118,12 @@
     'kach_inquiries':    'inquiries',
   };
   var DOC_KINDS = { settings: 1, consents: 1, kms: 1 };
+  /* 목록마다 '내가 읽은 시점의 버전'. 저장할 때 되돌려주면 서버가 그 사이 누가
+     바꿨는지 가려 준다. 비어 있으면(마이그레이션 전 등) 검사를 건너뛴다. */
+  var versions = {};
+  function emit(name, detail) {
+    try { window.dispatchEvent(new CustomEvent('site:' + name, { detail: detail })); } catch (e) {}
+  }
 
   function api(path, opts) {
     var o = opts || {};
@@ -148,8 +154,20 @@
       cache[k] = v;
       var kind = KEY_MAP[k];
       var body = DOC_KINDS[kind] ? { doc: v } : { items: v };
+      // 내가 읽은 시점의 버전을 함께 보낸다 — 그 사이 남이 바꿨으면 서버가 막아 준다
+      if (versions[kind] != null) body.version = versions[kind];
       api('/api/admin/data/' + kind, { method: 'PUT', body: body }).then(function (r) {
-        if (r.ok) return;
+        if (r.ok) {
+          if (r.data && r.data.version != null) versions[kind] = r.data.version;
+          return;
+        }
+        if (r.status === 409) {
+          /* 다른 사람이 먼저 저장했다. 그대로 밀어 넣으면 그 사람 작업이 사라진다 —
+             내 변경을 버리고 서버 것을 다시 불러온다. 무엇이 어긋났는지 알려 준다. */
+          toast(r.data.error || '다른 사람이 먼저 저장했습니다. 화면을 새로 불러옵니다.', 6000);
+          reload(kind).then(function () { emit('data-reloaded', kind); });
+          return;
+        }
         toast(r.status === 401 || r.status === 403
           ? '저장 권한이 없습니다. 다시 로그인해 주세요.'
           : '저장하지 못했습니다: ' + (r.data.error || '서버 오류'));
@@ -164,9 +182,14 @@
      관리자 화면이 처음 그리기 전에 이걸로 채운다. */
   function loadAdminData() {
     if (!SERVER) return Promise.resolve(true);
+    // 버전은 한 번에 받는다 — 항목마다 GET 하면 화면 뜨는 데 그만큼 더 기다린다
+    api('/api/admin/versions').then(function (r) {
+      if (r.ok && r.data && r.data.versions) versions = r.data.versions;
+    }).catch(function () {});
     return Promise.all(['orders', 'applications', 'inquiries', 'kms', 'visits'].map(function (kind) {
       return api('/api/admin/data/' + kind).then(function (r) {
         if (!r.ok) return false;
+        if (r.data.version != null) versions[kind] = r.data.version;
         if (kind === 'visits') { cache.__visits = r.data.visits || {}; cache.__sources = r.data.sources || {}; return true; }
         var key = null;
         for (var k in KEY_MAP) if (KEY_MAP[k] === kind) key = k;
@@ -180,6 +203,7 @@
   function reload(kind) {
     return api('/api/admin/data/' + kind).then(function (r) {
       if (!r.ok) return false;
+      if (r.data.version != null) versions[kind] = r.data.version;
       var key = null;
       for (var k in KEY_MAP) if (KEY_MAP[k] === kind) key = k;
       if (key) cache[key] = DOC_KINDS[kind] ? r.data.doc : r.data.items;
@@ -1024,13 +1048,14 @@
 
   /* ---------------- 토스트 ---------------- */
   var toastTimer = null;
-  function toast(msg) {
+  /* ms 를 주면 그만큼 띄운다 — 충돌 안내처럼 '읽고 판단해야 하는' 말은 2.6초면 짧다. */
+  function toast(msg, ms) {
     var t = document.getElementById('siteToast');
     if (!t) { t = document.createElement('div'); t.id = 'siteToast'; t.className = 'toast'; document.body.appendChild(t); }
     t.textContent = msg;
     t.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 2600);
+    toastTimer = setTimeout(function(){ t.classList.remove('show'); }, ms || 2600);
   }
 
   /* ---------------- Modals (신청 · 주문 · 문의) ----------------

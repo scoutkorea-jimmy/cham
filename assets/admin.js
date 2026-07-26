@@ -3500,6 +3500,10 @@
       cbAsk(v);
     }
   });
+  /* 다른 사람이 먼저 저장해 내 변경이 취소된 경우 — 서버에서 다시 받아온 값으로 화면을 새로 그린다.
+     그리지 않으면 화면엔 내가 하려던 것이 남아 있어, 저장된 줄 알고 넘어간다. */
+  window.addEventListener('site:data-reloaded', function () { render(); });
+
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape') return;
     // 겹쳐 뜬 순서의 역순으로 닫는다 — 사진 → 크게 보기 → 챗봇
