@@ -93,17 +93,37 @@ export async function getSession(request, env) {
 
   let row = null;
   try {
+    // 권한은 토큰에 담지 않는다 — 그룹을 고치면 **다음 요청부터 바로** 반영돼야 하므로
+    // 매번 계정 행과 함께 읽는다.
     row = await env.DB.prepare(
-      `SELECT id, username, display_name, role, status, must_change_password, token_min_iat
-         FROM admin_users WHERE id = ?`
+      `SELECT u.id, u.username, u.display_name, u.role, u.status, u.must_change_password,
+              u.token_min_iat, u.role_id, r.name AS role_name, r.perms AS role_perms
+         FROM admin_users u LEFT JOIN admin_roles r ON r.id = u.role_id
+        WHERE u.id = ?`
     ).bind(payload.uid).first();
-  } catch { return null; }
+  } catch {
+    // 권한 표가 아직 없는 환경(스키마 미적용) — 계정만이라도 읽어 잠기지 않게 한다
+    try {
+      row = await env.DB.prepare(
+        `SELECT id, username, display_name, role, status, must_change_password, token_min_iat
+           FROM admin_users WHERE id = ?`
+      ).bind(payload.uid).first();
+    } catch { return null; }
+  }
 
   if (!row || row.status !== 'active') return null;
   // 비밀번호를 바꾼 시각보다 앞서 발급된 토큰은 버린다 → 기존 세션 일괄 종료
   if (Number(row.token_min_iat || 0) > Number(payload.iat || 0)) return null;
 
-  return { uid: row.id, username: row.username, role: row.role, user: row };
+  let perms = null;
+  if (row.role_perms != null) { try { perms = JSON.parse(row.role_perms); } catch { perms = []; } }
+
+  return {
+    uid: row.id, username: row.username, role: row.role,
+    roleId: row.role_id || null, roleName: row.role_name || null,
+    perms: perms,            // null = 그룹 미지정(예전 owner 는 전부 허용)
+    user: row,
+  };
 }
 
 /** owner 전용 경로용. 세션이 없거나 staff 면 null. */

@@ -46,6 +46,8 @@ export function publicUser(row) {
     role: row.role,
     status: row.status,
     mustChangePassword: !!row.must_change_password,
+    roleId: row.role_id || null,
+    roleName: row.role_name || null,
     lastLoginAt: row.last_login_at || null,
     createdAt: row.created_at || null,
   };

@@ -430,6 +430,33 @@
   .src-track { height: 13px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }
   .src-fill { height: 100%; border-radius: 99px; min-width: 6px; transition: width .45s var(--ease); }
 
+  /* 권한 그룹 카드 */
+  .role-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+  .role-card { border: 1.5px solid var(--line-soft); border-radius: 14px; background: var(--surface); padding: 18px 20px;
+    display: flex; flex-direction: column; gap: 10px; box-shadow: var(--sh-xs); }
+  .rc-head { display: flex; align-items: center; gap: 8px; }
+  .rc-head b { font-size: 16px; }
+  .rc-n { margin-left: auto; font-size: 13px; color: var(--ink-mute); font-weight: 700; }
+  .rc-desc { font-size: 13.5px; color: var(--ink-mute); margin: 0; line-height: 1.6; }
+  .rc-perms { display: flex; flex-direction: column; gap: 6px; }
+  .rc-chip { font-size: 12.5px; color: var(--ink-soft); background: var(--surface-2); border-radius: 8px; padding: 6px 10px; line-height: 1.5; }
+  .rc-chip b { color: var(--main-deep); margin-right: 5px; }
+  .rc-foot { display: flex; gap: 8px; margin-top: auto; padding-top: 8px; border-top: 1px solid var(--line-soft); }
+
+  /* 권한 체크 목록 */
+  .perm-list { display: flex; flex-direction: column; gap: 14px; margin-top: 16px; }
+  .perm-group > b { display: block; font-size: 13px; color: var(--ink-mute); letter-spacing: .03em; margin-bottom: 6px; }
+  .perm-row { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 10px;
+    border: 1px solid var(--line-soft); cursor: pointer; margin-bottom: 6px; background: var(--surface); }
+  .perm-row:hover { border-color: var(--main); }
+  .perm-row.lock { opacity: .6; cursor: default; }
+  .perm-row input { width: 18px; height: 18px; accent-color: var(--main); margin-top: 2px; flex-shrink: 0; }
+  .perm-row span { display: flex; flex-direction: column; gap: 2px; }
+  .perm-row span b { font-size: 14.5px; }
+  .perm-row span span { font-size: 12.5px; color: var(--ink-mute); }
+  .mem-form .field textarea { width: 100%; font: inherit; font-size: 15px; padding: 10px 13px;
+    border: 1.5px solid var(--line); border-radius: 9px; resize: vertical; }
+
   .tel-link { color: var(--info); font-weight: 600; font-variant-numeric: tabular-nums; }
   .tel-link:hover { text-decoration: underline; }
   /* 그룹 요약은 블록이 여럿이라 사이 간격을 한 곳에서 준다 */

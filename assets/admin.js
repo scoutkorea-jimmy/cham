@@ -1678,19 +1678,106 @@
      정적 호스팅에서는 메뉴 자체를 띄우지 않는다.
      ============================================================ */
   var accounts = null;      // 서버에서 받은 목록. null = 아직 못 받음
+  var roles = null, permDefs = null, members = null, memberQ = '';
+  var acctTab = 'admin';    // admin | member | role
   var ROLE_LABEL = { owner: '관리자(owner)', staff: '직원(staff)' };
+  var myPerms = null;       // 세션에서 받은 내 권한 목록
+  function iCan(k) { return !myPerms || myPerms.indexOf(k) > -1; }
+
+  function acctTabs() {
+    var t = [{ id: 'member', label: '일반 계정', icon: 'users-round' },
+             { id: 'admin',  label: '관리자 계정', icon: 'shield' },
+             { id: 'role',   label: '권한 그룹', icon: 'key-square' }];
+    return '<div class="subtabs">' + t.map(function (x) {
+      return '<button data-accttab="' + x.id + '" class="' + (acctTab === x.id ? 'on' : '') + '">' +
+        '<i data-lucide="' + x.icon + '"></i>' + x.label + '</button>';
+    }).join('') + '</div>';
+  }
+
+  /* ── 일반 계정(회원) ── 개인정보를 다루므로 목록에는 주소를 뿌리지 않는다 */
+  function viewMembers() {
+    if (members === null) {
+      loadMembers();
+      return acctTabs() + '<div class="panel"><div class="admin-empty"><i data-lucide="loader"></i><div>불러오는 중…</div></div></div>';
+    }
+    var live = members.filter(function (m) { return m.status === 'active'; }).length;
+    var rows = members.length ? members.map(function (m) {
+      var tel = String(m.phone || '').replace(/[^0-9+]/g, '');
+      return '<tr' + (m.status !== 'active' ? ' style="opacity:.55"' : '') + '>' +
+        '<td><b>' + esc(m.name) + '</b>' + (m.status !== 'active' ? ' <span class="tag">중지</span>' : '') + '</td>' +
+        '<td>' + (tel ? '<a href="tel:' + tel + '" class="tel-link">' + esc(m.phone) + '</a>' : '-') + '</td>' +
+        '<td>' + esc(m.username) + '</td>' +
+        '<td>' + esc(m.email || '-') + '</td>' +
+        '<td class="dt">' + (m.createdAt ? fmtDate(m.createdAt) : '-') + '</td>' +
+        '<td style="white-space:nowrap"><button class="btn btn-ghost" data-act="memEdit" data-id="' + m.id + '" style="padding:7px 13px"><i data-lucide="pen-line"></i>상세</button></td></tr>';
+    }) : [];
+    return acctTabs() +
+      '<div class="modal-note" style="margin-bottom:18px"><i data-lucide="shield-check"></i><span>' +
+        '<b>개인정보입니다.</b> 이름·연락처·주소는 수집·이용 동의를 받은 범위에서만 쓰고, 화면을 켜 둔 채 자리를 비우지 마세요. ' +
+        '필요 없어진 계정은 지우지 말고 <b>사용 중지</b>로 두면 주문 기록의 주인은 남습니다.</span></div>' +
+      '<div class="stat-grid">' +
+        kpi(members.length + '명', '전체 회원', '') +
+        kpi(live + '명', '사용 중', '') +
+        kpi((members.length - live) + '명', '중지', '') +
+        kpi(members.filter(function (m) { return m.marketingOptin; }).length + '명', '광고 수신 동의', '선택 항목') +
+      '</div>' +
+      '<div class="panel" style="margin-top:24px"><div class="panel-head"><h3>일반 계정</h3>' +
+        '<span class="ph-sub">총 ' + members.length + '명</span>' +
+        '<div class="panel-tools"><input class="list-search" id="memSearch" type="search" autocomplete="off" placeholder="이름 · 연락처 · 아이디 검색" value="' + esc(memberQ) + '">' +
+        (iCan('members.manage') ? '<button class="btn btn-point" data-act="memNew" style="padding:9px 16px"><i data-lucide="user-plus"></i>회원 등록</button>' : '') + '</div></div>' +
+        '<div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>이름</th><th>휴대전화</th><th>아이디</th><th>이메일</th><th>가입일</th><th></th></tr></thead><tbody>' +
+        (rows.length ? rows.join('') : emptyRow(6, memberQ ? '검색 결과가 없습니다.' : '등록된 회원이 없습니다.')) +
+        '</tbody></table></div></div>';
+  }
+
+  /* ── 권한 그룹 ── */
+  function viewRoles() {
+    if (roles === null) {
+      loadRoles();
+      return acctTabs() + '<div class="panel"><div class="admin-empty"><i data-lucide="loader"></i><div>불러오는 중…</div></div></div>';
+    }
+    var groups = {};
+    (permDefs || []).forEach(function (d) { (groups[d.group] = groups[d.group] || []).push(d); });
+    var cards = roles.map(function (r) {
+      var have = {}; r.perms.forEach(function (k) { have[k] = 1; });
+      return '<div class="role-card">' +
+        '<div class="rc-head"><b>' + esc(r.name) + '</b>' +
+          (r.isSystem ? '<span class="tag">기본</span>' : '') +
+          '<span class="rc-n">' + r.memberCount + '명</span></div>' +
+        '<p class="rc-desc">' + esc(r.description || '') + '</p>' +
+        '<div class="rc-perms">' + Object.keys(groups).map(function (g) {
+          var on = groups[g].filter(function (d) { return have[d.key]; });
+          if (!on.length) return '';
+          return '<span class="rc-chip"><b>' + esc(g) + '</b> ' + on.map(function (d) { return esc(d.label); }).join(' · ') + '</span>';
+        }).join('') + (r.perms.length ? '' : '<span class="pc-sub">권한 없음</span>') + '</div>' +
+        (iCan('accounts.manage') ? '<div class="rc-foot">' +
+          '<button class="btn btn-ghost" data-act="roleEdit" data-id="' + r.id + '" style="padding:7px 13px"><i data-lucide="pen-line"></i>수정</button>' +
+          (r.isSystem ? '' : '<button class="icon-btn" data-act="roleDel" data-id="' + r.id + '" title="삭제"><i data-lucide="trash-2"></i></button>') +
+        '</div>' : '') +
+      '</div>';
+    }).join('');
+    return acctTabs() +
+      '<div class="modal-note" style="margin-bottom:18px"><i data-lucide="key-square"></i><span>' +
+        '권한 그룹으로 <b>누가 무엇까지 할 수 있는지</b>를 정합니다. 계정은 그룹 하나에 속합니다. ' +
+        '<b>기본</b> 그룹은 지우거나 권한을 바꿀 수 없습니다 — 필요하면 새 그룹을 만들어 쓰세요.</span></div>' +
+      '<div class="role-grid">' + cards + '</div>' +
+      (iCan('accounts.manage')
+        ? '<div style="margin-top:20px"><button class="btn btn-point" data-act="roleNew"><i data-lucide="plus"></i>권한 그룹 만들기</button></div>' : '');
+  }
 
   function viewAccounts() {
+    if (acctTab === 'member') return viewMembers();
+    if (acctTab === 'role') return viewRoles();
     if (!accounts) {
       loadAccounts();
-      return '<div class="panel"><div class="admin-empty"><i data-lucide="loader"></i><div>계정을 불러오는 중…</div></div></div>';
+      return acctTabs() + '<div class="panel"><div class="admin-empty"><i data-lucide="loader"></i><div>계정을 불러오는 중…</div></div></div>';
     }
     var rows = accounts.length ? accounts.map(function (u) {
       var off = u.status !== 'active';
       return '<tr' + (off ? ' style="opacity:.55"' : '') + '>' +
         '<td><b>' + esc(u.username) + '</b>' + (u.mustChangePassword ? ' <span class="tag point" style="font-size:11px">비밀번호 변경 필요</span>' : '') + '</td>' +
         '<td>' + esc(u.displayName) + '</td>' +
-        '<td><span class="tag' + (u.role === 'owner' ? ' solid' : '') + '">' + ROLE_LABEL[u.role] + '</span></td>' +
+        '<td><span class="tag' + (u.role === 'owner' ? ' solid' : '') + '">' + esc(u.roleName || ROLE_LABEL[u.role] || '-') + '</span></td>' +
         '<td>' + (off ? '<span class="tag">사용 중지</span>' : '<span class="tag olive">사용 중</span>') + '</td>' +
         '<td class="dt">' + (u.lastLoginAt ? fmtDate(u.lastLoginAt) : '기록 없음') + '</td>' +
         '<td style="white-space:nowrap"><div style="display:inline-flex;gap:6px">' +
@@ -1701,11 +1788,12 @@
         '</div></td></tr>';
     }).join('') : emptyRow(6, '계정이 없습니다.');
 
-    return '<div class="modal-note" style="margin-bottom:18px"><i data-lucide="users"></i><span>' +
-        '<b>관리자(owner)</b>는 계정 관리와 설정까지 모두 할 수 있고, <b>직원(staff)</b>은 주문·신청·문의·게시글 등 일상 운영만 합니다. ' +
+    return acctTabs() +
+      '<div class="modal-note" style="margin-bottom:18px"><i data-lucide="users"></i><span>' +
+        '사이트를 운영하는 사람의 계정입니다. 할 수 있는 일은 <b>권한 그룹</b>에서 정합니다. ' +
         '새로 만든 계정은 <b>첫 로그인 때 본인이 비밀번호를 바꿔야</b> 합니다.</span></div>' +
       '<div class="panel"><div class="panel-head"><h3>관리자 계정</h3><span class="ph-sub">총 ' + accounts.length + '개</span></div>' +
-      '<div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>아이디</th><th>이름</th><th>권한</th><th>상태</th><th>마지막 로그인</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      '<div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>아이디</th><th>이름</th><th>권한 그룹</th><th>상태</th><th>마지막 로그인</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
       '<form class="admin-form" id="acctForm" style="border-top:1px solid var(--line-soft)">' +
         '<div class="field"><label>아이디 <span style="color:var(--point)">*</span> <span class="pc-sub" style="font-weight:400">(영문 소문자·숫자·_·- 3~32자)</span></label>' +
           '<input name="username" required autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="예) staff01"></div>' +
@@ -1769,6 +1857,127 @@
     });
   }
 
+  function loadMembers() {
+    S.api('/api/admin/members' + (memberQ ? '?q=' + encodeURIComponent(memberQ) : '')).then(function (r) {
+      members = (r.ok && r.data.members) || [];
+      if (!r.ok) toast(r.data.error || '회원을 불러오지 못했습니다.');
+      if (current === 'accounts') render();
+    });
+  }
+  function loadRoles() {
+    S.api('/api/admin/roles').then(function (r) {
+      roles = (r.ok && r.data.roles) || [];
+      permDefs = (r.ok && r.data.defs) || [];
+      if (!r.ok) toast(r.data.error || '권한 그룹을 불러오지 못했습니다.');
+      if (current === 'accounts') render();
+    });
+  }
+
+  function memberField(id, label, val, opts) {
+    var o = opts || {};
+    return '<div class="field' + (o.full ? ' full' : '') + '"><label for="' + id + '">' + label +
+      (o.req ? '<span class="req">*</span>' : ' <span class="pc-sub" style="font-weight:400">(선택)</span>') + '</label>' +
+      '<input id="' + id + '" type="' + (o.type || 'text') + '" value="' + esc(val == null ? '' : val) + '"' +
+      (o.ph ? ' placeholder="' + esc(o.ph) + '"' : '') + (o.ro ? ' readonly' : '') + '></div>';
+  }
+
+  function openMemberEdit(m) {
+    var isNew = !m;
+    S.rawModal(
+      '<div class="modal-head"><div><div class="eyebrow">일반 계정</div><h3>' + (isNew ? '회원 등록' : esc(m.name)) + '</h3>' +
+        '<p>필수 항목은 이름과 휴대전화번호입니다.</p></div>' +
+        '<button class="modal-close" data-modal-close aria-label="닫기"><i data-lucide="x"></i></button></div>' +
+      '<div class="modal-body"><div class="mem-form" data-mem-id="' + (isNew ? '' : m.id) + '">' +
+        '<div class="form-grid">' +
+          memberField('mfId', '아이디', isNew ? '' : m.username, { req: true, ro: !isNew, ph: '영문 소문자·숫자 4자 이상 또는 이메일' }) +
+          memberField('mfPw', isNew ? '비밀번호' : '비밀번호 재설정', '', { req: isNew, type: 'password', ph: isNew ? '10자 이상' : '비우면 그대로 둡니다' }) +
+          memberField('mfName', '이름', isNew ? '' : m.name, { req: true, ph: '홍길동' }) +
+          memberField('mfPhone', '휴대전화번호', isNew ? '' : m.phone, { req: true, type: 'tel', ph: '010-0000-0000' }) +
+          memberField('mfEmail', '이메일', isNew ? '' : (m.email || ''), { type: 'email', ph: 'name@example.com' }) +
+          memberField('mfPost', '우편번호', isNew ? '' : (m.postcode || ''), { ph: '00000' }) +
+          memberField('mfAddr', '주소', isNew ? '' : (m.address || ''), { full: true, ph: '도로명 주소' }) +
+          memberField('mfAddr2', '상세주소', isNew ? '' : (m.addressDetail || ''), { full: true, ph: '동·호수 등' }) +
+          '<div class="field full"><label for="mfMemo">관리자 메모 <span class="pc-sub" style="font-weight:400">(본인에게 보이지 않습니다)</span></label>' +
+            '<textarea id="mfMemo" rows="2">' + esc(isNew ? '' : (m.memo || '')) + '</textarea></div>' +
+          '<div class="field full"><label style="display:inline-flex;gap:8px;align-items:center;cursor:pointer">' +
+            '<input type="checkbox" id="mfMk"' + (!isNew && m.marketingOptin ? ' checked' : '') + ' style="width:18px;height:18px;accent-color:var(--main)">' +
+            '광고성 정보 수신에 동의함 <span class="pc-sub">(선택 — 본인 동의를 받은 경우에만 체크)</span></label></div>' +
+        '</div>' +
+        '<div class="login-msg" id="mfMsg"></div>' +
+        '<div class="modal-foot">' +
+          (isNew ? '' : '<button type="button" class="btn btn-ghost" data-act="memToggle" data-id="' + m.id + '" style="margin-right:auto">' +
+            (m.status === 'active' ? '사용 중지' : '다시 사용') + '</button>') +
+          '<button type="button" class="btn btn-ghost" data-modal-close>취소</button>' +
+          '<button type="button" class="btn btn-point" data-act="memSave"><i data-lucide="check"></i>저장</button>' +
+        '</div>' +
+      '</div></div>', 620);
+    setTimeout(function () { var f = document.getElementById(isNew ? 'mfId' : 'mfName'); if (f) f.focus(); }, 60);
+  }
+
+  function saveMember() {
+    var box = document.querySelector('[data-mem-id]'); if (!box) return;
+    var id = box.dataset.memId;
+    var v = function (x) { var e = document.getElementById(x); return e ? e.value.trim() : ''; };
+    var body = {
+      name: v('mfName'), phone: v('mfPhone'), email: v('mfEmail'),
+      postcode: v('mfPost'), address: v('mfAddr'), addressDetail: v('mfAddr2'),
+      memo: document.getElementById('mfMemo').value.trim(),
+      marketingOptin: document.getElementById('mfMk').checked,
+    };
+    if (v('mfPw')) body.password = v('mfPw');
+    if (!id) { body.username = v('mfId'); if (!body.password) { showMsg('mfMsg', '비밀번호를 입력해 주세요.'); return; } }
+    S.api('/api/admin/members' + (id ? '/' + id : ''), { method: id ? 'PATCH' : 'POST', body: body })
+      .then(function (r) {
+        if (!r.ok) { showMsg('mfMsg', r.data.error || '저장하지 못했습니다.'); return; }
+        S.closeModal(); members = null; render(); toast(id ? '회원 정보를 저장했습니다.' : '회원을 등록했습니다.');
+      });
+  }
+  function showMsg(id, t) { var e = document.getElementById(id); if (e) { e.className = 'login-msg err'; e.textContent = t; } }
+
+  function openRoleEdit(r) {
+    var isNew = !r;
+    var groups = {};
+    (permDefs || []).forEach(function (d) { (groups[d.group] = groups[d.group] || []).push(d); });
+    var have = {}; if (r) r.perms.forEach(function (k) { have[k] = 1; });
+    var locked = r && r.isSystem;
+    S.rawModal(
+      '<div class="modal-head"><div><div class="eyebrow">권한 그룹</div><h3>' + (isNew ? '새 권한 그룹' : esc(r.name)) + '</h3>' +
+        '<p>' + (locked ? '기본 그룹은 권한을 바꿀 수 없습니다. 이름·설명만 고칠 수 있습니다.' : '이 그룹에 속한 계정이 할 수 있는 일을 고릅니다.') + '</p></div>' +
+        '<button class="modal-close" data-modal-close aria-label="닫기"><i data-lucide="x"></i></button></div>' +
+      '<div class="modal-body"><div data-role-id="' + (isNew ? '' : r.id) + '">' +
+        '<div class="form-grid">' +
+          '<div class="field full"><label for="rfName">그룹 이름<span class="req">*</span></label><input id="rfName" value="' + esc(isNew ? '' : r.name) + '" placeholder="예) 주말 주문 담당"></div>' +
+          '<div class="field full"><label for="rfDesc">설명</label><input id="rfDesc" value="' + esc(isNew ? '' : (r.description || '')) + '" placeholder="이 그룹이 무엇을 하는지"></div>' +
+        '</div>' +
+        '<div class="perm-list">' + Object.keys(groups).map(function (g) {
+          return '<div class="perm-group"><b>' + esc(g) + '</b>' + groups[g].map(function (d) {
+            return '<label class="perm-row' + (locked ? ' lock' : '') + '">' +
+              '<input type="checkbox" class="perm-chk" value="' + d.key + '"' + (have[d.key] ? ' checked' : '') + (locked ? ' disabled' : '') + '>' +
+              '<span><b>' + esc(d.label) + '</b><span>' + esc(d.desc) + '</span></span></label>';
+          }).join('') + '</div>';
+        }).join('') + '</div>' +
+        '<div class="login-msg" id="rfMsg"></div>' +
+        '<div class="modal-foot"><button type="button" class="btn btn-ghost" data-modal-close>취소</button>' +
+        '<button type="button" class="btn btn-point" data-act="roleSave"><i data-lucide="check"></i>저장</button></div>' +
+      '</div></div>', 620);
+    setTimeout(function () { var f = document.getElementById('rfName'); if (f) f.focus(); }, 60);
+  }
+
+  function saveRole() {
+    var box = document.querySelector('[data-role-id]'); if (!box) return;
+    var id = box.dataset.roleId;
+    var name = document.getElementById('rfName').value.trim();
+    if (!name) { showMsg('rfMsg', '그룹 이름을 입력해 주세요.'); return; }
+    var perms = [].slice.call(box.querySelectorAll('.perm-chk:checked')).map(function (c) { return c.value; });
+    var body = { name: name, description: document.getElementById('rfDesc').value.trim() };
+    if (!box.querySelector('.perm-chk[disabled]')) body.perms = perms;
+    S.api('/api/admin/roles' + (id ? '/' + id : ''), { method: id ? 'PATCH' : 'POST', body: body })
+      .then(function (r) {
+        if (!r.ok) { showMsg('rfMsg', r.data.error || '저장하지 못했습니다.'); return; }
+        S.closeModal(); roles = null; accounts = null; render(); toast('권한 그룹을 저장했습니다.');
+      });
+  }
+
   function openAccountEdit(id) {
     var u = (accounts || []).filter(function (x) { return String(x.id) === String(id); })[0];
     if (!u) return;
@@ -1777,9 +1986,9 @@
         '<button class="modal-close" data-modal-close aria-label="닫기"><i data-lucide="x"></i></button></div>' +
       '<div class="modal-body"><div class="rec-detail" data-acct-id="' + u.id + '">' +
         '<div class="field full"><label>이름</label><input class="acct-name" value="' + esc(u.displayName) + '" style="width:100%;min-height:46px;padding:11px 14px;border:1.5px solid var(--line);border-radius:9px;font:inherit;font-size:15px"></div>' +
-        '<div class="field full"><label>권한</label><select class="acct-role rec-status st-sel">' +
-          ['staff', 'owner'].map(function (r) { return '<option value="' + r + '"' + (u.role === r ? ' selected' : '') + '>' + ROLE_LABEL[r] + '</option>'; }).join('') +
-        '</select></div>' +
+        '<div class="field full"><label>권한 그룹</label><select class="acct-roleid rec-status st-sel">' +
+          (roles || []).map(function (r) { return '<option value="' + r.id + '"' + (u.roleId === r.id ? ' selected' : '') + '>' + esc(r.name) + '</option>'; }).join('') +
+        '</select><p class="note">그룹을 바꾸면 <b>다음 요청부터 바로</b> 적용됩니다.</p></div>' +
         '<div class="field full"><label>비밀번호 재설정 <span class="pc-sub" style="font-weight:400">— 비우면 그대로 둡니다</span></label>' +
           '<input class="acct-pw" type="password" autocomplete="new-password" placeholder="새 비밀번호 (10자 이상)" style="width:100%;min-height:46px;padding:11px 14px;border:1.5px solid var(--line);border-radius:9px;font:inherit;font-size:15px"></div>' +
         '<div class="modal-note"><i data-lucide="info"></i><span>비밀번호를 재설정하면 그 계정의 <b>기존 로그인이 모두 끊기고</b>, 다음 로그인 때 본인이 다시 바꿔야 합니다.</span></div>' +
@@ -1790,10 +1999,9 @@
 
   function saveAccount() {
     var box = document.querySelector('[data-acct-id]'); if (!box) return;
-    var body = {
-      displayName: box.querySelector('.acct-name').value.trim(),
-      role: box.querySelector('.acct-role').value,
-    };
+    var body = { displayName: box.querySelector('.acct-name').value.trim() };
+    var rsel = box.querySelector('.acct-roleid');
+    if (rsel) body.roleId = Number(rsel.value);
     var pw = box.querySelector('.acct-pw').value;
     if (pw) body.password = pw;
     S.api('/api/admin/users/' + box.dataset.acctId, { method: 'PATCH', body: body }).then(function (r) {
@@ -2594,6 +2802,13 @@
       if (all) all.checked = false;
       return;
     }
+    if (e.target.id === 'memSearch') {
+      memberQ = e.target.value.trim();
+      clearTimeout(window.__memT);
+      window.__memT = setTimeout(function () { members = null; render();
+        var el = document.getElementById('memSearch'); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }, 400);
+      return;
+    }
     // 신청·문의 목록 검색 — data-target 테이블 행 필터
     if (e.target.classList && e.target.classList.contains('list-search')) {
       var qq = e.target.value.trim().toLowerCase();
@@ -2706,6 +2921,35 @@
       var kk = gj(K.kms, {}) || {}; delete kk[kmsTab]; sj(K.kms, kk); kmsMode = 'view'; render();
     } else if (act === 'myPassword') {
       openMyPassword();
+    } else if (act === 'memNew') {
+      openMemberEdit(null);
+    } else if (act === 'memEdit') {
+      S.api('/api/admin/members/' + b.dataset.id).then(function (r) {
+        if (!r.ok) { alert(r.data.error || '불러오지 못했습니다.'); return; }
+        openMemberEdit(r.data.member);
+      });
+    } else if (act === 'memSave') {
+      saveMember();
+    } else if (act === 'memToggle') {
+      var box0 = document.querySelector('[data-mem-id]');
+      var cur = b.textContent.indexOf('중지') > -1 ? 'disabled' : 'active';
+      S.api('/api/admin/members/' + b.dataset.id, { method: 'PATCH', body: { status: cur } }).then(function (r) {
+        if (!r.ok) { showMsg('mfMsg', r.data.error || '변경하지 못했습니다.'); return; }
+        S.closeModal(); members = null; render();
+        toast(cur === 'active' ? '다시 사용합니다.' : '사용을 중지했습니다.');
+      });
+    } else if (act === 'roleNew') {
+      openRoleEdit(null);
+    } else if (act === 'roleEdit') {
+      openRoleEdit((roles || []).filter(function (x) { return String(x.id) === b.dataset.id; })[0]);
+    } else if (act === 'roleSave') {
+      saveRole();
+    } else if (act === 'roleDel') {
+      if (!confirm('이 권한 그룹을 지울까요?')) return;
+      S.api('/api/admin/roles/' + b.dataset.id, { method: 'DELETE' }).then(function (r) {
+        if (!r.ok) { alert(r.data.error || '지우지 못했습니다.'); return; }
+        roles = null; render(); toast('권한 그룹을 지웠습니다.');
+      });
     } else if (act === 'acctEdit') {
       openAccountEdit(b.dataset.id);
     } else if (act === 'acctSave') {
@@ -2752,6 +2996,8 @@
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setSide(false); });
 
   document.addEventListener('click', function (e) {
+    var at = e.target.closest('[data-accttab]');
+    if (at) { acctTab = at.dataset.accttab; render(); return; }
     var gh = e.target.closest('[data-navgroup]');
     if (!gh) return;
     if (!confirmLeave()) return;
@@ -2808,6 +3054,8 @@
         if (r.ok && r.data.authenticated && r.data.user) {
           myRole = r.data.user.role || 'staff';
           myName = r.data.user.displayName || r.data.user.username || '';
+          myPerms = r.data.perms || null;
+          if (r.data.roleName) myRole = (r.data.perms || []).indexOf('accounts.manage') > -1 ? 'owner' : 'staff';
         }
         authed = true; unlock();
       });
