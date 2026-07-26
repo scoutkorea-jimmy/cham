@@ -281,8 +281,11 @@
       if (soldout) return;
       var o = currentOption();
       var qty = Math.max(1, Number(document.getElementById('pdQty').value) || 1);
+      // 옵션을 고르면 용량은 옵션 칸이 말해 준다 — 이름에 기본 용량을 붙이면
+      // '오미자 식초 (300ml)' + '용량: 500ml' 처럼 서로 어긋난다.
+      // (서버 모드에서는 /api/submit 이 상품표에서 같은 규칙으로 다시 만든다.)
       S.openModal('order', {
-        product: p.name + ' (' + (p.unit || '') + ')',
+        product: o ? p.name : p.name + (p.unit ? ' (' + p.unit + ')' : ''),
         optionLabel: o ? p.option.name + ': ' + o.label : '',
         qty: String(qty),
         unitPrice: String(unitPrice()),

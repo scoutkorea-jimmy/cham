@@ -1686,7 +1686,14 @@
       pendingLogo = '';
       var fileIn = pf.querySelector('input[name=logo]');
       // 로고도 축소 후 저장(가로형 로고 — 가로 400px 기준) → localStorage 쿼터 압력↓
-      if (fileIn) fileIn.addEventListener('change', function(){ var f = fileIn.files[0]; if(!f) return; resizeToDataURL(f, 400, function (durl) { pendingLogo = durl; }); });
+      if (fileIn) fileIn.addEventListener('change', function () {
+        var f = fileIn.files[0]; if (!f) return;
+        resizeToDataURL(f, 400, function (durl) {
+          // 읽지 못하면 알려 준다 — 조용히 넘어가면 로고 없이 저장된 걸 나중에 알게 된다
+          if (!durl) { toast('이미지를 읽을 수 없습니다. 사진 파일(JPG·PNG)인지 확인해 주세요.'); fileIn.value = ''; return; }
+          pendingLogo = durl;
+        });
+      });
       pf.addEventListener('submit', function(e){
         e.preventDefault();
         var fd = new FormData(pf);
@@ -1704,9 +1711,12 @@
     if (pop) {
       pendingPopImg = '';
       var pin = document.getElementById('popImgInput');
-      if (pin) pin.addEventListener('change', function(){
+      if (pin) pin.addEventListener('change', function () {
         var f = pin.files[0]; if (!f) return;
-        resizeToDataURL(f, 900, function (durl) { pendingPopImg = durl; });
+        resizeToDataURL(f, 900, function (durl) {
+          if (!durl) { toast('이미지를 읽을 수 없습니다. 사진 파일(JPG·PNG)인지 확인해 주세요.'); pin.value = ''; return; }
+          pendingPopImg = durl;
+        });
       });
       pop.addEventListener('submit', function(e){
         e.preventDefault();
@@ -1807,7 +1817,15 @@
       toast('기수 모집 상태가 변경되었습니다.');
     }
     if (t.name === 'rel') updateRelChips();
-    if (t.id === 'oselAll') { document.querySelectorAll('.osel').forEach(function (c) { c.checked = t.checked; }); }
+    if (t.id === 'oselAll') {
+      // 화면에 보이는 줄만 선택한다. 검색으로 걸러낸 상태에서 숨은 줄까지 켜면
+      // 운영자가 보지 못한 주문이 이어지는 처리(입금확인·발송)에 딸려 들어간다.
+      document.querySelectorAll('.osel').forEach(function (c) {
+        var tr = c.closest('tr');
+        if (tr && tr.style.display === 'none') { c.checked = false; return; }
+        c.checked = t.checked;
+      });
+    }
   });
 
   // 주문 목록 즉시 검색(주문번호·주문자·연락처·입금자·상품 등 행 전체 텍스트 매칭)
@@ -1816,9 +1834,14 @@
     if (e.target.id === 'oSearch') {
       var q = e.target.value.trim().toLowerCase();
       document.querySelectorAll('.admin-table tbody tr').forEach(function (tr) {
-        if (!tr.querySelector('.osel')) return;
-        tr.style.display = (!q || tr.textContent.toLowerCase().indexOf(q) > -1) ? '' : 'none';
+        var chk = tr.querySelector('.osel');
+        if (!chk) return;
+        var hit = !q || tr.textContent.toLowerCase().indexOf(q) > -1;
+        tr.style.display = hit ? '' : 'none';
+        if (!hit) chk.checked = false;   // 걸러진 줄의 선택은 남기지 않는다
       });
+      var all = document.getElementById('oselAll');
+      if (all) all.checked = false;
       return;
     }
     // 신청·문의 목록 검색 — data-target 테이블 행 필터

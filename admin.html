@@ -36,6 +36,14 @@
   .admin-top { background: rgba(252,250,243,.86); backdrop-filter: blur(14px); border-bottom: 1px solid var(--line-soft); padding: 0 32px; height: 70px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
   .admin-top h1 { font-size: 22px; }
   .admin-top .at-meta { font-size: 13px; color: var(--ink-mute); }
+  /* 상단 우측 — 로그인한 사람 + 매뉴얼 버튼. 막혔을 때 바로 눈에 들어와야 한다 */
+  .admin-top .at-right { display: flex; align-items: center; gap: 16px; }
+  .at-manual { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px;
+    border-radius: var(--r-pill); background: var(--point); color: var(--point-ink);
+    font-size: 15px; font-weight: 700; white-space: nowrap; box-shadow: var(--sh-xs); }
+  .at-manual:hover { box-shadow: var(--sh-sm); transform: translateY(-1px); }
+  .at-manual i[data-lucide] { width: 18px; height: 18px; }
+  @media (max-width: 760px){ .admin-top .at-meta { display: none; } }
   .admin-view { padding: 32px; max-width: 1240px; }
 
   /* KMS · 동의문 보기 렌더 */
@@ -359,7 +367,12 @@
   <main class="admin-main">
     <div class="admin-top">
       <h1 id="adminTitle">대시보드</h1>
-      <span class="at-meta" id="adminMeta">관리자님 환영합니다</span>
+      <div class="at-right">
+        <span class="at-meta" id="adminMeta">관리자님 환영합니다</span>
+        <a class="at-manual" href="manual.html" target="_blank" rel="noopener" title="새 탭에서 사용 설명서 열기">
+          <i data-lucide="book-open-check"></i>사용 설명서
+        </a>
+      </div>
     </div>
     <div class="admin-view" id="adminView"></div>
   </main>

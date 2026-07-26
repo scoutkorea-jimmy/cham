@@ -33,24 +33,42 @@ async function issueOrderNo(env) {
   return ymd + Date.now().toString().slice(-5);
 }
 
-/** 옵션까지 반영한 실제 단가. 상품이 없거나 판매중이 아니면 null(주문 거절). */
-async function resolvePrice(env, productId, optionLabel) {
+/**
+ * 상품표에서 단가와 표시 이름을 직접 만든다. 상품이 없거나 판매중이 아니면 null(주문 거절).
+ *
+ * 이름까지 서버가 만드는 이유 두 가지.
+ *  · 브라우저가 보낸 이름을 그대로 쓰면 아무 문자열이나 주문 내역에 남길 수 있다.
+ *  · 옵션을 골랐을 때 기본 용량이 남아 어긋나는 문제를 여기서 끝낸다
+ *    (예전에는 500ml 를 골라도 '오미자 식초 (300ml)' 로 저장됐다).
+ *    옵션이 있으면 용량은 옵션 칸이 말해 주므로 이름에는 붙이지 않는다.
+ */
+async function resolveItem(env, productId, optionLabel) {
   if (!productId) return null;
   const row = await env.DB.prepare(
-    `SELECT price, sale_price, status, price_on_request, doc FROM products WHERE id = ?`
+    `SELECT name, unit, price, sale_price, status, price_on_request, doc FROM products WHERE id = ?`
   ).bind(productId).first();
   if (!row || row.status !== '판매중' || row.price_on_request) return null;
 
   let unit = row.sale_price != null ? Number(row.sale_price) : Number(row.price);
   const opt = parseJSON(row.doc, {}).option;
-  if (opt && Array.isArray(opt.values) && optionLabel) {
+  let optLabel = null;
+
+  if (opt && Array.isArray(opt.values) && opt.values.length) {
+    if (!optionLabel) return null;                 // 옵션 상품인데 안 골랐다 → 거절
     // optionLabel 은 '용량: 500ml (대)' 형태로 온다 — 뒷부분만 옵션값 이름이다
     const label = String(optionLabel).split(':').slice(1).join(':').trim() || String(optionLabel).trim();
     const hit = opt.values.find((v) => String(v.label).trim() === label);
-    if (!hit) return null;                       // 없는 옵션을 보냈다 → 거절
+    if (!hit) return null;                         // 없는 옵션을 보냈다 → 거절
     unit += Number(hit.add) || 0;
+    optLabel = `${opt.name}: ${hit.label}`;        // 표기도 서버가 만든다
   }
-  return Number.isFinite(unit) ? unit : null;
+  if (!Number.isFinite(unit)) return null;
+
+  return {
+    unit,
+    optionLabel: optLabel,
+    name: optLabel ? row.name : row.name + (row.unit ? ` (${row.unit})` : ''),
+  };
 }
 
 export async function onRequestPost({ request, env }) {
@@ -97,16 +115,16 @@ export async function onRequestPost({ request, env }) {
   if (kind === 'order') {
     if (!clean(d.address)) return badRequest('배송지 주소를 입력해 주세요.');
     const qty = Math.max(1, Math.min(999, Math.floor(Number(d.qty) || 1)));
-    const unit = await resolvePrice(env, clean(d.productId, 80), d.optionLabel);
-    if (unit == null) {
+    const item = await resolveItem(env, clean(d.productId, 80), d.optionLabel);
+    if (!item) {
       return json({ error: '주문할 수 없는 상품입니다. 페이지를 새로고침해 주세요.', code: 'unavailable' }, 409);
     }
     rec.productId = clean(d.productId, 80);
-    rec.product = clean(d.product, 200);
-    rec.optionLabel = clean(d.optionLabel, 200);
+    rec.product = item.name;            // 이름·옵션·금액 모두 상품표에서 만든 값
+    rec.optionLabel = item.optionLabel;
     rec.qty = qty;
-    rec.unitPrice = unit;       // 클라이언트 값이 아니라 서버 계산값
-    rec.total = unit * qty;
+    rec.unitPrice = item.unit;
+    rec.total = item.unit * qty;
   } else {
     rec.amount = clean(d.amount, 120);
   }
