@@ -652,6 +652,25 @@
   .set-form .set-sec i[data-lucide] { width: 18px; height: 18px; color: var(--main); }
   .set-form .set-sec b { font-weight: 800; }
 
+  /* 표 쪽 이동 */
+  .pager-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    flex-wrap: wrap; padding: 14px var(--gutter-panel); border-top: 1px solid var(--line-soft);
+    background: var(--surface-2); }
+  .pg-info { font-size: 13px; color: var(--ink-mute); font-variant-numeric: tabular-nums; }
+  .pg-nav { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-left: auto; }
+  .pg-b { font: inherit; font-size: 13.5px; font-weight: 700; min-width: 38px; min-height: 38px;
+    padding: 0 11px; border-radius: 9px; border: 1px solid var(--line); background: var(--surface);
+    color: var(--ink-soft); cursor: pointer; }
+  .pg-b:hover:not(:disabled):not(.on) { border-color: var(--main); color: var(--main-deep); }
+  .pg-b.on { background: var(--main); border-color: var(--main); color: #fff; }
+  .pg-b:disabled { opacity: .4; cursor: default; }
+  .pg-gap { color: var(--ink-faint); padding: 0 2px; }
+  @media (max-width: 520px) {
+    .pager-bar { justify-content: center; }
+    .pg-nav { margin-left: 0; }
+    .pg-info { width: 100%; text-align: center; }
+  }
+
   /* 검색 노출 — 공유 그림 미리보기 */
   .seo-prev { border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface-2);
     padding: 10px; display: grid; place-items: center; min-height: 96px; overflow: hidden; }

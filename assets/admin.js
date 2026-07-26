@@ -27,6 +27,54 @@
     popups: (S.POPUP_KEY || 'kach_popups_v1'), posts: (S.POSTS_KEY || 'kach_posts_v1'),
     consents: (S.CONSENT_KEY || 'kach_consents_v1'), kms: 'kach_kms_v1',
   };
+  /* ---------- 표 나누어 보기 ----------
+     자료가 쌓이면 한 화면에 수백 줄을 그리게 된다. 그리는 것도 느리고 눈으로 훑기도 어렵다.
+     30줄씩 끊는다.
+
+     쪽 번호는 **화면마다 따로** 기억한다(주문 3쪽을 보다 문의에 갔다 와도 3쪽이어야 한다).
+     다만 탭·검색이 바뀌면 1쪽으로 돌린다 — 결과가 달라졌는데 3쪽에 머물면 빈 화면이 된다. */
+  var PAGE_SIZE = 30;
+  var pageNo = {};
+  /* 검색어는 **자르기 전에** 걸러야 한다. 예전처럼 그려진 줄을 style.display 로 숨기면
+     쪽을 나눈 뒤에는 현재 30줄만 훑게 되어 다른 쪽의 결과를 놓친다. */
+  var listQ = {};
+  function matches(q, obj, keys) {
+    if (!q) return true;
+    var n = String(q).toLowerCase();
+    for (var i = 0; i < keys.length; i++) {
+      var v = obj[keys[i]];
+      if (v != null && String(v).toLowerCase().indexOf(n) > -1) return true;
+    }
+    return false;
+  }
+  function resetPage(key) { pageNo[key] = 1; }
+  function paged(key, list) {
+    var total = list.length;
+    var pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    var cur = Math.min(Math.max(1, pageNo[key] || 1), pages);   // 목록이 줄면 범위 안으로 당긴다
+    pageNo[key] = cur;
+    var from = (cur - 1) * PAGE_SIZE;
+    return { rows: list.slice(from, from + PAGE_SIZE), cur: cur, pages: pages,
+             total: total, from: from, key: key };
+  }
+  /** 쪽 이동 줄. 한 쪽뿐이면 그리지 않는다 — 없는 선택지를 보여 줄 이유가 없다. */
+  function pager(p) {
+    if (p.pages <= 1) return '';
+    var btn = function (n, label, on, dis) {
+      return '<button class="pg-b' + (on ? ' on' : '') + '" data-page="' + p.key + ':' + n + '"' +
+        (dis ? ' disabled' : '') + '>' + label + '</button>';
+    };
+    var out = '', lo = Math.max(1, p.cur - 2), hi = Math.min(p.pages, p.cur + 2);
+    if (lo > 1) { out += btn(1, '1', false, false); if (lo > 2) out += '<span class="pg-gap">…</span>'; }
+    for (var i = lo; i <= hi; i++) out += btn(i, String(i), i === p.cur, false);
+    if (hi < p.pages) { if (hi < p.pages - 1) out += '<span class="pg-gap">…</span>'; out += btn(p.pages, String(p.pages), false, false); }
+    return '<div class="pager-bar">' +
+      '<span class="pg-info">전체 ' + p.total + '건 중 ' + (p.from + 1) + '–' + (p.from + p.rows.length) + '</span>' +
+      '<div class="pg-nav">' +
+        btn(p.cur - 1, '‹ 이전', false, p.cur === 1) + out + btn(p.cur + 1, '다음 ›', false, p.cur === p.pages) +
+      '</div></div>';
+  }
+
   var OSTAT = S.OSTAT; // ['주문접수','결제완료','배송준비중','배송중','배송완료']
   var CRX = ['취소', '반품요청', '반품완료', '교환요청', '교환완료'];
   var TRACKED = ['택배', '소포', '등기'];
@@ -404,6 +452,7 @@
   function viewProducts() {
     if (prodEditing !== null) return productFormHTML(prodEditing === 'new' ? null : S.getProduct(prodEditing));
     var a = S.getProducts();
+    var pg = paged('products', a); a = pg.rows;
     var rows = a.length ? a.map(function (p) {
       var stock = p.option && p.option.values ? p.option.values.reduce(function (s, v) { return s + (Number(v.stock) || 0); }, 0) : (Number(p.stock) || 0);
       var priceTxt = p.salePrice != null && p.salePrice !== ''
@@ -423,7 +472,7 @@
     }).join('') : emptyRow(7, '등록된 상품이 없습니다.');
     setTimeout(loadListThumbs, 20);
     return '<div class="panel" style="max-width:none"><div class="panel-head"><h3>상품 목록</h3><button class="btn btn-point" data-act="pnew" style="padding:10px 18px"><i data-lucide="plus"></i>상품 등록</button></div>' +
-      '<div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>사진</th><th>상품명</th><th>분류</th><th>판매가</th><th>재고</th><th>판매 상태</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
+      '<div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>사진</th><th>상품명</th><th>분류</th><th>판매가</th><th>재고</th><th>판매 상태</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>' + pager(pg) + '</div>';
   }
   function loadListThumbs() {
     document.querySelectorAll('[data-pthumb]').forEach(function (box) {
@@ -676,11 +725,14 @@
       desc: '주문 상태를 이전 단계(' + target + ')로 되돌립니다. 이후 단계로의 진행은 각 처리 버튼을 사용하세요.' };
   }
 
+  var ORDER_SEARCH_KEYS = ['orderNo', 'name', 'phone', 'depositor', 'product', 'amount', 'address', 'optionLabel'];
   function ordersOf(tab) {
     var a = gj(K.orders, []);
-    if (tab === 'all') return a;
-    if (tab === 'crx') return a.filter(function (o) { return CRX.indexOf(o.status) > -1; });
-    return a.filter(function (o) { return o.status === tab; });
+    if (tab === 'crx') a = a.filter(function (o) { return CRX.indexOf(o.status) > -1; });
+    else if (tab !== 'all') a = a.filter(function (o) { return o.status === tab; });
+    var q = listQ.orders;
+    if (q) a = a.filter(function (o) { return matches(q, o, ORDER_SEARCH_KEYS); });
+    return a;
   }
   function obtn(key, primary) {
     var d = OACT[key];
@@ -730,7 +782,8 @@
       '</div>' +
     '</div>';
 
-    var list = ordersOf(orderTab);
+    var pg = paged('orders', ordersOf(orderTab));
+    var list = pg.rows;
     var rows = list.length ? list.map(function (o) {
       var item = o.kind === 'seedjang' ? (o.amount || '씨장 분양') : (o.product || '-');
       var shipInfo = o.tracking ? '<div class="pc-sub">' + esc(o.courier || '') + ' ' + esc(o.tracking) + '</div>'
@@ -751,12 +804,12 @@
 
     return '<div class="panel" style="max-width:none"><div class="panel-head"><h3>주문 관리</h3><span class="ph-sub">주문을 선택한 뒤 단계 버튼으로 처리 · 자동 알림(메일/SMS)은 운영 연동 시 발송</span><div class="panel-tools">' + csvBtn('orders') + '</div></div>' +
       '<div style="padding:16px 22px 0">' + orderGuide() + tabHtml + bar +
-        '<div class="gap-related"><input id="oSearch" type="search" autocomplete="off" placeholder="주문번호 · 주문자 · 연락처 · 입금자명 · 상품 검색" style="width:380px;max-width:100%;padding:12px 15px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:16px;background:var(--surface)"></div>' +
+        '<div class="gap-related"><input id="oSearch" type="search" autocomplete="off" value="' + esc(listQ.orders || '') + '" placeholder="주문번호 · 주문자 · 연락처 · 입금자명 · 상품 검색" style="width:380px;max-width:100%;padding:12px 15px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:16px;background:var(--surface)"></div>' +
       '</div>' +
       '<div style="overflow-x:auto"><table class="admin-table" style="font-size:13px"><thead><tr>' +
         '<th><input type="checkbox" id="oselAll" style="width:16px;height:16px;accent-color:var(--main)"></th>' +
         '<th>주문번호 / 시각</th><th>구분</th><th>주문상품</th><th>수량</th><th>금액</th><th>주문자</th><th>입금자명</th><th>배송지</th><th>상태</th><th></th>' +
-      '</tr></thead><tbody>' + rows + '</tbody></table></div></div>';
+      '</tr></thead><tbody>' + rows + '</tbody></table></div>' + pager(pg) + '</div>';
   }
 
   function selectedOrderIds() {
@@ -890,8 +943,9 @@
       '</form></div>';
   }
   // 목록 검색창 — 해당 테이블 행을 클라이언트에서 즉시 필터(input 위임 처리)
-  function listSearch(targetId, ph) {
-    return '<input class="list-search" data-target="' + targetId + '" type="search" autocomplete="off" placeholder="' + ph + '">';
+  function listSearch(key, ph) {
+    return '<input class="list-search" data-qkey="' + key + '" type="search" autocomplete="off" ' +
+      'value="' + esc(listQ[key] || '') + '" placeholder="' + ph + '">';
   }
   // 처리 상태 뱃지(관리자 메모가 있으면 '처리됨' 표시)
   function handledMark(r) {
@@ -918,6 +972,8 @@
 
   function viewApps() {
     var a = gj(K.apps, []);
+    if (listQ.apps) a = a.filter(function (r) { return matches(listQ.apps, r, ['name', 'phone', 'region', 'cohort', 'status', 'memo']); });
+    var pg = paged('apps', a); a = pg.rows;
     var rows = a.length ? a.map(function(r){
       var tel = String(r.phone || '').replace(/[^0-9+]/g, '');
       return '<tr><td class="dt">' + fmtDate(r.at) + '</td><td>' + handledMark(r) + '<b>' + esc(r.name||'-') + '</b></td>' +
@@ -961,18 +1017,20 @@
       '</div>' +
       '<div>' + miniTable('최근 신청', '최신 5명', ['일시', '이름', '연락처', '지역', '신청 기수', '상태'], recent, '아직 신청이 없습니다.') + '</div>' +
       '<div class="panel"><div class="panel-head"><h3>신청자 명단</h3><span class="ph-sub">총 ' + a.length + '명 — 연락처를 눌러 전화할 수 있습니다</span>' +
-        '<div class="panel-tools">' + listSearch('appsTable', '이름 · 연락처 · 지역 검색') + csvBtn('apps') + '</div></div>' +
-      '<div style="overflow-x:auto"><table class="admin-table" id="appsTable"><thead><tr><th>일시</th><th>이름</th><th>연락처</th><th>지역</th><th>신청 기수</th><th>상태</th><th>처리</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
+        '<div class="panel-tools">' + listSearch('apps', '이름 · 연락처 · 지역 검색') + csvBtn('apps') + '</div></div>' +
+      '<div style="overflow-x:auto"><table class="admin-table" id="appsTable"><thead><tr><th>일시</th><th>이름</th><th>연락처</th><th>지역</th><th>신청 기수</th><th>상태</th><th>처리</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>' + pager(pg) + '</div>';
   }
   function viewInq() {
     var a = gj(K.inq, []);
+    if (listQ.inq) a = a.filter(function (r) { return matches(listQ.inq, r, ['name', 'phone', 'type', 'memo', 'status']); });
+    var pg = paged('inq', a); a = pg.rows;
     var rows = a.length ? a.map(function(r){
       return '<tr><td class="dt">' + fmtDate(r.at) + '</td><td>' + handledMark(r) + esc(r.name||'-') + '</td><td>' + esc(r.phone||'-') + '</td><td><span class="tag">' + esc(r.type||'문의') + '</span></td><td class="cell-clip">' + esc(r.memo||'-') + '</td><td>' + statusSelect(K.inq,'inq',r) + '</td>' +
         '<td><button class="btn btn-ghost" data-detail="inq" data-id="' + r.id + '" style="padding:7px 12px"><i data-lucide="pen-line"></i>상세·답변</button></td><td>' + delBtn(K.inq, r.id) + '</td></tr>';
     }).join('') : emptyRow(8, '문의 내역이 없습니다.');
     return '<div class="panel"><div class="panel-head"><h3>문의 내역 관리</h3><span class="ph-sub">총 ' + a.length + '건</span>' +
-        '<div class="panel-tools">' + listSearch('inqTable', '이름 · 연락처 · 내용 검색') + csvBtn('inq') + '</div></div>' +
-      '<div style="overflow-x:auto"><table class="admin-table" id="inqTable"><thead><tr><th>일시</th><th>이름</th><th>연락처</th><th>유형</th><th>내용</th><th>상태</th><th>처리</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
+        '<div class="panel-tools">' + listSearch('inq', '이름 · 연락처 · 내용 검색') + csvBtn('inq') + '</div></div>' +
+      '<div style="overflow-x:auto"><table class="admin-table" id="inqTable"><thead><tr><th>일시</th><th>이름</th><th>연락처</th><th>유형</th><th>내용</th><th>상태</th><th>처리</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>' + pager(pg) + '</div>';
   }
 
   /* ---------- 신청·문의 상세·처리 모달 (전체 내용 열람 + 관리자 처리 메모·상태) ---------- */
@@ -1017,6 +1075,7 @@
      ============================================================ */
   function viewPosts() {
     var a = gj(K.posts, []).slice().sort(function (x, y) { return (y.at || '').localeCompare(x.at || ''); });
+    var pg = paged('posts', a); a = pg.rows;
     var rows = a.length ? a.map(function (p) {
       return '<tr><td><b>' + esc(p.title) + '</b></td>' +
         '<td><span class="tag' + (p.important ? ' point' : '') + '">' + esc(p.cat) + '</span></td>' +
@@ -1024,7 +1083,7 @@
     }).join('') : emptyRow(4, '등록된 게시글이 없습니다.');
     return '<div class="panel"><div class="panel-head"><h3>게시글 관리</h3><a class="btn btn-point" href="news.html" target="_blank" style="padding:10px 18px"><i data-lucide="pen-line"></i>소식마당에서 글쓰기</a></div>' +
       '<div class="modal-note gap-related"><i data-lucide="info"></i><span>글 작성·수정(Tiptap 에디터, 첨부파일)은 소식마당의 ‘글쓰기’ 버튼에서 진행합니다.</span></div>' +
-      '<div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>제목</th><th>분류</th><th>등록일</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
+      '<div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>제목</th><th>분류</th><th>등록일</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>' + pager(pg) + '</div>';
   }
 
   /* ============================================================
@@ -1762,6 +1821,7 @@
       return acctTabs() + '<div class="panel"><div class="admin-empty"><i data-lucide="loader"></i><div>불러오는 중…</div></div></div>';
     }
     var live = members.filter(function (m) { return m.status === 'active'; }).length;
+    var pg = paged('members', members); members = pg.rows;
     var rows = members.length ? members.map(function (m) {
       var tel = String(m.phone || '').replace(/[^0-9+]/g, '');
       return '<tr' + (m.status !== 'active' ? ' style="opacity:.55"' : '') + '>' +
@@ -1788,7 +1848,7 @@
         (iCan('members.manage') ? '<button class="btn btn-point" data-act="memNew" style="padding:9px 16px"><i data-lucide="user-plus"></i>회원 등록</button>' : '') + '</div></div>' +
         '<div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>이름</th><th>휴대전화</th><th>아이디</th><th>이메일</th><th>가입일</th><th></th></tr></thead><tbody>' +
         (rows.length ? rows.join('') : emptyRow(6, memberQ ? '검색 결과가 없습니다.' : '등록된 회원이 없습니다.')) +
-        '</tbody></table></div></div>';
+        '</tbody></table></div>' + pager(pg) + '</div>';
   }
 
   /* ── 권한 그룹 ── */
@@ -2892,19 +2952,7 @@
   // 주문 목록 즉시 검색(주문번호·주문자·연락처·입금자·상품 등 행 전체 텍스트 매칭)
   document.addEventListener('input', function (e) {
     if (!e.target) return;
-    if (e.target.id === 'oSearch') {
-      var q = e.target.value.trim().toLowerCase();
-      document.querySelectorAll('.admin-table tbody tr').forEach(function (tr) {
-        var chk = tr.querySelector('.osel');
-        if (!chk) return;
-        var hit = !q || tr.textContent.toLowerCase().indexOf(q) > -1;
-        tr.style.display = hit ? '' : 'none';
-        if (!hit) chk.checked = false;   // 걸러진 줄의 선택은 남기지 않는다
-      });
-      var all = document.getElementById('oselAll');
-      if (all) all.checked = false;
-      return;
-    }
+    if (e.target.id === 'oSearch') { queueSearch('orders', e.target.value, 'oSearch'); return; }
     if (e.target.id === 'memSearch') {
       memberQ = e.target.value.trim();
       clearTimeout(window.__memT);
@@ -2912,19 +2960,39 @@
         var el = document.getElementById('memSearch'); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }, 400);
       return;
     }
-    // 신청·문의 목록 검색 — data-target 테이블 행 필터
+    // 신청·문의 목록 검색 — 목록 단계에서 걸러야 다른 쪽의 결과도 잡힌다
     if (e.target.classList && e.target.classList.contains('list-search')) {
-      var qq = e.target.value.trim().toLowerCase();
-      var tbl = document.getElementById(e.target.dataset.target);
-      if (!tbl) return;
-      tbl.querySelectorAll('tbody tr').forEach(function (tr) {
-        if (tr.querySelector('.admin-empty')) return;
-        tr.style.display = (!qq || tr.textContent.toLowerCase().indexOf(qq) > -1) ? '' : 'none';
-      });
+      queueSearch(e.target.dataset.qkey, e.target.value, null, e.target);
     }
   });
 
+  /* 검색은 다시 그린다. 다시 그리면 입력칸이 새로 만들어져 커서를 잃으므로
+     그린 뒤 초점과 커서 자리를 되돌려 준다(입력 중 글자가 튀지 않게). */
+  var searchTimer = null;
+  function queueSearch(key, value, id, el) {
+    if (!key) return;
+    listQ[key] = String(value || '').trim();
+    resetPage(key);                    // 결과가 달라졌는데 3쪽에 머물면 빈 화면이 된다
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(function () {
+      render();
+      var back = id ? document.getElementById(id)
+                    : document.querySelector('.list-search[data-qkey="' + key + '"]');
+      if (back) { back.focus(); try { back.setSelectionRange(back.value.length, back.value.length); } catch (e) {} }
+    }, 300);
+  }
+
   document.addEventListener('click', function(e){
+    // 쪽 이동
+    var pgb = e.target.closest('[data-page]');
+    if (pgb && !pgb.disabled) {
+      var parts = String(pgb.dataset.page).split(':');
+      pageNo[parts[0]] = Math.max(1, parseInt(parts[1], 10) || 1);
+      render();
+      var view = document.getElementById('adminView');
+      if (view) view.scrollIntoView({ block: 'start', behavior: 'smooth' });   // 표 위쪽으로
+      return;
+    }
     // 서브탭
     var st = e.target.closest('[data-subtab]');
     if (st) {
@@ -2961,7 +3029,7 @@
     var oact = e.target.closest('[data-oact]');
     if (oact) { if (menu) menu.classList.remove('open'); procOrders(oact.dataset.oact); return; }
     var otab = e.target.closest('[data-otab]');
-    if (otab) { orderTab = otab.dataset.otab; render(); return; }
+    if (otab) { orderTab = otab.dataset.otab; resetPage('orders'); render(); return; }
 
     var b = e.target.closest('[data-act]'); if (!b) return;
     var act = b.dataset.act;
