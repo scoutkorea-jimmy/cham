@@ -134,7 +134,9 @@
   function getJSON(k, def) {
     if (SERVER && k === VISITS_KEY)  return cache.__visits  || def;
     if (SERVER && k === SOURCES_KEY) return cache.__sources || def;
-    if (SERVER && KEY_MAP[k]) return cache[k] === undefined ? def : cache[k];
+    // 서버는 '한 번도 저장한 적 없음'을 null 로 답한다. localStorage 에 키가 없을 때와
+    // 같은 뜻이므로 기본값을 준다 — null 을 그대로 넘기면 호출부가 .length 에서 죽는다.
+    if (SERVER && KEY_MAP[k]) return cache[k] == null ? def : cache[k];
     try { var s = localStorage.getItem(k); return s ? JSON.parse(s) : def; } catch (e) { return def; }
   }
 
