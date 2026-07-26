@@ -109,19 +109,26 @@ export async function onRequestPost({ request, env }) {
   } else if (
     env.ADMIN_BOOTSTRAP_USER &&
     env.ADMIN_BOOTSTRAP_PASSWORD &&
+    // 약한 값이 시크릿에 들어가면 이 경로가 그대로 취약점이 된다.
+    // 이 아이디에는 계정 행이 없어 지수 백오프 말고는 막을 것이 없기 때문이다.
+    String(env.ADMIN_BOOTSTRAP_PASSWORD).length >= 16 &&
     username === normalizeUsername(env.ADMIN_BOOTSTRAP_USER) &&
     password === env.ADMIN_BOOTSTRAP_PASSWORD
   ) {
-    // 최초 부팅 — 계정 표가 비어 있을 때 한 번만. 이후에는 위 분기로 들어간다.
-    // 부트스트랩 아이디에서만 시도하므로, 임의의 아이디로 시크릿을 떠볼 수 없다.
+    /* 복구 경로(break-glass) — 숨겨 둔 뒷문이 아니라 **문서에 적힌 비상구**다.
+       · 이 아이디로 된 계정 행이 **없을 때만** 열린다. 한 번 쓰면 행이 생겨 스스로 닫힌다.
+       · 쓰려면 Cloudflare 대시보드에서 시크릿을 볼 수/바꿀 수 있어야 한다 — 즉 계정 주인만 쓴다.
+       · 만들어진 계정은 계정 관리 목록에 그대로 보이므로, 누가 썼는지 흔적이 남는다.
+       · 최초 설치 때도 같은 경로로 첫 관리자가 만들어진다.
+       절차는 docs/deploy.md '관리자 계정을 잃었을 때' 참조. */
     try {
       const hash = await hashPassword(password);
       const ins = await env.DB.prepare(
         `INSERT INTO admin_users (username, display_name, password_hash, role, status, must_change_password)
          VALUES (?, ?, ?, 'owner', 'active', 1)`
-      ).bind(username, '운영자', JSON.stringify(hash)).run();
+      ).bind(username, '복구 계정', JSON.stringify(hash)).run();
       sessionUser = {
-        id: ins?.meta?.last_row_id, username, display_name: '운영자',
+        id: ins?.meta?.last_row_id, username, display_name: '복구 계정',
         role: 'owner', status: 'active', must_change_password: 1,
       };
     } catch {

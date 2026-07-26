@@ -1540,6 +1540,50 @@
       '</form></div>';
   }
 
+  /* 내 비밀번호 변경 — 권한과 무관하게 누구나 자기 것은 바꿀 수 있어야 한다.
+     계정 관리(owner 전용)에 넣으면 직원이 자기 비밀번호를 못 바꾼다. */
+  function openMyPassword() {
+    S.rawModal(
+      '<div class="modal-head"><div><div class="eyebrow">내 계정</div><h3>비밀번호 변경</h3>' +
+        '<p>본인만 아는 것으로 바꿔 주세요. 10자 이상, 영문·숫자·기호 중 두 가지 이상.</p></div>' +
+        '<button class="modal-close" data-modal-close aria-label="닫기"><i data-lucide="x"></i></button></div>' +
+      '<div class="modal-body"><form id="myPwForm" autocomplete="off">' +
+        '<div class="form-grid">' +
+          '<div class="field full"><label for="mpCur">현재 비밀번호</label>' +
+            '<input id="mpCur" type="password" autocomplete="current-password" required></div>' +
+          '<div class="field full"><label for="mpNew">새 비밀번호</label>' +
+            '<input id="mpNew" type="password" autocomplete="new-password" required></div>' +
+          '<div class="field full"><label for="mpNew2">새 비밀번호 확인</label>' +
+            '<input id="mpNew2" type="password" autocomplete="new-password" required></div>' +
+        '</div>' +
+        '<div class="login-msg" id="mpMsg"></div>' +
+        '<div class="modal-note"><i data-lucide="info"></i><span>바꾸면 <b>다른 기기에 남아 있던 로그인이 모두 끊깁니다.</b> 지금 쓰는 이 창은 그대로 이어집니다.</span></div>' +
+        '<div class="modal-foot"><button type="button" class="btn btn-ghost" data-modal-close>취소</button>' +
+        '<button type="submit" class="btn btn-point" id="mpBtn"><i data-lucide="check"></i>비밀번호 바꾸기</button></div>' +
+      '</form></div>', 480);
+
+    var f = document.getElementById('myPwForm');
+    var msg = document.getElementById('mpMsg');
+    var btn = document.getElementById('mpBtn');
+    f.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var cur = document.getElementById('mpCur').value;
+      var a1 = document.getElementById('mpNew').value;
+      var a2 = document.getElementById('mpNew2').value;
+      if (a1 !== a2) { msg.className = 'login-msg err'; msg.textContent = '두 번 입력한 새 비밀번호가 서로 다릅니다.'; return; }
+      btn.disabled = true; msg.className = 'login-msg'; msg.textContent = '바꾸는 중…';
+      S.api('/api/admin/password', { method: 'POST', body: { currentPassword: cur, newPassword: a1 } })
+        .then(function (r) {
+          if (r.ok && r.data.ok) { S.closeModal(); toast('비밀번호를 바꿨습니다.'); return; }
+          btn.disabled = false;
+          msg.className = 'login-msg err';
+          msg.textContent = r.data.error || '바꾸지 못했습니다.';
+        })
+        .catch(function () { btn.disabled = false; msg.className = 'login-msg err'; msg.textContent = '서버에 연결할 수 없습니다.'; });
+    });
+    setTimeout(function () { document.getElementById('mpCur').focus(); }, 60);
+  }
+
   function loadAccounts() {
     S.api('/api/admin/users').then(function (r) {
       if (!r.ok) { accounts = []; toast(r.data.error || '계정을 불러오지 못했습니다.'); }
@@ -1982,6 +2026,8 @@
     } else if (act === 'kmsreset') {
       if (!confirm('현재 문서를 기본 문서로 복원할까요?')) return;
       var kk = gj(K.kms, {}) || {}; delete kk[kmsTab]; sj(K.kms, kk); kmsMode = 'view'; render();
+    } else if (act === 'myPassword') {
+      openMyPassword();
     } else if (act === 'acctEdit') {
       openAccountEdit(b.dataset.id);
     } else if (act === 'acctSave') {
