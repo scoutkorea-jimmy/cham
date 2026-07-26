@@ -2008,6 +2008,25 @@
       fin.click();
     }
   });
+  /* 좁은 화면 사이드바 — 열기/닫기 */
+  function setSide(open) {
+    var side = document.getElementById('adminSide');
+    var dim = document.getElementById('asDim');
+    var btn = document.getElementById('asToggle');
+    if (!side) return;
+    side.classList.toggle('open', open);
+    if (dim) dim.classList.toggle('on', open);
+    if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('#asToggle')) {
+      setSide(!document.getElementById('adminSide').classList.contains('open'));
+      return;
+    }
+    if (e.target.closest('#asDim')) setSide(false);
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setSide(false); });
+
   document.addEventListener('click', function(e){
     var nav = e.target.closest('[data-nav]'); if (!nav) return;
     if (!confirmLeave()) return;
@@ -2015,6 +2034,7 @@
     if (nav.dataset.otab) orderTab = nav.dataset.otab;
     prodEditing = null; kmsMode = 'view'; consentMode = 'view';
     render();
+    setSide(false);          // 좁은 화면에서 메뉴를 고르면 사이드바를 닫는다
     window.scrollTo(0, 0);
   });
 

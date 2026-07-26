@@ -227,7 +227,26 @@
   .login-card input:focus { outline: none; border-color: var(--main); box-shadow: 0 0 0 3px var(--main-tint); }
   .login-hint { font-size: 12px; color: var(--ink-faint); margin-top: 14px; }
   .login-err { color: var(--danger); font-size: 13px; margin-top: 10px; min-height: 18px; }
-  @media (max-width: 760px){ .admin-side { position: fixed; left: -260px; transition: left .2s; z-index: 50; } .admin-view{ padding: 20px; } }
+  /* 좁은 화면 — 사이드바를 숨기되 반드시 불러올 수단을 둔다.
+     예전에는 화면 밖으로만 밀어 두어 휴대폰에서 메뉴에 아예 닿을 수 없었다. */
+  .as-toggle { display: none; width: 44px; height: 44px; border: 1px solid var(--line); border-radius: 10px;
+    background: var(--surface); cursor: pointer; place-items: center; color: var(--ink); flex-shrink: 0; }
+  .as-toggle i[data-lucide] { width: 22px; height: 22px; }
+  .as-dim { position: fixed; inset: 0; background: rgba(28,26,22,.45); z-index: 45;
+    opacity: 0; pointer-events: none; transition: opacity var(--dur-fast) var(--ease); }
+  .as-dim.on { opacity: 1; pointer-events: auto; }
+  .admin-top .at-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .admin-top .at-left h1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  @media (max-width: 760px){
+    .admin-side { position: fixed; left: -260px; transition: left .2s; z-index: 50; }
+    .admin-side.open { left: 0; box-shadow: var(--sh-lg); }
+    .admin-view { padding: 20px; }
+    .admin-top { padding: 0 16px; }
+    .as-toggle { display: grid; }
+    .at-manual { padding: 10px 12px; }
+    .at-manual span { display: none; }
+  }
 
   /* =========================================================
      시니어 친화(50–60대) 보강 — 글씨·버튼·터치영역 확대 + 또렷한 포커스
@@ -467,7 +486,8 @@
 </div>
 
 <div class="admin" id="adminApp" style="display:none">
-  <aside class="admin-side">
+  <div class="as-dim" id="asDim"></div>
+  <aside class="admin-side" id="adminSide">
     <div class="as-brand">
       <img src="assets/logo.png" alt="로고">
       <div><b>한국참전통발효식품</b><br><span>ADMIN CONSOLE</span></div>
@@ -480,11 +500,16 @@
   </aside>
   <main class="admin-main">
     <div class="admin-top">
-      <h1 id="adminTitle">대시보드</h1>
+      <div class="at-left">
+        <button class="as-toggle" id="asToggle" aria-label="메뉴 열기" aria-expanded="false" aria-controls="adminSide">
+          <i data-lucide="menu"></i>
+        </button>
+        <h1 id="adminTitle">대시보드</h1>
+      </div>
       <div class="at-right">
         <span class="at-meta" id="adminMeta">관리자님 환영합니다</span>
         <button class="at-manual" data-nav="manual" title="사용 설명서 보기">
-          <i data-lucide="book-open-check"></i>사용 설명서
+          <i data-lucide="book-open-check"></i><span>사용 설명서</span>
         </button>
       </div>
     </div>
