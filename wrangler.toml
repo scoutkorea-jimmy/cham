@@ -16,7 +16,7 @@ pages_build_output_dir = "."
 [[d1_databases]]
 binding = "DB"
 database_name = "cham-db"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_id = "34892062-1509-430c-baf8-9269aa859ca6"
 
 # ── R2 (상품 · 페이지 · 게시글 첨부 이미지) ────────────────────
 # 최초 1회:  npx wrangler r2 bucket create cham-media
