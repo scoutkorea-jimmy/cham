@@ -253,7 +253,10 @@
   .at-manual:hover { box-shadow: var(--sh-sm); transform: translateY(-1px); }
   .at-manual i[data-lucide] { width: 18px; height: 18px; }
   @media (max-width: 760px){ .admin-top .at-meta { display: none; } }
-  .admin-view { padding: 32px; max-width: 1240px; }
+  /* 아래 여백이 큰 이유 — 오른쪽 아래에 고정 버튼 둘(챗봇 · 맨 위로)이 떠 있다.
+     여백이 없으면 화면 맨 아래 버튼(쪽 이동 '다음', '기수 추가', '기본값 복원')을
+     덮어 눌리지 않는다. 실제로 3개 화면에서 겹쳤다. */
+  .admin-view { padding: 32px 32px 160px; max-width: 1240px; }
 
   /* KMS · 동의문 보기 렌더 */
   .kms-view { padding: 4px 2px; color: var(--ink); }
@@ -460,7 +463,7 @@
   @media (max-width: 760px){
     .admin-side { position: fixed; left: -260px; transition: left .2s; z-index: 50; }
     .admin-side.open { left: 0; box-shadow: var(--sh-lg); }
-    .admin-view { padding: 20px; }
+    .admin-view { padding: 20px 20px 150px; }
     .admin-top { padding: 0 16px; }
     .as-toggle { display: grid; }
     .at-manual { padding: 10px 12px; }
