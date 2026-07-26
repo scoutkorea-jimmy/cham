@@ -39,8 +39,10 @@
   .admin-nav .nav-manual.on { background: var(--point); border-color: var(--point); color: var(--point-ink); }
   .admin-nav .nav-manual.on i[data-lucide] { color: var(--point-ink); }
 
-  /* 2) 설명서 목차 — 상단 탭 */
-  .man-tabs { position: sticky; top: 0; z-index: 6; background: var(--surface-2);
+  /* 2) 설명서 목차 — 상단 탭.
+     top:0 으로 두면 같은 자리에 붙어 있는 관리자 상단바(sticky · 70px · z-index 10)
+     **아래로 들어가 사라진다**. 상단바 높이만큼 내려 붙여야 늘 보인다. */
+  .man-tabs { position: sticky; top: var(--admin-top-h); z-index: 6; background: var(--surface-2);
     border-bottom: 2px solid var(--line-soft); margin: -8px 0 24px; padding: 10px 0 0; }
   .man-tabs .mt-row { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
   .man-tabs .mt-row::-webkit-scrollbar { display: none; }
@@ -238,7 +240,9 @@
   .as-foot i[data-lucide]{ width: 16px; height: 16px; }
 
   .admin-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-  .admin-top { background: rgba(252,250,243,.86); backdrop-filter: blur(14px); border-bottom: 1px solid var(--line-soft); padding: 0 32px; height: 70px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  /* 상단바 높이는 아래에 붙는 것들(설명서 탭 · 절 앵커)이 기준으로 삼는다 — 한 곳에서 정한다 */
+  .admin { --admin-top-h: 70px; }
+  .admin-top { background: rgba(252,250,243,.86); backdrop-filter: blur(14px); border-bottom: 1px solid var(--line-soft); padding: 0 32px; height: var(--admin-top-h); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
   .admin-top h1 { font-size: 22px; }
   .admin-top .at-meta { font-size: 13px; color: var(--ink-mute); }
   /* 상단 우측 — 로그인한 사람 + 매뉴얼 버튼. 막혔을 때 바로 눈에 들어와야 한다 */
@@ -348,11 +352,16 @@
   .stat .sl { font-size: 13px; color: var(--ink-mute); margin-top: 6px; }
 
   .panel { background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--sh-xs); }
-  .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 22px; border-bottom: 1px solid var(--line-soft); }
+  .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    padding: 18px var(--gutter-panel); border-bottom: 1px solid var(--line-soft); }
   .panel-head h3 { font-size: 17px; }
   .panel-head .ph-sub { font-size: 13px; color: var(--ink-mute); }
   .admin-table { width: 100%; border-collapse: collapse; font-size: 14px; }
   .admin-table th, .admin-table td { text-align: left; padding: 13px 16px; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
+  /* 표는 패널 폭을 꽉 채우되(머리글 띠가 상자만큼 이어져야 표로 읽힌다)
+     첫 칸·끝 칸의 글자는 패널 제목과 같은 선에서 시작한다. */
+  .admin-table th:first-child, .admin-table td:first-child { padding-left: var(--gutter-panel); }
+  .admin-table th:last-child,  .admin-table td:last-child  { padding-right: var(--gutter-panel); }
   .admin-table th { background: var(--surface-2); font-size: 12px; color: var(--ink-soft); font-weight: 700; letter-spacing: .02em; }
   .admin-table tr:last-child td { border-bottom: none; }
   .admin-table tbody tr:hover { background: var(--surface-2); }
@@ -366,14 +375,14 @@
   .icon-btn:hover { border-color: var(--danger); color: var(--danger); background: #fff; }
   .icon-btn i[data-lucide]{ width: 15px; height: 15px; }
 
-  .admin-form { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; padding: 22px; }
+  .admin-form { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; padding: 22px var(--gutter-panel); }
   .admin-form .full { grid-column: 1 / -1; }
   .toggle { position: relative; width: 44px; height: 25px; border-radius: 999px; background: var(--line); border: none; cursor: pointer; transition: background var(--dur-fast); flex-shrink: 0; }
   .toggle.on { background: var(--main); }
   .toggle i { position: absolute; top: 3px; left: 3px; width: 19px; height: 19px; border-radius: 50%; background: #fff; transition: transform var(--dur-fast); box-shadow: var(--sh-xs); }
   .toggle.on i { transform: translateX(19px); }
 
-  .card-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; padding: 22px; }
+  .card-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; padding: 22px var(--gutter-panel); }
   .pcard { border: 1px solid var(--line-soft); border-radius: var(--r-md); padding: 16px; background: var(--bg); display: flex; flex-direction: column; gap: 10px; }
   .pcard .pc-logo { height: 60px; display: grid; place-items: center; background: var(--main-tint); color: var(--main-deep); border-radius: 8px; font-family: var(--font-head); font-weight: 800; overflow: hidden; }
   .pcard .pc-logo img { max-height: 56px; max-width: 90%; object-fit: contain; }
@@ -407,7 +416,7 @@
   .pcard.has-photo .pc-logo.can-pos::after { content: "위치 조정"; position: absolute; right: 6px; bottom: 6px; font-size: 10px; font-weight: 700; color: #fff; background: rgba(28,26,22,.66); padding: 2px 7px; border-radius: 6px; }
 
   /* 위치 편집기 — 올린 사진의 초점을 드래그/화살표로 맞춤 */
-  .pos-editor { border: 1px solid var(--line-soft); border-radius: var(--r-md); background: var(--surface-2); padding: 16px; margin: 0 22px 6px; }
+  .pos-editor { border: 1px solid var(--line-soft); border-radius: var(--r-md); background: var(--surface-2); padding: 16px; margin: 0 var(--gutter-panel) 6px; }
   .pe-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
   .pe-head b { font-size: 14px; }
   .pe-head .pe-dev { font-size: 12px; color: var(--main-deep); font-weight: 700; }
@@ -549,13 +558,19 @@
   .tel-link { color: var(--info); font-weight: 600; font-variant-numeric: tabular-nums; }
   .tel-link:hover { text-decoration: underline; }
   /* 그룹 요약은 블록이 여럿이라 사이 간격을 한 곳에서 준다 */
+  /* 대시보드 세로 리듬 — 짝을 하나하나 적으면 새 블록이 들어올 때마다 빠진다.
+     실제로 맨 위 두 패널이 간격 0 으로 맞붙어 한 덩어리로 보였다.
+     컨테이너가 직계 형제 사이를 책임진다(rules/spacing-rhythm.md 3절). */
+  #adminView .dash > * + * { margin-top: var(--gap-block); }
   #adminView .gs-head + .stat-grid,
   #adminView .stat-grid + .gs-grid,
   #adminView .gs-grid + .dash-2col,
-  #adminView .dash-2col + .dash-2col { margin-top: 24px; }
+  #adminView .dash-2col + .dash-2col { margin-top: var(--gap-block); }
+  /* 패널 안에 놓인 안내문은 패널 제목과 같은 선에서 시작한다 */
+  .panel > .modal-note { margin-inline: var(--gutter-panel); }
 
   /* 판매 현황 — 주간·월간 카드 + 일별 막대 */
-  .sale-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 18px 22px 4px; }
+  .sale-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 18px var(--gutter-panel) 4px; }
   @media (max-width: 900px){ .sale-grid { grid-template-columns: 1fr; } }
   .sale-card { border: 1.5px solid var(--line-soft); border-radius: 14px; background: var(--surface-2); padding: 18px 20px; }
   .sale-card .sc-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
@@ -577,7 +592,7 @@
 
   /* 오늘 해야 할 일 — 실무 처리 대기 카드 */
   .todo-panel .panel-head { border-bottom: none; padding-bottom: 0; }
-  .todo-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; padding: 16px 22px 22px; }
+  .todo-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; padding: 16px var(--gutter-panel) var(--gutter-panel); }
   @media (max-width: 1100px){ .todo-grid { grid-template-columns: repeat(3, 1fr); } }
   @media (max-width: 700px){ .todo-grid { grid-template-columns: repeat(2, 1fr); } }
   .todo { text-align: left; border: 1.5px solid var(--line-soft); background: var(--surface-2); border-radius: 14px; padding: 16px 16px 14px; cursor: pointer; display: flex; flex-direction: column; gap: 7px; font: inherit; transition: transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease); }
@@ -718,7 +733,8 @@
   .admin-view .man-body .wrap { padding-inline: 0; max-width: none; }
   .admin-view .man-body .page-hero { display: none; }   /* 제목은 상단바가 말한다 */
   .admin-view .man-body .jump { position: sticky; top: 0; z-index: 5; margin-bottom: var(--s4); }
-  .admin-view .man-body section[id] { scroll-margin-top: 60px; }
+  /* 절로 뛸 때 상단바와 탭 바 둘 다 비켜야 제목이 보인다 — 60px 이면 탭 아래로 숨었다 */
+  .admin-view .man-body section[id] { scroll-margin-top: calc(var(--admin-top-h) + 56px); }
   /* 색 밴드가 관리자 패널 폭을 넘지 않게 안쪽으로 넣는다 */
   .admin-view .man-body .section[class*="band-"] { border-radius: var(--r-lg); }
 
