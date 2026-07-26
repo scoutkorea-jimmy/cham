@@ -807,10 +807,10 @@
       visual +
       '<div style="padding:26px 28px 24px">' +
         '<div class="eyebrow">공지</div>' +
-        '<h3 style="margin:10px 0 10px;font-size:22px">' + esc(p.title) + '</h3>' +
+        '<h3 style="margin:var(--gap-tight) 0 var(--gap-tight);font-size:22px">' + esc(p.title) + '</h3>' +
         '<p class="muted" style="margin:0;white-space:pre-line">' + esc(p.body || '') + '</p>' +
-        (p.link ? '<a class="btn btn-point" href="' + esc(p.link) + '" style="margin-top:18px"><i data-lucide="arrow-right"></i>' + esc(p.linkLabel || '자세히 보기') + '</a>' : '') +
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:22px;border-top:1px solid var(--line-soft);padding-top:14px">' +
+        (p.link ? '<a class="btn btn-point" href="' + esc(p.link) + '" style="margin-top:var(--gap-related)"><i data-lucide="arrow-right"></i>' + esc(p.linkLabel || '자세히 보기') + '</a>' : '') +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:var(--gap-block);border-top:1px solid var(--line-soft);padding-top:14px">' +
           '<button type="button" class="btn-text" id="popDismiss" style="color:var(--ink-mute)">오늘 하루 보지 않기</button>' +
           '<button type="button" class="btn btn-ghost" data-modal-close style="padding:9px 18px">닫기</button>' +
         '</div>' +
@@ -920,7 +920,7 @@
       '<div class="mm-body"><div class="mm-head"><b>메뉴</b><button id="mmClose" aria-label="닫기"><i data-lucide="x"></i></button></div>' +
       '<a class="mm-call" href="tel:' + getSettings().phone.replace(/[^0-9+]/g, '') + '"><i data-lucide="phone"></i><span><b>' + esc(getSettings().phone) + '</b><small>교육 · 제품 문의</small></span></a>' +
       items +
-      '<button class="btn btn-point btn-lg" data-modal="apply" style="margin-top:16px"><i data-lucide="sprout"></i>전통발효식품 체험지도사 신청</button>' +
+      '<button class="btn btn-point btn-lg" data-modal="apply" style="margin-top:var(--gap-related)"><i data-lucide="sprout"></i>전통발효식품 체험지도사 신청</button>' +
       '</div></div>';
   }
   function buildFooter() {
@@ -1237,7 +1237,7 @@
     var body = form.closest('.modal-body');
     var orderInfo = '';
     if (isOrder && data.orderNo) {
-      orderInfo = '<div class="pay-box" style="text-align:left;margin-top:18px"><b><i data-lucide="receipt"></i>주문번호</b>' +
+      orderInfo = '<div class="pay-box" style="text-align:left;margin-top:var(--gap-related)"><b><i data-lucide="receipt"></i>주문번호</b>' +
         '<div class="pay-row"><span>주문번호</span><b class="pay-total" style="font-size:20px;letter-spacing:.04em">' + data.orderNo + '</b></div>' +
         (data.total ? '<div class="pay-row"><span>결제금액</span><b>' + fmtWon(data.total) + '원</b></div>' : '') +
         '<div class="pay-row"><span>입금 계좌</span><span>' + esc(payBank()) + ' (예금주: ' + esc(payHolder()) + ')</span></div>' +
@@ -1247,7 +1247,7 @@
       '<div class="modal-success">' +
         '<div class="ok-ring"><i data-lucide="check"></i></div>' +
         '<h3 style="font-size:22px">' + (isOrder ? '주문이 접수되었습니다' : '신청이 접수되었습니다') + '</h3>' +
-        '<p class="muted" style="margin-top:10px">' + esc(title) + ' 접수가 정상적으로 완료되었습니다.<br>담당자가 확인 후 진행해 드리겠습니다.</p>' +
+        '<p class="muted" style="margin-top:var(--gap-tight)">' + esc(title) + ' 접수가 정상적으로 완료되었습니다.<br>담당자가 확인 후 진행해 드리겠습니다.</p>' +
         orderInfo +
         '<div class="modal-foot"><button type="button" class="btn btn-point" data-modal-close>확인</button></div>' +
       '</div>';
@@ -1277,7 +1277,7 @@
 
       if (SERVER) {
         // 서버에서 대조한다 — 브라우저가 전체 주문을 훑지 않는다(남의 주문이 읽히면 안 된다)
-        box.innerHTML = '<p class="muted" style="margin-top:16px">조회 중…</p>';
+        box.innerHTML = '<p class="muted" style="margin-top:var(--gap-related)">조회 중…</p>';
         api('/api/order-lookup', { method: 'POST', body: { orderNo: ono, contact: contact } })
           .then(function (r) { showLookup(box, r.ok && r.data.found ? r.data.order : null); })
           .catch(function () { showLookup(box, null, '조회하지 못했습니다. 인터넷 연결을 확인해 주세요.'); });
@@ -1300,7 +1300,7 @@
   // 조회 결과 그리기 — 서버·로컬 두 경로가 같은 모양을 쓴다
   function showLookup(box, found, errMsg) {
       if (!found) {
-        box.innerHTML = '<div class="modal-note" style="margin-top:16px"><i data-lucide="alert-circle"></i><span>' +
+        box.innerHTML = '<div class="modal-note" style="margin-top:var(--gap-related)"><i data-lucide="alert-circle"></i><span>' +
           esc(errMsg || '일치하는 주문을 찾을 수 없습니다. 주문번호와 연락처를 다시 확인해 주세요.') + '</span></div>';
         icons(); return;
       }
@@ -1311,15 +1311,15 @@
         return '<span class="tag" style="' + (on ? 'background:var(--main);color:#fff;' : '') + (curNow ? 'box-shadow:0 0 0 2px var(--main-tint);' : '') + '">' + s + '</span>';
       }).join('<i data-lucide="chevron-right" style="width:13px;height:13px;color:var(--ink-faint)"></i>');
       box.innerHTML =
-        '<div style="border:1px solid var(--line-soft);border-radius:var(--r-md);padding:16px 18px;margin-top:16px;background:var(--surface)">' +
+        '<div style="border:1px solid var(--line-soft);border-radius:var(--r-md);padding:16px 18px;margin-top:var(--gap-related);background:var(--surface)">' +
           '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center">' +
             '<b>' + esc(found.product || found.amount || '씨장 분양') + (found.optionLabel ? ' <span class="muted" style="font-weight:500">(' + esc(found.optionLabel) + ')</span>' : '') + '</b>' + stTag(found.status) +
           '</div>' +
-          '<div class="muted" style="font-size:13px;margin-top:6px">주문일 ' + fmtYMD(found.at) + (found.qty ? ' · 수량 ' + esc(found.qty) : '') + (found.total ? ' · ' + fmtWon(found.total) + '원' : '') + '</div>' +
+          '<div class="muted" style="font-size:13px;margin-top:var(--gap-tight)">주문일 ' + fmtYMD(found.at) + (found.qty ? ' · 수량 ' + esc(found.qty) : '') + (found.total ? ' · ' + fmtWon(found.total) + '원' : '') + '</div>' +
           (special
-            ? '<div class="modal-note" style="margin-top:12px"><i data-lucide="info"></i><span>이 주문은 ‘' + found.status + '’ 상태입니다. 자세한 사항은 고객센터(02-855-8806)로 문의해 주세요.</span></div>'
-            : '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:14px">' + steps + '</div>') +
-          (found.tracking ? '<div class="muted" style="font-size:13px;margin-top:10px">운송장: ' + esc(found.courier || '') + ' ' + esc(found.tracking) + '</div>' : '') +
+            ? '<div class="modal-note" style="margin-top:var(--gap-tight)"><i data-lucide="info"></i><span>이 주문은 ‘' + found.status + '’ 상태입니다. 자세한 사항은 고객센터(02-855-8806)로 문의해 주세요.</span></div>'
+            : '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:var(--gap-related)">' + steps + '</div>') +
+          (found.tracking ? '<div class="muted" style="font-size:13px;margin-top:var(--gap-tight)">운송장: ' + esc(found.courier || '') + ' ' + esc(found.tracking) + '</div>' : '') +
         '</div>';
       icons();
   }

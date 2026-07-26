@@ -30,12 +30,12 @@
     if (p.priceOnRequest) {
       return compact
         ? '<span class="price-ask">가격 문의</span>'
-        : '<span class="price-ask" style="font-size:24px">가격 문의</span><span class="muted" style="font-size:var(--fs-sm);margin-left:8px">전화 02-855-8806</span>';
+        : '<span class="price-ask" style="font-size:24px">가격 문의</span><span class="muted" style="font-size:var(--fs-sm);margin-left:var(--gap-tight)">전화 02-855-8806</span>';
     }
     var now = p.salePrice != null && p.salePrice !== '' ? Number(p.salePrice) : Number(p.price);
     var hasDc = p.salePrice != null && p.salePrice !== '' && Number(p.salePrice) < Number(p.price);
     if (compact) {
-      return (hasDc ? '<span style="color:var(--ink-faint);text-decoration:line-through;font-size:13px;margin-right:6px">' + fmtWon(p.price) + '</span>' : '') +
+      return (hasDc ? '<span style="color:var(--ink-faint);text-decoration:line-through;font-size:13px;margin-right:var(--gap-tight)">' + fmtWon(p.price) + '</span>' : '') +
         '<span class="price">' + fmtWon(now) + '<small>원/' + esc(p.unit || '') + '</small></span>';
     }
     var dcRate = hasDc ? Math.round((1 - now / Number(p.price)) * 100) : 0;
@@ -59,8 +59,8 @@
       '</div>' +
       '<div style="padding:20px">' +
         '<span class="tag' + (p.cat === '선물세트' ? ' point' : '') + '">' + esc(p.cat) + '</span>' +
-        '<h3 style="font-size:var(--fs-h5);margin:12px 0 4px">' + esc(p.name) + '</h3>' +
-        '<p class="muted" style="margin:0 0 12px;font-size:14px">' + esc(p.summary || '') + '</p>' +
+        '<h3 style="font-size:var(--fs-h5);margin:var(--gap-tight) 0 4px">' + esc(p.name) + '</h3>' +
+        '<p class="muted" style="margin:0 0 var(--gap-tight);font-size:14px">' + esc(p.summary || '') + '</p>' +
         priceHTML(p, true) +
       '</div></a>';
   }
@@ -102,8 +102,8 @@
     if (!p || p.status === '숨김') {
       rootEl.innerHTML = '<div class="wrap" style="padding:96px 32px;text-align:center">' +
         '<h1 style="font-size:26px">상품을 찾을 수 없습니다</h1>' +
-        '<p class="muted" style="margin-top:12px">판매가 종료되었거나 주소가 잘못되었습니다.</p>' +
-        '<a class="btn btn-point" href="products.html" style="margin-top:18px">제품 목록으로</a></div>';
+        '<p class="muted" style="margin-top:var(--gap-tight)">판매가 종료되었거나 주소가 잘못되었습니다.</p>' +
+        '<a class="btn btn-point" href="products.html" style="margin-top:var(--gap-related)">제품 목록으로</a></div>';
       return;
     }
     document.title = p.name + ' · 한국참전통발효식품협동조합';
@@ -195,9 +195,9 @@
           '<details><summary>배송안내 <i data-lucide="chevron-down"></i></summary><div class="pd-acc-body">' + esc(p.ship || S.SHIP_TPL) + '</div></details>' +
           '<details><summary>교환 · 반품 · 환불 안내 <i data-lucide="chevron-down"></i></summary><div class="pd-acc-body">' + esc(p.refund || S.REFUND_TPL) + '\n\n· 소비자 상담: ' + esc((p.gosi && p.gosi.phone) || '02-855-8806') + ' (평일 09:00–18:00)</div></details>' +
         '</div>' +
-        '<div id="pdRelatedWrap" style="display:none;margin-top:64px">' +
+        '<div id="pdRelatedWrap" style="display:none;margin-top:var(--gap-sub)">' +
           '<div class="section-head"><span class="eyebrow">함께 보면 좋은</span><h2 style="font-size:26px">관련 상품</h2></div>' +
-          '<div class="grid g-4" id="pdRelated" style="margin-top:28px"></div>' +
+          '<div class="grid g-4" id="pdRelated" style="margin-top:var(--gap-group)"></div>' +
         '</div>' +
       '</div>' +
       (ask
@@ -216,7 +216,7 @@
       var dbox = document.getElementById('pdDetailImgs');
       if (dbox && detailImgs.length) {
         dbox.innerHTML = detailImgs.map(function (d) {
-          return '<img src="' + d.url + '" alt="' + esc(p.name) + ' 상세 이미지" style="width:100%;border-radius:var(--r-sm);margin-top:12px">';
+          return '<img src="' + d.url + '" alt="' + esc(p.name) + ' 상세 이미지" style="width:100%;border-radius:var(--r-sm);margin-top:var(--gap-tight)">';
         }).join('');
       }
       var imgs = all.filter(function (i) { return i.role !== 'detail'; });

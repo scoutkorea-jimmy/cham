@@ -55,7 +55,7 @@
 
       var attHtml = '';
       if (docs.length) {
-        attHtml = '<div style="margin-top:18px"><b style="font-size:14px">첨부파일</b>' + docs.map(function (f) {
+        attHtml = '<div style="margin-top:var(--gap-related)"><b style="font-size:14px">첨부파일</b>' + docs.map(function (f) {
           return '<div class="att-row"><i data-lucide="paperclip"></i><span class="an">' + esc(f.name) + '</span><span class="as">' + bytes(f.size) + '</span><a href="#" data-dl="' + f.id + '">내려받기</a></div>';
         }).join('') + '</div>';
       }
@@ -80,7 +80,7 @@
           '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">' +
               '<span class="tag' + (p.important ? ' point' : '') + '">' + esc(p.badge || (p.important ? '중요' : p.cat)) + '</span>' +
             '<span class="muted" style="font-size:13px">' + S.fmtYMD(p.at) + '</span></div>' +
-          '<h3 style="margin-top:10px">' + esc(p.title) + '</h3></div>' +
+          '<h3 style="margin-top:var(--gap-tight)">' + esc(p.title) + '</h3></div>' +
           '<button class="modal-close" data-modal-close aria-label="닫기"><i data-lucide="x"></i></button></div>' +
         '<div class="modal-body">' +
           '<div class="rich">' + (p.html || '') + '</div>' +
@@ -146,7 +146,7 @@
       '<div class="modal-head"><div><div class="eyebrow">소식마당</div><h3>' + (isEdit ? '글 수정' : '글쓰기') + '</h3></div>' +
         '<button class="modal-close" data-modal-close aria-label="닫기"><i data-lucide="x"></i></button></div>' +
       '<div class="modal-body">' +
-        '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">' +
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:var(--gap-tight)">' +
           '<select id="edCat" style="padding:11px 13px;border:1.5px solid var(--line);border-radius:var(--r-sm);font:inherit;background:var(--surface)">' +
             ['공지', '언론', '교육'].map(function (c) { return '<option' + (selCat === c ? ' selected' : '') + '>' + c + '</option>'; }).join('') +
           '</select>' +
@@ -156,7 +156,7 @@
         '<div class="tt-toolbar" id="ttBar"></div>' +
         '<div class="tt-body"><div id="ttEditor"></div></div>' +
         '<div class="tt-meta"><span id="ttCount"></span><span>첨부: 최대 ' + MAX_FILES + '개 · 개당 10MB · 형식 제한 없음</span></div>' +
-        '<div style="margin-top:12px">' +
+        '<div style="margin-top:var(--gap-tight)">' +
           '<button type="button" class="btn btn-ghost" id="edAttBtn" style="padding:10px 16px"><i data-lucide="paperclip"></i>파일 첨부</button>' +
           '<input type="file" id="edAttInput" multiple hidden>' +
           '<div id="edAttList"></div>' +
