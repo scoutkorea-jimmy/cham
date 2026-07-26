@@ -1,8 +1,33 @@
 # 배포 절차 — Cloudflare Pages
 
-3단계(배포 전환). 저장소 쪽 준비는 끝났고, 아래는 **Cloudflare 계정에서 한 번** 하는 일이다.
-지금 코드는 서버가 있으면 서버를, 없으면 브라우저 저장소를 쓰므로,
-아래를 끝내기 전까지 기존 GitHub Pages 사이트는 그대로 돌아간다.
+**현재 상태: 배포 완료** — https://cham-3ef.pages.dev · Git 연결(`scoutkorea-jimmy/cham` main).
+아래 1~4는 이미 끝난 절차이며, 다시 만들 때를 위한 기록이다.
+
+| | |
+|---|---|
+| Pages 프로젝트 | `cham` (Git 연결 · main push 시 자동 배포) |
+| D1 | `cham-db` `34892062-1509-430c-baf8-9269aa859ca6` (APAC) |
+| R2 | `cham-media` |
+| 바인딩 | `DB` → cham-db · `MEDIA` → cham-media (production·preview 모두) |
+| 시크릿 | `ADMIN_SECRET` · `ADMIN_BOOTSTRAP_USER` · `ADMIN_BOOTSTRAP_PASSWORD` |
+| 옛 주소 | https://scoutkorea-jimmy.github.io/cham/ — 계속 동작, 검색만 차단 |
+
+> 프로젝트는 **Git 연결**이라 `main` 에 push 하면 자동 배포된다.
+> 시크릿·바인딩을 바꾸면 **다음 배포부터** 반영된다 — 바꾼 뒤 재배포할 것.
+
+---
+
+## 배포하며 걸렸던 것 (다시 겪지 않도록)
+
+**PBKDF2 반복 상한.** Workers 의 Web Crypto 는 PBKDF2 를 **100,000 회로 제한**한다.
+넘기면 `deriveBits` 가 예외를 던지는데, **로컬 `wrangler pages dev` 는 강제하지 않아**
+개발 중에는 멀쩡하고 운영에서만 로그인이 깨진다(부트스트랩은 조용한 401, 기존 계정은 500/1101).
+
+**서버의 `null` 과 기본값.** `/api/bootstrap` 은 '한 번도 저장한 적 없음'을 `null` 로 답한다.
+빈 DB 로 처음 배포하면 기수·파트너·팝업이 모두 null 이라, 이걸 그대로 화면에 넘기면
+`.length` 에서 죽는다. 로컬에 데이터가 있으면 드러나지 않는다.
+
+→ **빈 DB 로 한 번 배포해서 관리자 화면까지 열어 보는 것**이 두 문제를 모두 잡는 방법이다.
 
 ---
 
@@ -40,6 +65,11 @@ Cloudflare 대시보드 > Workers & Pages > cham > **Settings > Variables and Se
 ## 3. Pages 프로젝트 연결
 
 대시보드 > Workers & Pages > Create > **Pages** > Connect to Git > 이 저장소 선택.
+
+> CLI 로는 Git 연결 프로젝트를 만들 수 없다(`wrangler pages project create` 는 direct-upload 전용).
+> API 로는 된다 — `POST /accounts/{acc}/pages/projects` 에 `source.type = "github"` 과
+> `source.config.{owner,repo_name,production_branch}` 를 넣으면 Git 연결로 생성된다.
+> (이 프로젝트는 그 방법으로 만들었다.)
 
 | 항목 | 값 |
 |---|---|
