@@ -2370,6 +2370,9 @@
     current = gid;
     prodEditing = null; kmsMode = 'view'; consentMode = 'view';
     render();
+    // 좁은 화면에서는 여기서도 닫아야 한다 — 안 닫으면 덮개가 화면을 막는다.
+    // 그룹 요약 화면 자체가 하위 바로가기를 담고 있어 메뉴를 열어 둘 이유도 없다.
+    setSide(false);
     window.scrollTo(0, 0);
   });
 
