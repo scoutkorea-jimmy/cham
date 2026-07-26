@@ -715,7 +715,7 @@
       '</div>' +
       '<div class="footer-bottom">' +
         '<span>© 2026 ' + BRAND_NAME + '. 모든 권리를 보유합니다.</span>' +
-        '<span class="foot-meta"><a href="terms.html">이용약관</a> · <a href="privacy.html"><b>개인정보처리방침</b></a> · <a href="manual.html" class="admin-link" title="관리자 운영 매뉴얼">운영 매뉴얼</a> · <a href="admin.html" class="admin-link" title="관리자 페이지">관리자</a></span>' +
+        '<span class="foot-meta"><a href="terms.html">이용약관</a> · <a href="privacy.html"><b>개인정보처리방침</b></a> · <a href="admin.html" class="admin-link" title="관리자 페이지">관리자</a></span>' +
       '</div>' +
     '</div>';
   }

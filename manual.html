@@ -85,9 +85,26 @@
   .mcheck li.todo i[data-lucide] { color: var(--point-deep); }
   .mcheck li span { color: var(--ink-soft); font-size: 14.5px; display: block; margin-top: 2px; }
 
+  /* ---- 관리자 전용 게이트 ----
+     인증 전에는 본문을 감춘다. 기본값이 '감춤'이라 JS가 실패해도 열리지 않는다(fail-closed).
+     인증 모달(.modal-root)과 토스트는 게이트 위에 떠야 하므로 감춤 대상에서 뺀다.
+     ※ 정적 사이트라 이 확인은 브라우저 안에서만 이루어진다 — 페이지 소스를 직접 열면
+        내용을 볼 수 있다. 매뉴얼에 계정·고객정보를 적지 않는 이유. */
+  html:not(.man-unlocked) body > *:not(.man-gate):not(.modal-root):not(#siteToast) { display: none; }
+  .man-gate { position: fixed; inset: 0; z-index: 900; display: grid; place-items: center;
+    background: var(--main-deeper); background-image: var(--pat-light); background-size: var(--pat-size); }
+  html.man-unlocked .man-gate { display: none; }
+  .man-gate-card { background: var(--surface); border-radius: var(--r-xl); box-shadow: var(--sh-lg);
+    padding: 38px 34px; width: min(400px, 92vw); text-align: center; }
+  .man-gate-card img { width: 54px; height: 54px; mix-blend-mode: multiply; margin-inline: auto; }
+  .man-gate-card h2 { font-size: 22px; margin-top: var(--s4); }
+  .man-gate-card p { color: var(--ink-mute); font-size: 15px; line-height: 1.7; margin-top: var(--s3); }
+  .man-gate-card .btn { margin-top: var(--s5); width: 100%; justify-content: center; }
+  .man-gate-card .btn + .btn { margin-top: var(--s2); }
+
   /* 인쇄 — 종이로 뽑아 옆에 두고 보실 수 있게 */
   @media print {
-    #site-nav, #site-footer, .jump, .to-top, .read-bar, .man-print-hide { display: none !important; }
+    #site-nav, #site-footer, .jump, .to-top, .read-bar, .man-print-hide, .man-gate { display: none !important; }
     .page-hero { padding: 24px 0 !important; }
     .section { padding: 20px 0 !important; page-break-inside: avoid; }
     .reveal { opacity: 1 !important; transform: none !important; }
@@ -96,6 +113,17 @@
 </style>
 </head>
 <body data-page="manual">
+
+<div class="man-gate" id="manGate">
+  <div class="man-gate-card">
+    <img src="assets/logo.png" alt="한국참전통발효식품협동조합 로고">
+    <h2>관리자 전용 문서</h2>
+    <p>홈페이지 운영 매뉴얼은 관리자만 볼 수 있습니다.<br>관리자 아이디·비밀번호로 확인해 주세요.</p>
+    <button class="btn btn-point btn-lg" id="manAuth"><i data-lucide="log-in"></i>관리자 인증</button>
+    <a class="btn btn-ghost" href="index.html"><i data-lucide="home"></i>홈으로 돌아가기</a>
+  </div>
+</div>
+
 <header id="site-nav"></header>
 
 <section class="page-hero deep">
@@ -797,9 +825,26 @@
 <script defer src="assets/site.js"></script>
 <script defer src="assets/jump.js"></script>
 <script>
-  document.addEventListener('click', function (e) {
-    if (e.target.closest('#manPrint')) window.print();
-  });
+  /* 관리자 확인 후에만 본문을 연다. site.js 의 requireAdmin 을 그대로 쓰므로,
+     나중에 인증 방식이 바뀌면 이 페이지도 함께 바뀐다. */
+  (function () {
+    'use strict';
+    function unlock() {
+      document.documentElement.classList.add('man-unlocked');
+      if (window.lucide) window.lucide.createIcons();
+    }
+    function ask() {
+      if (window.Site && window.Site.requireAdmin) { window.Site.requireAdmin(unlock); return; }
+      var g = document.querySelector('.man-gate-card p');
+      if (g) g.textContent = '인증 기능을 불러오지 못했습니다. 페이지를 새로고침해 주세요.';
+    }
+    document.addEventListener('click', function (e) {
+      if (e.target.closest('#manAuth')) { ask(); return; }
+      if (e.target.closest('#manPrint')) window.print();
+    });
+    // defer 스크립트(site.js)가 모두 실행된 뒤에 DOMContentLoaded 가 발생한다
+    document.addEventListener('DOMContentLoaded', ask);
+  })();
 </script>
 </body>
 </html>

@@ -16,7 +16,7 @@ vinegar.html        식초(서련 瑞蓮)      nuruk.html      누룩이야기
 instructor.html     체험지도사 과정      products.html   제품 목록
 product.html        상품 상세(?id=)      news.html       소식마당
 contact.html        문의                admin.html      관리자 콘솔
-manual.html         운영 매뉴얼 — 관리자 사용 설명서(noindex · 내비 미노출)
+manual.html         운영 매뉴얼 — 관리자 전용(requireAdmin 게이트 · noindex · 공개 링크 없음)
 terms.html / privacy.html                robots.txt / sitemap.xml / llms.txt
 
 assets/
