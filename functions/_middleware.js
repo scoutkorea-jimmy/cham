@@ -1,15 +1,15 @@
 /**
  * cham · 관리자 화면 서버 차단
  *
- * 지금까지 admin.html · manual.html 은 브라우저 안에서만 가렸다 —
- * 페이지 소스를 직접 열면 내용이 보였다. 여기서 **서버가** 세션 없는 요청을 돌려보낸다.
+ * 관리자 화면은 서버가 세션 없는 요청을 돌려보낸다.
+ * 사용 설명서는 관리자 콘솔 안의 한 메뉴이므로 이 차단에 함께 걸린다.
  *
  * 로그인 화면은 별도 페이지(login.html)로 두어야 순환이 생기지 않는다.
  * (admin.html 을 막아 두고 그 안에서 로그인시키면, 막힌 페이지에 들어가야 로그인할 수 있다.)
  */
 import { getSession } from './_shared/auth.js';
 
-const PROTECTED = [/^\/admin(?:\.html)?$/, /^\/manual(?:\.html)?$/];
+const PROTECTED = [/^\/admin(?:\.html)?$/];
 
 export async function onRequest(context) {
   const { request, env } = context;

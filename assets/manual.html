@@ -1,164 +1,5 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>홈페이지 운영 매뉴얼 · 한국참전통발효식품협동조합</title>
-<meta name="description" content="한국참전통발효식품협동조합 홈페이지 관리자 사용 설명서 — 주문 처리, 상품 등록, 사진 교체, 데이터 백업까지 단계별 안내.">
-<meta name="robots" content="noindex,nofollow">
-<link rel="preconnect" href="https://unpkg.com" crossorigin>
-<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="assets/site.css">
-<style id="page-style">
-  /* 매뉴얼 전용 — 시니어 친화(50–60대): 본문 글자를 한 단계 키우고 줄간격을 넓힌다 */
-  .man-body { font-size: 17px; line-height: 1.85; }
-  .man-body .lede { font-size: 19px; }
-
-  /* 번호 단계 — '1번 하고 2번 하세요'가 눈으로 바로 읽히도록 */
-  .mstep { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--s5); counter-reset: ms; }
-  .mstep > li { display: grid; grid-template-columns: 40px 1fr; gap: var(--s4); align-items: start; counter-increment: ms; }
-  .mstep > li::before {
-    content: counter(ms); grid-row: 1 / span 2;
-    width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center;
-    background: var(--point); color: var(--point-ink);
-    font-family: var(--font-head); font-weight: 800; font-size: 17px;
-  }
-  .mstep > li > b { display: block; font-size: 17px; }
-  .mstep > li > p { margin: 4px 0 0; color: var(--ink-soft); font-size: 15.5px; line-height: 1.75; }
-  .mstep > li > p + p { margin-top: 6px; }
-
-  /* 안내 상자 — 도움말 / 주의 / 경고 3단계 */
-  .mnote { display: grid; grid-template-columns: 26px 1fr; gap: var(--s4); align-items: start;
-    padding: 16px 20px; border-radius: var(--r-md); font-size: 15.5px; line-height: 1.75;
-    border: 1px solid var(--line-soft); background: var(--surface-2); color: var(--ink-soft); }
-  .mnote i[data-lucide] { width: 22px; height: 22px; color: var(--main); margin-top: 1px; }
-  .mnote b { color: var(--ink); }
-  .mnote.warn { background: var(--point-tint); border-color: var(--point); }
-  .mnote.warn i[data-lucide] { color: var(--point-ink); }
-  .mnote.danger { background: var(--surface); border-color: var(--danger); }
-  .mnote.danger i[data-lucide] { color: var(--danger); }
-  /* .wrap 세로 리듬(44px)보다 좁게 — 안내 상자끼리는 한 덩어리로 읽힌다 */
-  .man-body .mnote + .mnote { margin-top: var(--s3); }
-
-  /* 가운데 정렬 카드 — 문장이 한 줄로 길어지지 않도록 폭을 묶는다 */
-  .man-center { text-align: center; }
-  .man-center > .icon-badge { margin-inline: auto; }
-  .man-narrow { max-width: 34em; margin-inline: auto; }
-
-  /* 관리자 화면의 버튼·메뉴 이름을 본문에서 가리킬 때 */
-  .ui { display: inline-block; padding: 2px 9px; border-radius: var(--r-xs);
-    background: var(--main-tint); color: var(--main-deep); font-weight: 700; font-size: 0.94em; white-space: nowrap; }
-  .ui.point { background: var(--point); color: var(--point-ink); }
-
-  /* 목차 카드 — 매뉴얼 첫 화면의 빠른 이동 */
-  .toc { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s4); }
-  @media (max-width: 900px){ .toc { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 560px){ .toc { grid-template-columns: 1fr; } }
-  .toc a { display: flex; gap: var(--s4); align-items: center; padding: 18px 20px;
-    border: 1px solid var(--line-soft); border-radius: var(--r-md); background: var(--surface);
-    box-shadow: var(--sh-xs); transition: transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease); }
-  .toc a:hover { transform: translateY(-2px); box-shadow: var(--sh-md); }
-  .toc b { display: block; font-size: 16px; color: var(--ink); }
-  .toc span { display: block; font-size: 14px; color: var(--ink-mute); margin-top: 2px; }
-
-  /* 주문 상태 흐름 — 표 대신 한 줄 흐름으로 */
-  .flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-  .flow .fs { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: var(--r-pill);
-    font-size: 15px; font-weight: 700; background: var(--surface); border: 1.5px solid var(--line); color: var(--ink-soft); }
-  .flow .fs.on { background: var(--main); border-color: var(--main); color: #fff; }
-  .flow i[data-lucide] { width: 16px; height: 16px; color: var(--ink-faint); }
-
-  /* .il b 는 항목 제목용 '블록' 스타일이라, 설명문 안에서 낱말을 강조하면
-     혼자 줄바꿈되고 커진다 → 설명문 안의 강조만 인라인으로 되돌린다. */
-  .man-body .il p b { display: inline; font-size: inherit; line-height: inherit; }
-
-  /* 매뉴얼 표 — 글자 크기를 본문에 맞춰 키움 */
-  .man-body .table { font-size: 15.5px; }
-  .man-body .table th, .man-body .table td { padding: 15px 16px; vertical-align: top; }
-  .man-body .table td b { color: var(--ink); }
-
-  /* 체크리스트 */
-  .mcheck { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
-  .mcheck li { display: grid; grid-template-columns: 24px 1fr; gap: 12px; align-items: start; font-size: 16px; line-height: 1.7; }
-  .mcheck li i[data-lucide] { width: 22px; height: 22px; color: var(--olive); margin-top: 2px; }
-  .mcheck li.todo i[data-lucide] { color: var(--point-deep); }
-  .mcheck li span { color: var(--ink-soft); font-size: 14.5px; display: block; margin-top: 2px; }
-
-  /* ---- 관리자 전용 게이트 ----
-     인증 전에는 본문을 감춘다. 기본값이 '감춤'이라 JS가 실패해도 열리지 않는다(fail-closed).
-     인증 모달(.modal-root)과 토스트는 게이트 위에 떠야 하므로 감춤 대상에서 뺀다.
-     ※ 정적 사이트라 이 확인은 브라우저 안에서만 이루어진다 — 페이지 소스를 직접 열면
-        내용을 볼 수 있다. 매뉴얼에 계정·고객정보를 적지 않는 이유. */
-  html:not(.man-unlocked) body > *:not(.man-gate):not(.modal-root):not(#siteToast) { display: none; }
-  .man-gate { position: fixed; inset: 0; z-index: 900; display: grid; place-items: center;
-    background: var(--main-deeper); background-image: var(--pat-light); background-size: var(--pat-size); }
-  html.man-unlocked .man-gate { display: none; }
-  .man-gate-card { background: var(--surface); border-radius: var(--r-xl); box-shadow: var(--sh-lg);
-    padding: 38px 34px; width: min(400px, 92vw); text-align: center; }
-  .man-gate-card img { width: 54px; height: 54px; mix-blend-mode: multiply; margin-inline: auto; }
-  .man-gate-card h2 { font-size: 22px; margin-top: var(--s4); }
-  .man-gate-card p { color: var(--ink-mute); font-size: 15px; line-height: 1.7; margin-top: var(--s3); }
-  .man-gate-card .btn { margin-top: var(--s5); width: 100%; justify-content: center; }
-  .man-gate-card .btn + .btn { margin-top: var(--s2); }
-
-  /* 인쇄 — 종이로 뽑아 옆에 두고 보실 수 있게 */
-  @media print {
-    #site-nav, #site-footer, .jump, .to-top, .read-bar, .man-print-hide, .man-gate { display: none !important; }
-    .page-hero { padding: 24px 0 !important; }
-    .section { padding: 20px 0 !important; page-break-inside: avoid; }
-    .reveal { opacity: 1 !important; transform: none !important; }
-    body { background: #fff; }
-  }
-</style>
-</head>
-<body data-page="manual">
-
-<div class="man-gate" id="manGate">
-  <div class="man-gate-card">
-    <img src="assets/logo.png" alt="한국참전통발효식품협동조합 로고">
-    <h2>관리자 전용 문서</h2>
-    <p>홈페이지 운영 매뉴얼은 관리자만 볼 수 있습니다.<br>관리자 아이디·비밀번호로 확인해 주세요.</p>
-    <button class="btn btn-point btn-lg" id="manAuth"><i data-lucide="log-in"></i>관리자 인증</button>
-    <a class="btn btn-ghost" href="index.html"><i data-lucide="home"></i>홈으로 돌아가기</a>
-  </div>
-</div>
-
-<header id="site-nav"></header>
-
-<section class="page-hero deep">
-  <div class="wrap">
-    <div class="crumb reveal"><a href="index.html">홈</a><i data-lucide="chevron-right"></i><span>운영 매뉴얼</span></div>
-    <span class="eyebrow reveal">관리자 사용 설명서</span>
-    <h1 class="reveal">홈페이지 운영 매뉴얼</h1>
-    <p class="lede reveal">주문을 받고, 상품을 올리고, 사진을 바꾸고, 자료를 지키는 방법을 순서대로 담았습니다.<br>
-      컴퓨터에 익숙하지 않으셔도 <b>적힌 순서대로만</b> 따라 하시면 됩니다.</p>
-    <div class="reveal man-print-hide">
-      <a class="btn btn-point btn-lg" href="admin.html"><i data-lucide="log-in"></i>관리자 페이지 열기</a>
-      <button class="btn btn-on-dark btn-lg" id="manPrint"><i data-lucide="printer"></i>인쇄하기</button>
-    </div>
-  </div>
-</section>
-
-<nav class="jump" aria-label="매뉴얼 목차">
-  <div class="wrap"><div class="jump-inner">
-    <a href="#start">시작하기</a>
-    <a href="#daily">매일 하는 일</a>
-    <a href="#orders">주문 처리</a>
-    <a href="#products">상품 관리</a>
-    <a href="#sales">매출 · 정산</a>
-    <a href="#apply">신청 · 문의</a>
-    <a href="#content">소식 · 팝업</a>
-    <a href="#images">사진 교체</a>
-    <a href="#accounts">계정 관리</a>
-    <a href="#settings">운영 정보</a>
-    <a href="#backup">자료 백업</a>
-    <a href="#trouble">문제 해결</a>
-    <a href="#golive">개설 전 점검</a>
-  </div></div>
-</nav>
-
-<div class="man-body">
+<!-- 관리자 콘솔 '사용 설명서' 화면의 본문. admin.js 가 읽어 .admin-view 에 넣는다.
+     이 파일만 고치면 설명서가 바뀐다 — 관리자 안과 인쇄본이 같은 원본을 쓴다. -->
 
 <!-- ============ 1. 시작하기 ============ -->
 <section class="section" id="start">
@@ -174,7 +15,7 @@
         <ol class="mstep">
           <li>
             <b>관리자 페이지 주소로 들어갑니다</b>
-            <p>홈페이지 맨 아래 <span class="ui">관리자</span> 글씨를 누르거나, 주소창에 <b>주소 뒤에 /admin.html</b> 을 붙여 들어갑니다.</p>
+            <p>홈페이지 맨 아래 <span class="ui">관리자</span> 글씨를 누르거나, 주소창에 <b>주소 뒤에 /admin.html</b> 을 붙여 들어갑니다. 로그인 화면이 먼저 나옵니다.</p>
           </li>
           <li>
             <b>본인 아이디와 비밀번호를 넣습니다</b>
@@ -877,51 +718,8 @@
       <h4>막히시면 연락 주세요</h4>
       <p class="lede man-narrow">이 매뉴얼로 해결되지 않는 일은 담당자에게 문의하시면 됩니다.<br>
         연락 전에 <b>어느 메뉴에서, 어떤 버튼을 눌렀을 때, 무엇이 나왔는지</b>를 적어두시면 훨씬 빨리 해결됩니다.</p>
-      <div class="man-print-hide">
-        <a class="btn btn-point btn-lg" href="admin.html"><i data-lucide="log-in"></i>관리자 페이지 열기</a>
-        <a class="btn btn-ghost btn-lg" href="index.html"><i data-lucide="home"></i>홈페이지 보기</a>
-      </div>
+      <div class="man-print-hide"><a class="btn btn-ghost btn-lg" href="index.html" target="_blank" rel="noopener"><i data-lucide="external-link"></i>홈페이지 보기</a></div>
     </div>
   </div>
 </section>
 
-</div><!-- /.man-body -->
-
-<footer id="site-footer"></footer>
-<script defer src="https://unpkg.com/lucide@1.17.0"></script>
-<script defer src="assets/site.js"></script>
-<script defer src="assets/jump.js"></script>
-<script>
-  /* 관리자 확인 후에만 본문을 연다.
-     이전 기간(Cloudflare Pages ↔ GitHub Pages 병행) 동안 두 경로를 모두 지원한다.
-       · 서버 있음 — /api/admin/session 으로 확인. 미들웨어가 이미 막고 있으므로 바로 열린다.
-       · 서버 없음 — 기존 site.js requireAdmin 게이트.
-     3단계(배포 전환)에서 GitHub Pages 를 내리면 아래 폴백을 지운다.
-     → docs/migration-cloudflare.md */
-  (function () {
-    'use strict';
-    function unlock() {
-      document.documentElement.classList.add('man-unlocked');
-      if (window.lucide) window.lucide.createIcons();
-    }
-    function askClient() {
-      if (window.Site && window.Site.requireAdmin) { window.Site.requireAdmin(unlock); return; }
-      var g = document.querySelector('.man-gate-card p');
-      if (g) g.textContent = '인증 기능을 불러오지 못했습니다. 페이지를 새로고침해 주세요.';
-    }
-    function ask() {
-      fetch('/api/admin/session', { credentials: 'same-origin' })
-        .then(function (r) { return r.ok ? r.json() : null; })
-        .then(function (d) { if (d && d.authenticated) unlock(); else askClient(); })
-        .catch(askClient);   // 정적 호스팅 — API 가 없다
-    }
-    document.addEventListener('click', function (e) {
-      if (e.target.closest('#manAuth')) { ask(); return; }
-      if (e.target.closest('#manPrint')) window.print();
-    });
-    // defer 스크립트(site.js)가 모두 실행된 뒤에 DOMContentLoaded 가 발생한다
-    document.addEventListener('DOMContentLoaded', ask);
-  })();
-</script>
-</body>
-</html>

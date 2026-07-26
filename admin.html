@@ -38,7 +38,7 @@
   .admin-top .at-meta { font-size: 13px; color: var(--ink-mute); }
   /* 상단 우측 — 로그인한 사람 + 매뉴얼 버튼. 막혔을 때 바로 눈에 들어와야 한다 */
   .admin-top .at-right { display: flex; align-items: center; gap: 16px; }
-  .at-manual { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px;
+  .at-manual { border: none; font-family: inherit; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px;
     border-radius: var(--r-pill); background: var(--point); color: var(--point-ink);
     font-size: 15px; font-weight: 700; white-space: nowrap; box-shadow: var(--sh-xs); }
   .at-manual:hover { box-shadow: var(--sh-sm); transform: translateY(-1px); }
@@ -321,6 +321,115 @@
   .set-form .set-sec i[data-lucide] { width: 18px; height: 18px; color: var(--main); }
   .set-form .set-sec b { font-weight: 800; }
 
+  /* ============================================================
+     사용 설명서 (assets/manual.html 을 읽어 표시)
+     ============================================================ */
+  /* 매뉴얼 전용 — 시니어 친화(50–60대): 본문 글자를 한 단계 키우고 줄간격을 넓힌다 */
+  .man-body { font-size: 17px; line-height: 1.85; }
+  .man-body .lede { font-size: 19px; }
+
+  /* 번호 단계 — '1번 하고 2번 하세요'가 눈으로 바로 읽히도록 */
+  .mstep { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--s5); counter-reset: ms; }
+  .mstep > li { display: grid; grid-template-columns: 40px 1fr; gap: var(--s4); align-items: start; counter-increment: ms; }
+  /* 번호는 1열 1행, 내용은 전부 2열. 자동 배치에 맡기면 자식이 셋 이상일 때
+     세 번째가 40px 짜리 번호 칸(1열)으로 내려가 글자가 한 자씩 끊긴다. */
+  .mstep > li::before {
+    content: counter(ms); grid-column: 1; grid-row: 1;
+    width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center;
+    background: var(--point); color: var(--point-ink);
+    font-family: var(--font-head); font-weight: 800; font-size: 17px;
+  }
+  .mstep > li > * { grid-column: 2; min-width: 0; }
+  .mstep > li > b { display: block; font-size: 17px; }
+  .mstep > li > p { margin: 4px 0 0; color: var(--ink-soft); font-size: 15.5px; line-height: 1.75; }
+  .mstep > li > p + p { margin-top: 6px; }
+
+  /* 안내 상자 — 도움말 / 주의 / 경고 3단계 */
+  .mnote { display: grid; grid-template-columns: 26px 1fr; gap: var(--s4); align-items: start;
+    padding: 16px 20px; border-radius: var(--r-md); font-size: 15.5px; line-height: 1.75;
+    border: 1px solid var(--line-soft); background: var(--surface-2); color: var(--ink-soft); }
+  .mnote i[data-lucide] { width: 22px; height: 22px; color: var(--main); margin-top: 1px; }
+  .mnote b { color: var(--ink); }
+  .mnote.warn { background: var(--point-tint); border-color: var(--point); }
+  .mnote.warn i[data-lucide] { color: var(--point-ink); }
+  .mnote.danger { background: var(--surface); border-color: var(--danger); }
+  .mnote.danger i[data-lucide] { color: var(--danger); }
+  /* .wrap 세로 리듬(44px)보다 좁게 — 안내 상자끼리는 한 덩어리로 읽힌다 */
+  .man-body .mnote + .mnote { margin-top: var(--s3); }
+
+  /* 가운데 정렬 카드 — 문장이 한 줄로 길어지지 않도록 폭을 묶는다 */
+  .man-center { text-align: center; }
+  .man-center > .icon-badge { margin-inline: auto; }
+  .man-narrow { max-width: 34em; margin-inline: auto; }
+
+  /* 관리자 화면의 버튼·메뉴 이름을 본문에서 가리킬 때 */
+  .ui { display: inline-block; padding: 2px 9px; border-radius: var(--r-xs);
+    background: var(--main-tint); color: var(--main-deep); font-weight: 700; font-size: 0.94em; white-space: nowrap; }
+  .ui.point { background: var(--point); color: var(--point-ink); }
+
+  /* 목차 카드 — 매뉴얼 첫 화면의 빠른 이동 */
+  .toc { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s4); }
+  @media (max-width: 900px){ .toc { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px){ .toc { grid-template-columns: 1fr; } }
+  .toc a { display: flex; gap: var(--s4); align-items: center; padding: 18px 20px;
+    border: 1px solid var(--line-soft); border-radius: var(--r-md); background: var(--surface);
+    box-shadow: var(--sh-xs); transition: transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease); }
+  .toc a:hover { transform: translateY(-2px); box-shadow: var(--sh-md); }
+  .toc b { display: block; font-size: 16px; color: var(--ink); }
+  .toc span { display: block; font-size: 14px; color: var(--ink-mute); margin-top: 2px; }
+
+  /* 주문 상태 흐름 — 표 대신 한 줄 흐름으로 */
+  .flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .flow .fs { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: var(--r-pill);
+    font-size: 15px; font-weight: 700; background: var(--surface); border: 1.5px solid var(--line); color: var(--ink-soft); }
+  .flow .fs.on { background: var(--main); border-color: var(--main); color: #fff; }
+  .flow i[data-lucide] { width: 16px; height: 16px; color: var(--ink-faint); }
+
+  /* .il b 는 항목 제목용 '블록' 스타일이라, 설명문 안에서 낱말을 강조하면
+     혼자 줄바꿈되고 커진다 → 설명문 안의 강조만 인라인으로 되돌린다. */
+  .man-body .il p b { display: inline; font-size: inherit; line-height: inherit; }
+
+  /* 매뉴얼 표 — 글자 크기를 본문에 맞춰 키움 */
+  .man-body .table { font-size: 15.5px; }
+  .man-body .table th, .man-body .table td { padding: 15px 16px; vertical-align: top; }
+  .man-body .table td b { color: var(--ink); }
+
+  /* 체크리스트 */
+  .mcheck { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+  .mcheck li { display: grid; grid-template-columns: 24px 1fr; gap: 12px; align-items: start; font-size: 16px; line-height: 1.7; }
+  .mcheck li i[data-lucide] { width: 22px; height: 22px; color: var(--olive); margin-top: 2px; }
+  .mcheck li.todo i[data-lucide] { color: var(--point-deep); }
+  .mcheck li span { color: var(--ink-soft); font-size: 14.5px; display: block; margin-top: 2px; }
+
+
+  /* 인쇄 — 종이로 뽑아 옆에 두고 보실 수 있게 */
+  @media print {
+    #site-nav, #site-footer, .jump, .to-top, .read-bar, .man-print-hide, .man-gate { display: none !important; }
+    .page-hero { padding: 24px 0 !important; }
+    .section { padding: 20px 0 !important; page-break-inside: avoid; }
+    .reveal { opacity: 1 !important; transform: none !important; }
+    body { background: #fff; }
+  }
+  /* ---- 관리자 콘솔 안에 넣을 때 ----
+     설명서는 원래 독립 페이지용이라 섹션 여백이 크다. 관리자 화면 안에서는
+     좌우 여백을 .admin-view 가 이미 만들고 있어 그대로 두면 두 배로 벌어진다. */
+  .admin-view .man-body .section { padding-block: var(--s10); }
+  .admin-view .man-body .wrap { padding-inline: 0; max-width: none; }
+  .admin-view .man-body .page-hero { display: none; }   /* 제목은 상단바가 말한다 */
+  .admin-view .man-body .jump { position: sticky; top: 0; z-index: 5; margin-bottom: var(--s4); }
+  .admin-view .man-body section[id] { scroll-margin-top: 60px; }
+  /* 색 밴드가 관리자 패널 폭을 넘지 않게 안쪽으로 넣는다 */
+  .admin-view .man-body .section[class*="band-"] { border-radius: var(--r-lg); }
+
+  /* 인쇄 — 설명서 화면에서 인쇄하면 설명서만 나온다 */
+  @media print {
+    .admin-side, .admin-top, .man-print-hide, .jump, .to-top { display: none !important; }
+    .admin-main, .admin-view { padding: 0 !important; max-width: none !important; }
+    .man-body .section { padding-block: 16px !important; page-break-inside: avoid; }
+    .man-body .reveal { opacity: 1 !important; transform: none !important; }
+    body { background: #fff; }
+  }
+
   /* 신청·문의 상세 모달 */
   .rec-detail .dl { margin-bottom: 6px; }
   .rec-detail .dl-row { display: flex; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line-soft); }
@@ -359,7 +468,6 @@
     </div>
     <nav class="admin-nav" id="adminNav"></nav>
     <div class="as-foot">
-      <a href="manual.html" target="_blank" rel="noopener"><i data-lucide="book-open-check"></i>사용 설명서</a>
       <a href="index.html"><i data-lucide="external-link"></i>홈페이지 보기</a>
       <button id="logoutBtn"><i data-lucide="log-out"></i>로그아웃</button>
     </div>
@@ -369,9 +477,9 @@
       <h1 id="adminTitle">대시보드</h1>
       <div class="at-right">
         <span class="at-meta" id="adminMeta">관리자님 환영합니다</span>
-        <a class="at-manual" href="manual.html" target="_blank" rel="noopener" title="새 탭에서 사용 설명서 열기">
+        <button class="at-manual" data-nav="manual" title="사용 설명서 보기">
           <i data-lucide="book-open-check"></i>사용 설명서
-        </a>
+        </button>
       </div>
     </div>
     <div class="admin-view" id="adminView"></div>

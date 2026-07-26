@@ -17,7 +17,6 @@ vinegar.html        식초(서련 瑞蓮)      nuruk.html      누룩이야기
 instructor.html     체험지도사 과정      products.html   제품 목록
 product.html        상품 상세(?id=)      news.html       소식마당
 contact.html        문의                admin.html      관리자 콘솔
-manual.html         운영 매뉴얼 — 관리자 전용(noindex · 공개 링크 없음)
 login.html          관리자 로그인 — 서버 세션(functions/api/admin/login)
 
 functions/          Cloudflare Pages Functions. 정적 호스팅에서는 동작하지 않는다
@@ -42,6 +41,7 @@ assets/
   site.js    공통 셸(내비/푸터 주입) · 모달 · 스토어 · 비회원 주문 · 동의 게이팅 · reveal
   shop.js    제품 목록 · 상품 상세     board.js  게시판(Tiptap) · 첨부 · 갤러리
   admin.js   관리자 콘솔 로직          jump.js   긴 페이지 목차 바
+  manual.html 사용 설명서 본문 — 관리자 콘솔 '사용 설명서' 메뉴가 읽어 표시(단일 원본)
   *.jpg      실사 사진                 logo.png
 
 rules/       규칙집 (아래 참조)

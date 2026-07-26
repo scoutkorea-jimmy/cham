@@ -1587,6 +1587,31 @@
     });
   }
 
+  /* ============================================================
+     사용 설명서 — 본문은 assets/manual.html 한 곳에만 둔다.
+     여기서 읽어 화면에 넣으므로, 설명서를 고칠 때 그 파일만 고치면 된다.
+     ============================================================ */
+  var manualHTML = null;   // 한 번 받아 두고 재사용
+
+  function viewManual() {
+    if (manualHTML === null) {
+      loadManual();
+      return '<div class="panel"><div class="admin-empty"><i data-lucide="book-open"></i><div>설명서를 불러오는 중…</div></div></div>';
+    }
+    if (manualHTML === false) {
+      return '<div class="panel"><div class="admin-empty"><i data-lucide="alert-circle"></i>' +
+        '<div>설명서를 불러오지 못했습니다.<br>인터넷 연결을 확인하고 새로고침해 주세요.</div></div></div>';
+    }
+    return '<div class="man-body">' + manualHTML + '</div>';
+  }
+
+  function loadManual() {
+    fetch('assets/manual.html', { credentials: 'same-origin' })
+      .then(function (r) { if (!r.ok) throw new Error('load failed'); return r.text(); })
+      .then(function (t) { manualHTML = t; if (current === 'manual') render(); })
+      .catch(function () { manualHTML = false; if (current === 'manual') render(); });
+  }
+
   /* ---------- nav ---------- */
   var NAV = [
     { id: 'dashboard', label: '대시보드', icon: 'layout-dashboard', view: viewDashboard, title: '대시보드' },
@@ -1604,6 +1629,7 @@
     { id: 'accounts', label: '계정 관리', icon: 'users', view: viewAccounts, title: '관리자 계정 관리', serverOnly: true, ownerOnly: true },
     { id: 'settings', label: '설정', icon: 'settings', view: viewSettings, title: '사이트 설정 — 운영 정보' },
     { id: 'backup', label: '데이터 백업', icon: 'database', view: viewBackup, title: '데이터 백업 · 복원' },
+    { id: 'manual', label: '사용 설명서', icon: 'book-open-check', view: viewManual, title: '사용 설명서' },
   ];
   var current = 'dashboard';
 
@@ -1646,7 +1672,7 @@
     document.getElementById('adminTitle').textContent = n.title;
     var av = document.getElementById('adminView');
     av.innerHTML = n.view();
-    av.classList.toggle('view-full', current === 'dashboard');
+    av.classList.toggle('view-full', current === 'dashboard' || current === 'manual');
     renderNav();
     icons();
     bindForms();

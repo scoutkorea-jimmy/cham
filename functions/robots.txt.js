@@ -15,8 +15,6 @@ export function onRequestGet({ request }) {
     'Allow: /',
     'Disallow: /admin.html',
     'Disallow: /admin',
-    'Disallow: /manual.html',
-    'Disallow: /manual',
     'Disallow: /login.html',
     'Disallow: /login',
     'Disallow: /api/',
