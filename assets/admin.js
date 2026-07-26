@@ -2134,9 +2134,32 @@
         (myRole === 'owner' && S.isServer && S.isServer()
           ? shortcut('accounts', 'users', '계정 관리', '직원 계정 · 권한 · 사용 중지', acctNote) : '') +
       '</div>' +
-      '<div style="margin-top:24px">' +
-        miniTable('지금 설정된 운영 정보', '홈페이지 푸터 · 결제 안내 · 문의 페이지에 그대로 나갑니다',
+      '<div class="dash-2col">' +
+        miniTable('지금 설정된 운영 정보', '푸터 · 결제 안내 · 문의 페이지에 그대로 나갑니다',
                   ['항목', '현재 값', '상태'], rows, '') +
+        (myRole === 'owner' && S.isServer && S.isServer()
+          ? miniTable('관리자 계정', accounts ? accounts.length + '개' : '불러오는 중…',
+              ['아이디', '이름', '권한', '마지막 로그인'],
+              (accounts || []).map(function (u) {
+                return '<tr' + (u.status !== 'active' ? ' style="opacity:.55"' : '') + '>' +
+                  '<td><b>' + esc(u.username) + '</b>' + (u.status !== 'active' ? ' <span class="tag">중지</span>' : '') + '</td>' +
+                  '<td>' + esc(u.displayName) + '</td>' +
+                  '<td>' + (u.role === 'owner' ? '<span class="tag solid">관리자</span>' : '<span class="tag">직원</span>') + '</td>' +
+                  '<td class="dt">' + (u.lastLoginAt ? fmtDate(u.lastLoginAt) : '기록 없음') + '</td></tr>';
+              }), '계정을 불러오지 못했습니다.')
+          : panelWrap('약도 위치', '오시는 길 지도에 찍히는 자리',
+              '<p class="muted" style="margin:0">위도 ' + esc(String(st.lat)) + ' · 경도 ' + esc(String(st.lng)) + '</p>' +
+              '<p class="note">설정 화면의 지도에서 핀을 끌어 맞춥니다.</p>')) +
+      '</div>' +
+      '<div style="margin-top:24px">' +
+        panelWrap('바꾸면 어디에 반영되나',
+          '저장 후 공개 페이지를 새로고침하면 보입니다',
+          '<ul class="iconlist">' +
+            '<li class="il"><i data-lucide="landmark"></i><div><b>입금 계좌 · 예금주</b><p class="note">주문할 때 보이는 무통장입금 안내와 주문 완료 화면</p></div></li>' +
+            '<li class="il"><i data-lucide="phone"></i><div><b>연락처 · 주소 · 운영 시간</b><p class="note">전 페이지 맨 아래(푸터) · 휴대폰 메뉴의 전화 걸기 · 문의 페이지</p></div></li>' +
+            '<li class="il"><i data-lucide="building-2"></i><div><b>사업자 정보</b><p class="note">푸터의 사업자 정보 · 협동조합 소개의 ‘공식 등록 사항’ 표</p></div></li>' +
+            '<li class="il"><i data-lucide="map-pin"></i><div><b>약도 좌표</b><p class="note">협동조합 소개 · 문의 페이지의 오시는 길 지도</p></div></li>' +
+          '</ul>') +
       '</div>';
   }
 
@@ -2176,6 +2199,28 @@
       '<div class="dash-2col">' +
         miniTable('지금 담긴 자료', '백업 한 번이면 이 전부가 파일 하나로 저장됩니다', ['항목', '수량'], rows, '') +
         miniTable('문서 상태', '표준안을 고쳤는지', ['문서', '상태'], docs, '') +
+      '</div>' +
+      '<div class="dash-2col">' +
+        panelWrap('권장 백업 주기', '정해 두고 지키는 편이 낫습니다',
+          '<ul class="iconlist">' +
+            '<li class="il"><i data-lucide="calendar-check"></i><div><b>주문이 있는 달 — 매주 금요일</b><p class="note">한 주 동안 들어온 주문·신청을 그날 저장합니다.</p></div></li>' +
+            '<li class="il"><i data-lucide="calendar"></i><div><b>주문이 없는 달 — 매월 1일</b><p class="note">바뀐 것이 적어도 기록은 남깁니다.</p></div></li>' +
+            '<li class="il"><i data-lucide="image-plus"></i><div><b>사진을 여러 장 바꾼 날</b><p class="note">사진은 용량이 커서 다시 올리기 번거롭습니다.</p></div></li>' +
+            '<li class="il"><i data-lucide="hard-drive-download"></i><div><b>보관은 컴퓨터 밖에</b><p class="note">USB나 클라우드(구글 드라이브 등)에 옮겨 두세요.</p></div></li>' +
+          '</ul>') +
+        panelWrap('연결 상태', '서버가 제대로 붙어 있는지',
+          '<ul class="iconlist">' +
+            '<li class="il"><i data-lucide="' + (S.isServer && S.isServer() ? 'check-circle' : 'alert-circle') + '"></i>' +
+              '<div><b>자료 저장</b><p class="note">' + (S.isServer && S.isServer()
+                ? '서버에 저장 중 — 어느 기기에서나 같은 자료가 보입니다.'
+                : '이 브라우저에만 저장 중 — 기기를 바꾸면 사라집니다.') + '</p></div></li>' +
+            '<li class="il"><i data-lucide="' + (S.isServer && S.isServer() ? 'shield-check' : 'shield-alert') + '"></i>' +
+              '<div><b>로그인</b><p class="note">' + (S.isServer && S.isServer()
+                ? '서버 세션 — 계정별로 나뉘고 12시간 유지됩니다.'
+                : '이 브라우저 안에서만 확인합니다.') + '</p></div></li>' +
+            '<li class="il"><i data-lucide="images"></i><div><b>사진 저장소</b><p class="note">' +
+              (S.isServer && S.isServer() ? '서버 파일 저장소(R2)' : '이 브라우저(IndexedDB)') + '</p></div></li>' +
+          '</ul>') +
       '</div>';
   }
 
