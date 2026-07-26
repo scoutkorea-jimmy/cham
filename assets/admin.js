@@ -82,6 +82,9 @@
 
   /* ---------- 구버전 데이터 마이그레이션 ---------- */
   function migrate() {
+    // 서버 자료는 이미 정규화돼 있다. 게다가 여기서 목록을 통째로 저장하면
+    // 화면이 들고 있지 않은 1년 이전 주문이 지워진다 — 서버 모드에서는 돌지 않는다.
+    if (S.isServer && S.isServer()) return;
     var map = { '신규': '주문접수', '입금대기': '주문접수', '확인': '결제완료', '완료': '배송완료' };
     var a = gj(K.orders, []), dirty = false;
     a.forEach(function (r) {
@@ -205,8 +208,27 @@
 
   /* ---------- 공통 행 조작 ---------- */
   var STATUS = { apps: ['신규', '상담', '확정', '수료', '취소'], inq: ['신규', '답변완료', '보류'] };
-  function updateField(key, id, field, val) { var a = gj(key, []); a.forEach(function(r){ if(r.id===id) r[field]=val; }); sj(key, a); }
-  function removeRow(key, id) { sj(key, gj(key, []).filter(function(r){ return r.id !== id; })); }
+  /* 한 건만 고치고 지운다. 목록 전체를 다시 보내면
+     (1) 주문 1,000건에 매번 약 500KB 가 오가고,
+     (2) 화면이 최근 1년치만 들고 있으므로 **그 이전 자료가 지워진다.** */
+  function updateField(key, id, field, val) {
+    var kind = S.kindOf && S.kindOf(key);
+    if (kind && S.patchItem) { var pt = {}; pt[field] = val; return S.patchItem(kind, id, pt); }
+    var a = gj(key, []); a.forEach(function(r){ if(r.id===id) r[field]=val; }); sj(key, a);
+    return Promise.resolve(true);
+  }
+  function updateFields(key, id, patch) {
+    var kind = S.kindOf && S.kindOf(key);
+    if (kind && S.patchItem) return S.patchItem(kind, id, patch);
+    var a = gj(key, []); a.forEach(function(r){ if(r.id===id) for (var f in patch) r[f] = patch[f]; }); sj(key, a);
+    return Promise.resolve(true);
+  }
+  function removeRow(key, id) {
+    var kind = S.kindOf && S.kindOf(key);
+    if (kind && S.removeItem) return S.removeItem(kind, id);
+    sj(key, gj(key, []).filter(function(r){ return r.id !== id; }));
+    return Promise.resolve(true);
+  }
   function statusSelect(key, sk, r) {
     return '<select class="st-sel" data-act="status" data-key="' + key + '" data-id="' + r.id + '">' +
       STATUS[sk].map(function(o){ return '<option' + (o === r.status ? ' selected' : '') + '>' + o + '</option>'; }).join('') + '</select>';
@@ -866,8 +888,11 @@
       '</div>', 680);
 
     document.getElementById('procConfirm').addEventListener('click', function () {
-      var orders = gj(K.orders, []);
       var eligIds = elig.map(function (o) { return o.id; });
+      var byId = {};   // 주문마다 바꿀 값 — **고른 건만** 보낸다(목록 전체가 아니라)
+      var byIdSrc = {};
+      gj(K.orders, []).forEach(function (o) { byIdSrc[o.id] = o; });
+
       if (def.kind === 'ship') {
         var method = document.getElementById('procMethod').value;
         var courier = document.getElementById('procCourier').value;
@@ -876,31 +901,44 @@
         var missing = false;
         document.querySelectorAll('.otrk').forEach(function (i) { trks[i.dataset.id] = i.value.trim(); if (tracked && !i.value.trim()) missing = true; });
         if (missing) { alert('택배·소포·등기 발송은 모든 주문의 운송장번호 입력이 필수입니다.'); return; }
-        orders.forEach(function (o) {
-          if (eligIds.indexOf(o.id) === -1) return;
-          o.shipMethod = method;
-          if (tracked) { o.courier = courier; o.tracking = trks[o.id]; }
-          o.status = method === '배송없음' ? '배송완료' : '배송중';
+        eligIds.forEach(function (id) {
+          var p = { shipMethod: method, status: method === '배송없음' ? '배송완료' : '배송중' };
+          if (tracked) { p.courier = courier; p.tracking = trks[id]; }
+          byId[id] = p;
         });
       } else if (def.kind === 'reason') {
         var r = document.getElementById('procReason').value;
         var m = document.getElementById('procMemo').value.trim();
-        orders.forEach(function (o) { if (eligIds.indexOf(o.id) > -1) { o.status = def.to; o.cancelReason = r + (m ? ' — ' + m : ''); } });
+        eligIds.forEach(function (id) { byId[id] = { status: def.to, cancelReason: r + (m ? ' — ' + m : '') }; });
       } else if (def.kind === 'rma') {
         var rr = document.getElementById('procReason').value;
         var pk = document.getElementById('procPickup').value.trim();
-        orders.forEach(function (o) { if (eligIds.indexOf(o.id) > -1) { o.status = def.to; o.rmaReason = rr; o.pickupAddr = pk || o.address || ''; } });
+        eligIds.forEach(function (id) {
+          byId[id] = { status: def.to, rmaReason: rr, pickupAddr: pk || (byIdSrc[id] && byIdSrc[id].address) || '' };
+        });
       } else {
-        orders.forEach(function (o) {
-          if (eligIds.indexOf(o.id) === -1) return;
-          o.status = def.to;
-          if (def.revert && OSTAT.indexOf(def.to) < OSTAT.indexOf('배송중')) { delete o.tracking; delete o.courier; delete o.shipMethod; }
+        eligIds.forEach(function (id) {
+          var p = { status: def.to };
+          // 배송중 이전으로 되돌리면 운송장 정보는 의미가 없다 — 비운다
+          if (def.revert && OSTAT.indexOf(def.to) < OSTAT.indexOf('배송중')) { p.tracking = ''; p.courier = ''; p.shipMethod = ''; }
+          byId[id] = p;
         });
       }
-      sj(K.orders, orders);
-      S.closeModal();
-      render();
-      toast(elig.length + '건의 주문을 「' + def.label + '」 처리했습니다.');
+
+      var btn = this; btn.disabled = true;
+      var kind = (S.kindOf && S.kindOf(K.orders)) || 'orders';
+      var run = (S.patchItems && S.isServer && S.isServer())
+        ? S.patchItems(kind, eligIds, function (id) { return byId[id]; })
+        : (function () {
+            var all = gj(K.orders, []);
+            all.forEach(function (o) { if (byId[o.id]) for (var f in byId[o.id]) o[f] = byId[o.id][f]; });
+            sj(K.orders, all); return Promise.resolve(true);
+          })();
+      run.then(function (ok) {
+        S.closeModal();
+        render();
+        if (ok) toast(elig.length + '건의 주문을 「' + def.label + '」 처리했습니다.');
+      });
     });
   }
 
@@ -1063,9 +1101,7 @@
     var kindKey = box.dataset.recKey, id = box.dataset.recId, storeKey = K[kindKey];
     var status = box.querySelector('.rec-status').value;
     var memo = box.querySelector('.rec-memo').value.trim();
-    var a = gj(storeKey, []);
-    a.forEach(function (x) { if (x.id === id) { x.status = status; x.adminMemo = memo; x.handledAt = new Date().toISOString(); } });
-    sj(storeKey, a);
+    updateFields(storeKey, id, { status: status, adminMemo: memo, handledAt: new Date().toISOString() });
     if (S.closeModal) S.closeModal();
     render(); toast('처리 내용이 저장되었습니다.');
   }
@@ -2983,6 +3019,17 @@
   }
 
   document.addEventListener('click', function(e){
+    // 지난 자료까지 불러오기 — 운영자가 부를 때만 한다
+    var ob = e.target.closest('[data-older]');
+    if (ob && !ob.disabled) {
+      ob.disabled = true;
+      ob.innerHTML = '<i data-lucide="loader"></i>불러오는 중…'; icons();
+      S.loadOlder(ob.dataset.older).then(function (ok) {
+        if (ok) toast('지난 자료까지 모두 불러왔습니다.');
+        render();
+      });
+      return;
+    }
     /* 쪽 이동. 속성 이름이 data-page 면 안 된다 — `<body data-page="admin">` 이 있어서
        closest('[data-page]') 가 **모든 클릭**에서 body 를 잡는다. 그러면 이 분기가 클릭을
        통째로 삼켜 아래 모든 처리가 죽고, 누를 때마다 화면을 다시 그린다(실제로 그랬다). */

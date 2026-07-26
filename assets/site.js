@@ -121,6 +121,24 @@
   /* 목록마다 '내가 읽은 시점의 버전'. 저장할 때 되돌려주면 서버가 그 사이 누가
      바꿨는지 가려 준다. 비어 있으면(마이그레이션 전 등) 검사를 건너뛴다. */
   var versions = {};
+
+  /* ---------- 기간창 ----------
+     주문·신청·문의는 시간이 흐르며 계속 쌓인다. 전부 메모리에 올리면 관리자 화면이
+     뜨는 데 걸리는 시간이 자료에 비례해 늘어난다. **기본은 최근 1년**만 올리고,
+     그 이전은 운영자가 부를 때만 가져온다.
+
+     주의 — 화면이 1년치만 들고 있는데 목록을 통째로 저장하면 그 이전 자료가 지워진다.
+     그래서 저장할 때도 같은 기간을 함께 보내 서버가 지우는 범위를 묶게 한다. */
+  var WINDOW_KINDS = { orders: 1, applications: 1, inquiries: 1 };
+  var WINDOW_DAYS = 365;
+  var windowSince = {};   // kind → ISO. 전체를 불러왔으면 null
+  var olderCount = {};    // kind → 창 밖에 남아 있는 건수
+  function defaultSince() {
+    return new Date(Date.now() - WINDOW_DAYS * 24 * 3600 * 1000).toISOString();
+  }
+  function windowQuery(kind) {
+    return windowSince[kind] ? '?since=' + encodeURIComponent(windowSince[kind]) : '';
+  }
   function emit(name, detail) {
     try { window.dispatchEvent(new CustomEvent('site:' + name, { detail: detail })); } catch (e) {}
   }
@@ -156,7 +174,8 @@
       var body = DOC_KINDS[kind] ? { doc: v } : { items: v };
       // 내가 읽은 시점의 버전을 함께 보낸다 — 그 사이 남이 바꿨으면 서버가 막아 준다
       if (versions[kind] != null) body.version = versions[kind];
-      api('/api/admin/data/' + kind, { method: 'PUT', body: body }).then(function (r) {
+      // 기간창을 함께 보낸다 — 안 보내면 창 밖(1년 이전) 자료가 통째로 지워진다
+      api('/api/admin/data/' + kind + windowQuery(kind), { method: 'PUT', body: body }).then(function (r) {
         if (r.ok) {
           if (r.data && r.data.version != null) versions[kind] = r.data.version;
           return;
@@ -186,10 +205,13 @@
     api('/api/admin/versions').then(function (r) {
       if (r.ok && r.data && r.data.versions) versions = r.data.versions;
     }).catch(function () {});
+    // 계속 쌓이는 것은 최근 1년만 — 나머지는 운영자가 부를 때 가져온다
+    for (var wk in WINDOW_KINDS) windowSince[wk] = defaultSince();
     return Promise.all(['orders', 'applications', 'inquiries', 'kms', 'visits'].map(function (kind) {
-      return api('/api/admin/data/' + kind).then(function (r) {
+      return api('/api/admin/data/' + kind + windowQuery(kind)).then(function (r) {
         if (!r.ok) return false;
         if (r.data.version != null) versions[kind] = r.data.version;
+        if (r.data.older != null) olderCount[kind] = r.data.older;
         if (kind === 'visits') { cache.__visits = r.data.visits || {}; cache.__sources = r.data.sources || {}; return true; }
         var key = null;
         for (var k in KEY_MAP) if (KEY_MAP[k] === kind) key = k;
@@ -201,14 +223,100 @@
 
   // 한 항목만 서버에서 다시 읽어 캐시를 맞춘다
   function reload(kind) {
-    return api('/api/admin/data/' + kind).then(function (r) {
+    return api('/api/admin/data/' + kind + windowQuery(kind)).then(function (r) {
       if (!r.ok) return false;
       if (r.data.version != null) versions[kind] = r.data.version;
+      if (r.data.older != null) olderCount[kind] = r.data.older;
       var key = null;
       for (var k in KEY_MAP) if (KEY_MAP[k] === kind) key = k;
       if (key) cache[key] = DOC_KINDS[kind] ? r.data.doc : r.data.items;
       return true;
     }).catch(function () { return false; });
+  }
+
+  /* ---------- 한 건만 고치기 ----------
+     목록 전체를 다시 보내지 않는다. 두 가지 이유다.
+       · 주문 1,000건이면 상태 하나 바꾸는 데 약 500KB 가 오간다.
+       · 화면이 최근 1년치만 들고 있으므로, 전체 교체는 **그 이전 자료를 지운다**.
+     화면(메모리)은 먼저 고치고 서버에는 그 한 건만 보낸다. 실패하면 되돌린다. */
+  function findList(kind) {
+    for (var k in KEY_MAP) if (KEY_MAP[k] === kind) return k;
+    return null;
+  }
+  function itemFail(kind, msg) {
+    toast(msg, 5000);
+    return reload(kind).then(function () { emit('data-reloaded', kind); return false; });
+  }
+
+  /** 한 건의 일부만 고친다. patch 는 바꿀 값만 담는다. */
+  function patchItem(kind, id, patch) {
+    if (!SERVER) {
+      var key0 = findList(kind); if (!key0) return Promise.resolve(false);
+      var arr0 = getJSON(key0, []);
+      arr0.forEach(function (x) { if (x.id === id) for (var f in patch) x[f] = patch[f]; });
+      setJSON(key0, arr0);
+      return Promise.resolve(true);
+    }
+    var key = findList(kind);
+    if (key) {
+      var arr = (cache[key] || []).slice();
+      for (var i = 0; i < arr.length; i++) {
+        if (arr[i].id === id) { var c = {}; for (var f2 in arr[i]) c[f2] = arr[i][f2];
+          for (var f3 in patch) c[f3] = patch[f3]; arr[i] = c; break; }
+      }
+      cache[key] = arr;
+    }
+    return api('/api/admin/data/' + kind + '/' + encodeURIComponent(id), {
+      method: 'PATCH', body: { patch: patch },
+    }).then(function (r) {
+      if (r.ok) { if (r.data && r.data.version != null) versions[kind] = r.data.version; return true; }
+      if (r.status === 404) return itemFail(kind, '이미 지워졌거나 없는 항목입니다. 목록을 새로 불러옵니다.');
+      return itemFail(kind, '저장하지 못했습니다: ' + ((r.data && r.data.error) || '서버 오류'));
+    }).catch(function () { return itemFail(kind, '저장하지 못했습니다. 인터넷 연결을 확인해 주세요.'); });
+  }
+
+  /** 여러 건을 같은 값으로 — 주문 일괄 처리에 쓴다. 하나가 실패하면 전체를 다시 읽는다. */
+  function patchItems(kind, ids, patchOf) {
+    var list = (ids || []).slice();
+    if (!list.length) return Promise.resolve(true);
+    return list.reduce(function (chain, id) {
+      return chain.then(function (ok) {
+        if (!ok) return false;
+        return patchItem(kind, id, typeof patchOf === 'function' ? patchOf(id) : patchOf);
+      });
+    }, Promise.resolve(true));
+  }
+
+  /** 한 건을 지운다. */
+  function removeItem(kind, id) {
+    var key = findList(kind);
+    if (!SERVER) {
+      if (!key) return Promise.resolve(false);
+      setJSON(key, getJSON(key, []).filter(function (x) { return x.id !== id; }));
+      return Promise.resolve(true);
+    }
+    if (key) cache[key] = (cache[key] || []).filter(function (x) { return x.id !== id; });
+    return api('/api/admin/data/' + kind + '/' + encodeURIComponent(id), { method: 'DELETE' })
+      .then(function (r) {
+        if (r.ok) { if (r.data && r.data.version != null) versions[kind] = r.data.version; return true; }
+        return itemFail(kind, '지우지 못했습니다: ' + ((r.data && r.data.error) || '서버 오류'));
+      }).catch(function () { return itemFail(kind, '지우지 못했습니다. 인터넷 연결을 확인해 주세요.'); });
+  }
+
+  /** 창 밖(1년 이전) 자료까지 불러온다. 운영자가 부를 때만 한다. */
+  function loadOlder(kind) {
+    if (!SERVER) return Promise.resolve(true);
+    windowSince[kind] = null;                   // 창을 연다
+    return reload(kind).then(function (ok) {
+      if (!ok) { windowSince[kind] = defaultSince(); toast('지난 자료를 불러오지 못했습니다.'); return false; }
+      olderCount[kind] = 0;
+      emit('data-reloaded', kind);
+      return true;
+    });
+  }
+  function windowInfo(kind) {
+    return { since: windowSince[kind] || null, older: olderCount[kind] || 0,
+             windowed: !!windowSince[kind], days: WINDOW_DAYS };
   }
 
   /* 접수(주문·신청·문의) — 서버 모드에서는 서버가 주문번호와 금액을 정한다.
@@ -1579,6 +1687,8 @@
     getJSON: getJSON, setJSON: setJSON, pushRecord: pushRecord, submitRecord: submitRecord,
     fmtWon: fmtWon, fmtYMD: fmtYMD, todayStr: todayStr, genOrderNo: genOrderNo,
     idb: idb, Media: Media, api: api, reload: reload, loadAdminData: loadAdminData,
+    patchItem: patchItem, patchItems: patchItems, removeItem: removeItem, kindOf: function (k) { return KEY_MAP[k] || null; },
+    loadOlder: loadOlder, windowInfo: windowInfo,
     isServer: function(){ return SERVER; }, ready: function(fn){ booted.then(function(){ ready(fn); }); },
     toast: toast, revealScan: revealScan,
     IMG_SLOTS: IMG_SLOTS, renderSlotImages: renderSlotImages, slotPos: slotPos, applySlot: applySlot,

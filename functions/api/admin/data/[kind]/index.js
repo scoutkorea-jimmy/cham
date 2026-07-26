@@ -29,9 +29,9 @@ import {
   productRowToObj, PRODUCT_INSERT, productObjToBind,
   postRowToObj, POST_INSERT, postBind,
   readCollection, writeCollection, readDoc, writeDoc,
-} from '../../../_shared/store.js';
-import { json, badRequest, forbidden, notFound, methodNotAllowed, readJson } from '../../../_shared/http.js';
-import { getOwnerSession } from '../../../_shared/auth.js';
+} from '../../../../_shared/store.js';
+import { json, badRequest, forbidden, notFound, methodNotAllowed, readJson } from '../../../../_shared/http.js';
+import { getOwnerSession } from '../../../../_shared/auth.js';
 
 const COLLECTIONS = new Set(['cohorts', 'partners', 'popups']);
 const DOCS = new Set(['settings', 'consents', 'kms']);
@@ -55,39 +55,63 @@ function bumpVersion(env, kind, who) {
 }
 
 /** 목록을 값 하나로 넘긴다 — 항목마다 물음표를 쓰면 100건에서 막힌다. */
-function keepClause(table) {
-  return `DELETE FROM ${table} WHERE id NOT IN (SELECT value FROM json_each(?))`;
+function keepClause(table, windowed) {
+  // 화면이 최근 자료만 들고 있을 때는 **그 기간 안에서만** 지운다.
+  // 그러지 않으면 1년치만 보낸 저장이 그 이전 자료를 통째로 지운다.
+  return windowed
+    ? `DELETE FROM ${table} WHERE created_at >= ? AND id NOT IN (SELECT value FROM json_each(?))`
+    : `DELETE FROM ${table} WHERE id NOT IN (SELECT value FROM json_each(?))`;
 }
 
-export async function onRequestGet({ params, env }) {
+/* 시간이 흐르며 계속 쌓이는 표 — 기본으로 최근 것만 준다.
+   상품·교육과정처럼 '지금 쓰는 것'만 있는 표는 대상이 아니다. */
+const TIMED = { orders: 'orders', applications: 'applications', inquiries: 'inquiries', posts: 'posts' };
+
+/** ?since=ISO 를 받아 검증한다. 형식이 아니면 창을 열지 않는다(전체를 준다). */
+function sinceOf(url) {
+  const raw = url && url.searchParams ? url.searchParams.get('since') : null;
+  if (!raw) return null;
+  const t = Date.parse(raw);
+  if (!Number.isFinite(t)) return null;
+  return new Date(t).toISOString();
+}
+
+export async function onRequestGet({ request, params, env }) {
   const kind = String(params.kind || '');
   // 화면은 이 version 을 들고 있다가 저장할 때 되돌려준다 → 그 사이 남이 바꿨는지 가린다
   const ver = await readVersion(env, kind);
 
-  if (kind === 'orders') {
-    const { results } = await env.DB.prepare(
-      `SELECT * FROM orders ORDER BY created_at DESC`).all();
-    return json({ items: (results || []).map(orderRowToObj), version: ver.version });
+  let url = null;
+  try { url = new URL(request.url); } catch {}
+  const since = TIMED[kind] ? sinceOf(url) : null;
+
+  /* 기간창 안의 것만 읽고, 그 밖에 몇 건이 더 있는지 세어 함께 준다.
+     화면은 그 수를 보고 '지난 자료 N건 더 보기'를 띄운다 — 있는 줄도 모르면
+     운영자는 자료가 사라진 줄 안다. */
+  async function timed(table, toObj) {
+    if (!since) {
+      const { results } = await env.DB.prepare(
+        `SELECT * FROM ${table} ORDER BY created_at DESC`).all();
+      return json({ items: (results || []).map(toObj), version: ver.version, since: null, older: 0 });
+    }
+    const [rows, older] = await Promise.all([
+      env.DB.prepare(`SELECT * FROM ${table} WHERE created_at >= ? ORDER BY created_at DESC`).bind(since).all(),
+      env.DB.prepare(`SELECT COUNT(*) AS n FROM ${table} WHERE created_at < ?`).bind(since).first(),
+    ]);
+    return json({
+      items: (rows.results || []).map(toObj), version: ver.version,
+      since: since, older: (older && older.n) || 0,
+    });
   }
-  if (kind === 'applications') {
-    const { results } = await env.DB.prepare(
-      `SELECT * FROM applications ORDER BY created_at DESC`).all();
-    return json({ items: (results || []).map((r) => recordRowToObj(r, 'apply')), version: ver.version });
-  }
-  if (kind === 'inquiries') {
-    const { results } = await env.DB.prepare(
-      `SELECT * FROM inquiries ORDER BY created_at DESC`).all();
-    return json({ items: (results || []).map((r) => recordRowToObj(r, 'inquiry')), version: ver.version });
-  }
+
+  if (kind === 'orders')       return timed('orders', orderRowToObj);
+  if (kind === 'applications') return timed('applications', (r) => recordRowToObj(r, 'apply'));
+  if (kind === 'inquiries')    return timed('inquiries', (r) => recordRowToObj(r, 'inquiry'));
+  if (kind === 'posts')        return timed('posts', postRowToObj);
   if (kind === 'products') {
     const { results } = await env.DB.prepare(
       `SELECT * FROM products ORDER BY sort_order, id`).all();
     return json({ items: (results || []).map(productRowToObj), version: ver.version });
-  }
-  if (kind === 'posts') {
-    const { results } = await env.DB.prepare(
-      `SELECT * FROM posts ORDER BY created_at DESC`).all();
-    return json({ items: (results || []).map(postRowToObj), version: ver.version });
   }
   if (kind === 'visits') {
     const [v, s] = await Promise.all([
@@ -149,9 +173,17 @@ export async function onRequestPut({ request, params, env, data }) {
   // 남길 id 는 **JSON 값 하나**로 넘긴다. 항목마다 물음표를 쓰면 100건에서 막힌다.
   const keepJson = JSON.stringify(items.map((x) => String(x.id)));
 
+  /* 화면이 최근 자료만 들고 있으면 그 기간을 함께 보낸다. 지우는 범위를 그 안으로 묶어
+     **1년 이전 자료가 통째로 사라지는 사고**를 막는다. 기간을 안 보냈는데 그 표가
+     기간형이면(= 전체를 들고 있다고 주장하면) 그대로 전체 교체다. */
+  const putSince = TIMED[kind] ? sinceOf(new URL(request.url)) : null;
+  const scoped = (table) => (putSince
+    ? env.DB.prepare(keepClause(table, true)).bind(putSince, keepJson)
+    : env.DB.prepare(keepClause(table, false)).bind(keepJson));
+
   if (kind === 'orders') {
     await env.DB.batch([
-      env.DB.prepare(keepClause('orders')).bind(keepJson),
+      scoped('orders'),
       ...items.map((o) => env.DB.prepare(ORDER_INSERT).bind(...orderObjToBind(o))),
       bumpVersion(env, kind, who),
     ]);
@@ -159,7 +191,7 @@ export async function onRequestPut({ request, params, env, data }) {
   }
   if (kind === 'applications') {
     await env.DB.batch([
-      env.DB.prepare(keepClause('applications')).bind(keepJson),
+      scoped('applications'),
       ...items.map((r) => env.DB.prepare(APP_INSERT).bind(...appBind(r))),
       bumpVersion(env, kind, who),
     ]);
@@ -167,7 +199,7 @@ export async function onRequestPut({ request, params, env, data }) {
   }
   if (kind === 'inquiries') {
     await env.DB.batch([
-      env.DB.prepare(keepClause('inquiries')).bind(keepJson),
+      scoped('inquiries'),
       ...items.map((r) => env.DB.prepare(INQ_INSERT).bind(...inqBind(r))),
       bumpVersion(env, kind, who),
     ]);
@@ -175,7 +207,7 @@ export async function onRequestPut({ request, params, env, data }) {
   }
   if (kind === 'products') {
     await env.DB.batch([
-      env.DB.prepare(keepClause('products')).bind(keepJson),
+      scoped('products'),
       ...items.map((p, i) => env.DB.prepare(PRODUCT_INSERT).bind(...productObjToBind(p, i))),
       bumpVersion(env, kind, who),
     ]);
@@ -183,7 +215,7 @@ export async function onRequestPut({ request, params, env, data }) {
   }
   if (kind === 'posts') {
     await env.DB.batch([
-      env.DB.prepare(keepClause('posts')).bind(keepJson),
+      scoped('posts'),
       ...items.map((p) => env.DB.prepare(POST_INSERT).bind(...postBind(p))),
       bumpVersion(env, kind, who),
     ]);

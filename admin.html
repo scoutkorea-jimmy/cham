@@ -668,6 +668,16 @@
   .pg-b.on { background: var(--main); border-color: var(--main); color: #fff; }
   .pg-b:disabled { opacity: .4; cursor: default; }
   .pg-gap { color: var(--ink-faint); padding: 0 2px; }
+
+  /* 지난 자료 안내 — 최근 1년만 올려 두고 그 이전은 부를 때 가져온다 */
+  .older-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 14px var(--gutter-panel); border-top: 1px solid var(--line-soft);
+    background: var(--point-tint); font-size: 14px; color: var(--ink-soft); }
+  .older-bar i[data-lucide] { width: 18px; height: 18px; color: var(--point-ink); flex: none; }
+  .older-bar .btn { margin-left: auto; }
+  .older-bar.quiet { background: var(--surface-2); color: var(--ink-mute); font-size: 13px; }
+  .older-bar.quiet i[data-lucide] { color: var(--ink-faint); }
+  @media (max-width: 520px) { .older-bar .btn { margin-left: 0; width: 100%; justify-content: center; } }
   @media (max-width: 520px) {
     .pager-bar { justify-content: center; }
     .pg-nav { margin-left: 0; }
