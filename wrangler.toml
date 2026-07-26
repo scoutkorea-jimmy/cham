@@ -23,3 +23,9 @@ database_id = "34892062-1509-430c-baf8-9269aa859ca6"
 [[r2_buckets]]
 binding = "MEDIA"
 bucket_name = "cham-media"
+
+# ── Workers AI (관리자 도움말 챗봇) ───────────────────────────
+# 설명서에서 찾은 대목을 근거로 답을 다듬는 데만 쓴다.
+# 모델이 없거나 한도를 넘으면 화면이 찾은 절을 그대로 보여 주므로, 없어도 동작한다.
+[ai]
+binding = "AI"

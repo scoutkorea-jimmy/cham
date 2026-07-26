@@ -1825,7 +1825,41 @@
       return '<div class="panel"><div class="admin-empty"><i data-lucide="alert-circle"></i>' +
         '<div>설명서를 불러오지 못했습니다.<br>인터넷 연결을 확인하고 새로고침해 주세요.</div></div></div>';
     }
-    return '<div class="man-body">' + manualHTML + '</div>';
+    // 설명서 안의 목차(.jump)를 상단 탭 모양으로 바꾼다. 관리 화면에서는
+    // 알약 모양보다 탭이 '지금 어느 절'인지 읽기 쉽다.
+    var html = manualHTML
+      .replace(/<nav class="jump"[^>]*>\s*<div class="wrap"><div class="jump-inner">/,
+               '<nav class="man-tabs" aria-label="설명서 목차"><div class="mt-row">')
+      .replace(/<\/div><\/div>\s*<\/nav>/, '</div></nav>');
+    return '<div class="man-body">' + html + '</div>';
+  }
+
+  /* 설명서 탭 — 스크롤에 따라 현재 절을 표시.
+     공개 페이지의 jump.js 는 여기서 돌지 않으므로 관리자용으로 따로 건다. */
+  var manTabIO = null;
+  function bindManualTabs() {
+    var bar = document.querySelector('.man-tabs'); if (!bar) return;
+    if (manTabIO) { try { manTabIO.disconnect(); } catch (e) {} manTabIO = null; }
+    var links = [].slice.call(bar.querySelectorAll('a[href^="#"]'));
+    var pairs = links.map(function (a) {
+      var el = document.getElementById(a.getAttribute('href').slice(1));
+      return el ? { a: a, el: el } : null;
+    }).filter(Boolean);
+    if (!pairs.length) return;
+    manTabIO = new IntersectionObserver(function (ents) {
+      ents.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        var hit = pairs.filter(function (x) { return x.el === en.target; })[0];
+        if (!hit) return;
+        links.forEach(function (a) { a.classList.remove('on'); });
+        hit.a.classList.add('on');
+        var row = hit.a.parentElement;
+        if (row && row.scrollWidth > row.clientWidth) {
+          row.scrollTo({ left: hit.a.offsetLeft - (row.clientWidth - hit.a.offsetWidth) / 2, behavior: 'smooth' });
+        }
+      });
+    }, { rootMargin: '-15% 0px -70% 0px', threshold: 0 });
+    pairs.forEach(function (x) { manTabIO.observe(x.el); });
   }
 
   function loadManual() {
@@ -2317,7 +2351,8 @@
       if (t.solo) {
         var it = navItem(t.solo);
         if (!it) return;
-        html += '<button data-nav="' + it.id + '" class="nav-solo ' + (it.id === current ? 'on' : '') + '">' +
+        html += '<button data-nav="' + it.id + '" class="nav-solo ' +
+          (it.id === 'manual' ? 'nav-manual ' : '') + (it.id === current ? 'on' : '') + '">' +
           '<i data-lucide="' + it.icon + '"></i>' + it.label + '</button>';
         return;
       }
@@ -2357,6 +2392,7 @@
     renderNav();
     icons();
     bindForms();
+    if (current === 'manual') bindManualTabs();
   }
 
   /* ---------- 이미지 리사이즈 ----------
@@ -2810,6 +2846,157 @@
     });
     document.getElementById('logoutBtn').addEventListener('click', function(){ authed = false; location.reload(); });
   }
+
+
+  /* ============================================================
+     도움말 챗봇 — 설명서에서 관련 대목을 찾아 답한다.
+     · 근거 찾기는 화면에서(설명서 본문을 이미 들고 있다)
+     · 문장 다듬기는 서버의 Workers AI 에서
+     · 모델이 없거나 실패하면 찾은 절을 그대로 안내한다 — 아무것도 못 주는 상황을 만들지 않는다
+     ============================================================ */
+  var cbSections = null;   // [{id, title, text}]
+  var cbBusy = false;
+
+  var CB_QUICK = ['입금 확인은 어떻게 하나요?', '택배 보낸 뒤엔 뭘 눌러요?',
+                  '홈페이지 사진 바꾸려면?', '계좌번호는 어디서 바꿔요?', '백업은 왜 해야 하나요?'];
+
+  function cbEl(id) { return document.getElementById(id); }
+  function cbSay(who, html) {
+    var b = cbEl('cbBody'); if (!b) return null;
+    var d = document.createElement('div');
+    d.className = 'cb-msg ' + who;
+    d.innerHTML = html;
+    b.appendChild(d); b.scrollTop = b.scrollHeight;
+    icons();
+    return d;
+  }
+
+  // 설명서 본문을 절 단위로 쪼갠다(한 번만)
+  function cbIndex() {
+    if (cbSections) return Promise.resolve(cbSections);
+    var build = function (htmlText) {
+      var box = document.createElement('div');
+      box.innerHTML = htmlText;
+      cbSections = [].slice.call(box.querySelectorAll('section[id]')).map(function (sec) {
+        var h = sec.querySelector('h2');
+        return { id: sec.id, title: (h ? h.textContent : sec.id).trim(),
+                 text: (sec.textContent || '').replace(/\s+/g, ' ').trim() };
+      });
+      return cbSections;
+    };
+    if (manualHTML && manualHTML !== false) return Promise.resolve(build(manualHTML));
+    return fetch('assets/manual.html', { credentials: 'same-origin' })
+      .then(function (r) { return r.text(); })
+      .then(function (t) { manualHTML = t; return build(t); })
+      .catch(function () { cbSections = []; return cbSections; });
+  }
+
+  /* 질문과 겹치는 낱말이 많은 절을 고른다.
+     한국어는 조사가 붙어 그대로 비교하면 잘 안 맞으므로, 2글자 이상 조각으로 나눠 센다. */
+  function cbSearch(q, secs) {
+    var terms = String(q).toLowerCase().replace(/[^가-힣a-z0-9\s]/g, ' ').split(/\s+/)
+      .filter(function (w) { return w.length >= 2; });
+    if (!terms.length) return [];
+    var grams = [];
+    terms.forEach(function (w) {
+      grams.push(w);
+      for (var i = 0; i + 2 <= w.length; i++) grams.push(w.slice(i, i + 2));
+    });
+    return secs.map(function (sec) {
+      var hay = (sec.title + ' ' + sec.text).toLowerCase();
+      var score = 0;
+      grams.forEach(function (g) {
+        var k = hay.split(g).length - 1;
+        if (k) score += Math.min(k, 6) * (g.length >= 3 ? 3 : 1);
+      });
+      if (terms.some(function (t) { return sec.title.toLowerCase().indexOf(t) > -1; })) score += 25;
+      return { sec: sec, score: score };
+    }).filter(function (x) { return x.score > 0; })
+      .sort(function (a, b) { return b.score - a.score; })
+      .slice(0, 3).map(function (x) { return x.sec; });
+  }
+
+  function cbGoto(id) {
+    if (current !== 'manual') { current = 'manual'; navOpen = null; render(); }
+    setTimeout(function () {
+      var el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 400);
+  }
+
+  function cbAsk(q) {
+    if (cbBusy) return;
+    cbBusy = true;
+    cbSay('me', esc(q));
+    var wait = cbSay('bot', '<span class="cb-dots"><span></span><span></span><span></span></span>');
+    cbIndex().then(function (secs) {
+      var hits = cbSearch(q, secs);
+      if (!hits.length) {
+        wait.innerHTML = '설명서에서 관련 내용을 찾지 못했습니다.<br>다른 낱말로 다시 물어보시거나, ' +
+          '<b>사용 설명서</b>를 직접 훑어봐 주세요.';
+        cbBusy = false; return;
+      }
+      var srcHTML = '<div class="cb-src">' + hits.map(function (h) {
+        return '<button data-cbgo="' + h.id + '">' + esc(h.title) + ' 보기</button>';
+      }).join('') + '</div>';
+
+      S.api('/api/admin/assist', { method: 'POST', body: {
+        question: q,
+        context: hits.map(function (h) { return { title: h.title, text: h.text.slice(0, 2200) }; }),
+      } }).then(function (r) {
+        var ans = r.ok && r.data && r.data.answer;
+        if (ans) wait.innerHTML = esc(ans).replace(/\n/g, '<br>') + srcHTML;
+        else {
+          // 모델을 못 쓰는 상황 — 찾은 절로 곧장 안내한다
+          wait.innerHTML = '<b>' + esc(hits[0].title) + '</b> 부분에 나와 있습니다.<br>' +
+            esc(hits[0].text.slice(0, 180)) + '…' + srcHTML;
+        }
+        icons(); cbBusy = false;
+        var b = cbEl('cbBody'); if (b) b.scrollTop = b.scrollHeight;
+      }).catch(function () {
+        wait.innerHTML = '<b>' + esc(hits[0].title) + '</b> 부분을 확인해 보세요.' + srcHTML;
+        cbBusy = false;
+      });
+    });
+  }
+
+  function cbOpen(open) {
+    var panel = cbEl('cbPanel'), fab = cbEl('cbFab');
+    if (!panel) return;
+    panel.classList.toggle('open', open);
+    if (fab) fab.classList.toggle('hide', open);
+    if (open) {
+      var body = cbEl('cbBody');
+      if (body && !body.children.length) {
+        cbSay('bot', '안녕하세요. 관리 화면에서 막히는 것을 물어보시면 <b>사용 설명서</b>에서 찾아 알려 드립니다.<br>아래 예시를 눌러 보셔도 됩니다.');
+        var q = cbEl('cbQuick');
+        if (q) q.innerHTML = CB_QUICK.map(function (t) { return '<button data-cbq="' + esc(t) + '">' + esc(t) + '</button>'; }).join('');
+      }
+      setTimeout(function () { var i = cbEl('cbInput'); if (i) i.focus(); }, 80);
+    }
+  }
+
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('#cbFab')) { cbOpen(true); return; }
+    if (e.target.closest('#cbClose')) { cbOpen(false); return; }
+    var q = e.target.closest('[data-cbq]');
+    if (q) { cbAsk(q.dataset.cbq); return; }
+    var g = e.target.closest('[data-cbgo]');
+    if (g) { cbGoto(g.dataset.cbgo); cbOpen(false); return; }
+  });
+  document.addEventListener('submit', function (e) {
+    if (e.target && e.target.id === 'cbForm') {
+      e.preventDefault();
+      var i = cbEl('cbInput');
+      var v = i.value.trim();
+      if (!v) return;
+      i.value = '';
+      cbAsk(v);
+    }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && cbEl('cbPanel') && cbEl('cbPanel').classList.contains('open')) cbOpen(false);
+  });
 
   function ready(fn){
     if (S.ready) { S.ready(fn); return; }
