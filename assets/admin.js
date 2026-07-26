@@ -57,6 +57,22 @@
     return { rows: list.slice(from, from + PAGE_SIZE), cur: cur, pages: pages,
              total: total, from: from, key: key };
   }
+  /* 최근 1년만 올려 두고 그 이전은 부를 때 가져온다.
+     **몇 건이 더 있는지 반드시 보여 준다** — 안 보이면 운영자는 자료가 사라진 줄 안다. */
+  function olderBar(kind) {
+    if (!S.windowInfo) return '';
+    var w = S.windowInfo(kind);
+    if (!w.windowed) return '';
+    if (!w.older) {
+      return '<div class="older-bar quiet"><i data-lucide="clock"></i>' +
+        '<span>최근 <b>1년</b> 자료입니다. 그 이전 자료는 없습니다.</span></div>';
+    }
+    return '<div class="older-bar"><i data-lucide="archive"></i>' +
+      '<span>지금은 <b>최근 1년</b>만 보고 있습니다. 그 이전 자료가 <b>' + w.older + '건</b> 더 있습니다.</span>' +
+      '<button class="btn btn-ghost" data-older="' + kind + '"><i data-lucide="history"></i>지난 자료까지 불러오기</button>' +
+      '</div>';
+  }
+
   /** 쪽 이동 줄. 한 쪽뿐이면 그리지 않는다 — 없는 선택지를 보여 줄 이유가 없다. */
   function pager(p) {
     if (p.pages <= 1) return '';
@@ -831,7 +847,7 @@
       '<div style="overflow-x:auto"><table class="admin-table" style="font-size:13px"><thead><tr>' +
         '<th><input type="checkbox" id="oselAll" style="width:16px;height:16px;accent-color:var(--main)"></th>' +
         '<th>주문번호 / 시각</th><th>구분</th><th>주문상품</th><th>수량</th><th>금액</th><th>주문자</th><th>입금자명</th><th>배송지</th><th>상태</th><th></th>' +
-      '</tr></thead><tbody>' + rows + '</tbody></table></div>' + pager(pg) + '</div>';
+      '</tr></thead><tbody>' + rows + '</tbody></table></div>' + pager(pg) + olderBar('orders') + '</div>';
   }
 
   function selectedOrderIds() {
@@ -1056,7 +1072,7 @@
       '<div>' + miniTable('최근 신청', '최신 5명', ['일시', '이름', '연락처', '지역', '신청 기수', '상태'], recent, '아직 신청이 없습니다.') + '</div>' +
       '<div class="panel"><div class="panel-head"><h3>신청자 명단</h3><span class="ph-sub">총 ' + a.length + '명 — 연락처를 눌러 전화할 수 있습니다</span>' +
         '<div class="panel-tools">' + listSearch('apps', '이름 · 연락처 · 지역 검색') + csvBtn('apps') + '</div></div>' +
-      '<div style="overflow-x:auto"><table class="admin-table" id="appsTable"><thead><tr><th>일시</th><th>이름</th><th>연락처</th><th>지역</th><th>신청 기수</th><th>상태</th><th>처리</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>' + pager(pg) + '</div>';
+      '<div style="overflow-x:auto"><table class="admin-table" id="appsTable"><thead><tr><th>일시</th><th>이름</th><th>연락처</th><th>지역</th><th>신청 기수</th><th>상태</th><th>처리</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>' + pager(pg) + olderBar('applications') + '</div>';
   }
   function viewInq() {
     var a = gj(K.inq, []);
@@ -1068,7 +1084,7 @@
     }).join('') : emptyRow(8, '문의 내역이 없습니다.');
     return '<div class="panel"><div class="panel-head"><h3>문의 내역 관리</h3><span class="ph-sub">총 ' + a.length + '건</span>' +
         '<div class="panel-tools">' + listSearch('inq', '이름 · 연락처 · 내용 검색') + csvBtn('inq') + '</div></div>' +
-      '<div style="overflow-x:auto"><table class="admin-table" id="inqTable"><thead><tr><th>일시</th><th>이름</th><th>연락처</th><th>유형</th><th>내용</th><th>상태</th><th>처리</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>' + pager(pg) + '</div>';
+      '<div style="overflow-x:auto"><table class="admin-table" id="inqTable"><thead><tr><th>일시</th><th>이름</th><th>연락처</th><th>유형</th><th>내용</th><th>상태</th><th>처리</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>' + pager(pg) + olderBar('inquiries') + '</div>';
   }
 
   /* ---------- 신청·문의 상세·처리 모달 (전체 내용 열람 + 관리자 처리 메모·상태) ---------- */
