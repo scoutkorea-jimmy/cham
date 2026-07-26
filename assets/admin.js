@@ -61,7 +61,7 @@
   function pager(p) {
     if (p.pages <= 1) return '';
     var btn = function (n, label, on, dis) {
-      return '<button class="pg-b' + (on ? ' on' : '') + '" data-page="' + p.key + ':' + n + '"' +
+      return '<button class="pg-b' + (on ? ' on' : '') + '" data-pgto="' + p.key + ':' + n + '"' +
         (dis ? ' disabled' : '') + '>' + label + '</button>';
     };
     var out = '', lo = Math.max(1, p.cur - 2), hi = Math.min(p.pages, p.cur + 2);
@@ -2983,10 +2983,12 @@
   }
 
   document.addEventListener('click', function(e){
-    // 쪽 이동
-    var pgb = e.target.closest('[data-page]');
+    /* 쪽 이동. 속성 이름이 data-page 면 안 된다 — `<body data-page="admin">` 이 있어서
+       closest('[data-page]') 가 **모든 클릭**에서 body 를 잡는다. 그러면 이 분기가 클릭을
+       통째로 삼켜 아래 모든 처리가 죽고, 누를 때마다 화면을 다시 그린다(실제로 그랬다). */
+    var pgb = e.target.closest('[data-pgto]');
     if (pgb && !pgb.disabled) {
-      var parts = String(pgb.dataset.page).split(':');
+      var parts = String(pgb.dataset.pgto).split(':');
       pageNo[parts[0]] = Math.max(1, parseInt(parts[1], 10) || 1);
       render();
       var view = document.getElementById('adminView');
