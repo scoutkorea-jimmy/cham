@@ -579,11 +579,13 @@
       }
       pImgState.extra.forEach(function (f, i) { jobs.push(S.Media.put('product', rec.id, f, { role: 'extra', ord: i + 1 })); });
       pImgState.detail.forEach(function (f, i) { jobs.push(S.Media.put('product', rec.id, f, { role: 'detail', ord: i })); });
-      Promise.all(jobs).then(function () {
+      Promise.all(jobs).then(function (results) {
         prodEditing = null;
         pImgState = { main: null, extra: [], detail: [], removed: [] };
         render();
-        toast('상품이 저장되었습니다.');
+        // 이미지 올리기는 실패해도 null 로 끝난다 — 저장됐다고만 알리면 사진이 빠진 걸 나중에 안다
+        var fail = results.filter(function (r) { return r === null || r === false; }).length;
+        toast('상품이 저장되었습니다.' + (fail ? ' (사진 ' + fail + '건은 처리하지 못했습니다 — 다시 확인해 주세요)' : ''));
       });
     });
   }

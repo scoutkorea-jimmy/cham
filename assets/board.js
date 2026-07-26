@@ -13,7 +13,8 @@
   var esc = S.esc, icons = S.icons, uid = S.uid;
 
   var MAX_FILES = 10;
-  var MAX_SIZE = 10 * 1024 * 1024; // 10MB
+  var MAX_SIZE = 8 * 1024 * 1024;  // 8MB — 서버(/api/admin/images)와 같은 값이어야 한다.
+                                   // 더 크게 잡으면 여기서 통과시킨 파일을 서버가 거절한다.
   var GAL_PER_PAGE = 10;
 
   function bytes(n) {
@@ -180,7 +181,7 @@
       var files = Array.prototype.slice.call(this.files || []);
       files.forEach(function (f) {
         if (atts.length >= MAX_FILES) { alert('첨부파일은 최대 ' + MAX_FILES + '개까지 등록할 수 있습니다.'); return; }
-        if (f.size > MAX_SIZE) { alert('"' + f.name + '" — 파일당 최대 10MB까지 첨부할 수 있습니다.'); return; }
+        if (f.size > MAX_SIZE) { alert('"' + f.name + '" — 파일당 최대 8MB까지 첨부할 수 있습니다.'); return; }
         atts.push({ name: f.name, size: f.size, type: f.type || 'application/octet-stream', file: f });
       });
       this.value = '';
@@ -231,11 +232,13 @@
         atts.forEach(function (a, i) {
           if (a.file) jobs.push(S.Media.put('post', rec.id, a.file, { ord: i, name: a.name, size: a.size }));
         });
-        Promise.all(jobs).then(function () {
+        Promise.all(jobs).then(function (results) {
           editor.destroy();
           S.closeModal();
           renderBoards();
-          S.toast(isEdit ? '게시글이 수정되었습니다.' : '게시글이 등록되었습니다.');
+          var fail = results.filter(function (r) { return r === null; }).length;
+          S.toast((isEdit ? '게시글이 수정되었습니다.' : '게시글이 등록되었습니다.') +
+                  (fail ? ' (첨부 ' + fail + '개는 올리지 못했습니다)' : ''));
         });
       });
     }).catch(function () {
@@ -306,13 +309,17 @@
           var files = Array.prototype.slice.call(inp.files || []);
           var jobs = [];
           files.forEach(function (f) {
-            if (f.size > MAX_SIZE) { alert('"' + f.name + '" — 사진은 10MB 이하만 올릴 수 있습니다.'); return; }
+            if (f.size > MAX_SIZE) { alert('"' + f.name + '" — 사진은 8MB 이하만 올릴 수 있습니다.'); return; }
             jobs.push(S.Media.put('gallery', null, f, { name: f.name.replace(/\.[^.]+$/, '') }));
           });
-          Promise.all(jobs).then(function () {
+          if (!jobs.length) return;
+          Promise.all(jobs).then(function (results) {
             galPage = 1;
             renderGallery();
-            if (jobs.length) S.toast(jobs.length + '장의 사진이 등록되었습니다.');
+            // 올리기가 실패해도 null 로 조용히 끝난다 — 세어서 사실대로 알린다
+            var ok = results.filter(Boolean).length, fail = results.length - ok;
+            if (fail) S.toast(ok ? (ok + '장 등록 · ' + fail + '장 실패했습니다.') : '사진을 올리지 못했습니다. 다시 시도해 주세요.');
+            else S.toast(ok + '장의 사진이 등록되었습니다.');
           });
         };
         inp.click();
