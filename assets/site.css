@@ -592,6 +592,13 @@ p  { margin: 0 0 var(--s4); text-wrap: pretty; }
 .table tbody tr { transition: background var(--dur-fast) var(--ease); }
 .table tbody tr:hover { background: var(--surface-2); }
 .table-wrap { overflow-x: auto; border: 1px solid var(--line-soft); border-radius: var(--r-md); background: var(--surface); }
+/* 좁은 화면에서 열이 5개쯤 되면 조금씩 넘쳐 마지막 열이 화면 밖으로 밀린다.
+   가로 스크롤로 두면 정작 중요한 마지막 열(상태·가격)을 못 본다 — 여백을 줄여 담는다. */
+@media (max-width: 520px){
+  .table { font-size: 13px; }
+  .table th, .table td { padding: 10px 8px; }
+  .table .tag { padding: 4px 8px; font-size: 11.5px; }
+}
 
 /* ============================================================
    Footer

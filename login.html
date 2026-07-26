@@ -209,6 +209,12 @@
     .then(function (d) { if (d && d.authenticated && !(d.user && d.user.mustChangePassword)) location.replace(safeNext()); })
     .catch(function () {});
 
+  // 2단계(비밀번호 변경)의 아이콘은 감춰져 있어도 미리 그려 둔다 —
+  // 그리지 않으면 단계가 바뀌는 순간 빈 자리가 잠깐 보인다.
+  function drawIcons(){ if (window.lucide) window.lucide.createIcons(); }
+  if (document.readyState === 'complete') drawIcons();
+  else window.addEventListener('load', drawIcons);
+
   setTimeout(function () { idEl.focus(); }, 80);
 })();
 </script>
