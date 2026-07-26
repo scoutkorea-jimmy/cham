@@ -3199,7 +3199,11 @@
      "1. …" 로 시작하는 줄은 단계 목록으로, **강조** 는 굵게. 모델 출력을 HTML 로
      그냥 넣지 않는다 — 설명서와 달리 우리가 쓴 글이 아니다. */
   function cbFormat(text) {
-    var lines = String(text).replace(/\r/g, '').split('\n');
+    /* 모델에 따라 단계를 줄바꿈 없이 "…합니다. 2. 다음은…" 처럼 한 줄에 붙여 준다.
+       숫자 뒤에 마침표와 공백, 그 뒤에 글자가 오는 자리에서만 끊는다 — "3.5kg" 은 건드리지 않는다. */
+    var lines = String(text).replace(/\r/g, '')
+      .replace(/([^\n])\s+([1-9][.)]\s(?=[가-힣A-Za-z]))/g, '$1\n$2')
+      .split('\n');
     var out = [], list = null;
     var inline = function (s) {
       return esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')

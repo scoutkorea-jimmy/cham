@@ -13,19 +13,25 @@
 import { json, badRequest, methodNotAllowed, readJson } from '../../_shared/http.js';
 
 /* 순서가 곧 응답 속도다 — 앞에서부터 시도하고 되는 것에서 멈춘다.
-   운영에서 같은 질문으로 잰 값(2026-07-26):
+   같은 질문·같은 근거로 잰 값과 답의 정확도(2026-07-26):
 
-     @cf/meta/llama-3.2-3b-instruct    0.7초   ← 기본
-     @cf/meta/llama-3.1-8b-instruct   16.7초
-     @cf/mistral/mistral-7b-...       25.7초
-     @cf/qwen/qwen1.5-*, @cf/meta/llama-3-8b   폐기됨(5028)
+     mistral-small-3.1-24b   2.5~3.2초  화면·버튼 이름을 그대로 짚어 단계로 답한다  ← 기본
+     llama-3.3-70b-fp8-fast  1.2~3.1초  정확하지만 단계를 줄여 말한다
+     qwen3-30b-a3b-fp8       3.8초      정확. **강조** 표기를 섞는다
+     llama-3.2-3b            0.9초      가장 빠르지만 틀린 말을 한다 — 마지막 보험
 
-   전에는 폐기된 모델이 앞에 있어 매 질문마다 헛걸음을 한 뒤 16초짜리에 닿았다.
-   폐기 모델은 뺐고, 뒤의 둘은 3b 가 막혔을 때를 위한 보험으로만 남긴다. */
+   전에 쓰던 것들은 뺐다:
+     qwen1.5-*, llama-3-8b   폐기됨(5028) — 매 질문마다 여기서 헛걸음했다
+     llama-3.1-8b(비 fp8)    16.7초 · mistral-7b-v0.1  25.7초
+
+   느렸던 진짜 이유가 이 목록이다. 폐기된 둘을 먼저 부르고 나서 16초짜리에 닿고 있었다.
+   3b 를 앞에 두면 1초에 답하지만 "입금 확인이 안 된 주문은 배송준비중이 됩니다" 같은
+   말을 지어낸다 — 처음 쓰는 사람이 그대로 따라 하는 화면이라 정확도를 먼저 본다. */
 const MODELS = [
+  '@cf/mistralai/mistral-small-3.1-24b-instruct',
+  '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
+  '@cf/qwen/qwen3-30b-a3b-fp8',
   '@cf/meta/llama-3.2-3b-instruct',
-  '@cf/meta/llama-3.1-8b-instruct',
-  '@cf/mistral/mistral-7b-instruct-v0.1',
 ];
 const MAX_Q = 300;
 const MAX_CTX = 6000;
