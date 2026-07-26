@@ -1,0 +1,12 @@
+# 로컬 개발용 비밀값. 이 파일을 .dev.vars 로 복사해 채운다.
+# .dev.vars 는 절대 커밋하지 않는다(.gitignore 에 등록되어 있음).
+# 운영 값은 Cloudflare Pages 대시보드 > Settings > Environment variables 에 넣는다.
+
+# 세션 토큰 서명 키. 아무나 추측할 수 없는 긴 무작위 문자열.
+#   생성 예:  openssl rand -base64 48
+ADMIN_SECRET="여기에-길고-무작위인-문자열"
+
+# 최초 관리자 계정. 이 값으로 처음 로그인하면 admin_users 에 owner 계정이 만들어지고,
+# 곧바로 비밀번호 변경을 요구한다. 계정이 만들어진 뒤에는 재해 복구용으로만 남는다.
+ADMIN_BOOTSTRAP_USER="owner"
+ADMIN_BOOTSTRAP_PASSWORD="처음-한-번-쓸-강한-비밀번호"

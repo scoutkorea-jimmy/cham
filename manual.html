@@ -825,18 +825,28 @@
 <script defer src="assets/site.js"></script>
 <script defer src="assets/jump.js"></script>
 <script>
-  /* 관리자 확인 후에만 본문을 연다. site.js 의 requireAdmin 을 그대로 쓰므로,
-     나중에 인증 방식이 바뀌면 이 페이지도 함께 바뀐다. */
+  /* 관리자 확인 후에만 본문을 연다.
+     이전 기간(Cloudflare Pages ↔ GitHub Pages 병행) 동안 두 경로를 모두 지원한다.
+       · 서버 있음 — /api/admin/session 으로 확인. 미들웨어가 이미 막고 있으므로 바로 열린다.
+       · 서버 없음 — 기존 site.js requireAdmin 게이트.
+     3단계(배포 전환)에서 GitHub Pages 를 내리면 아래 폴백을 지운다.
+     → docs/migration-cloudflare.md */
   (function () {
     'use strict';
     function unlock() {
       document.documentElement.classList.add('man-unlocked');
       if (window.lucide) window.lucide.createIcons();
     }
-    function ask() {
+    function askClient() {
       if (window.Site && window.Site.requireAdmin) { window.Site.requireAdmin(unlock); return; }
       var g = document.querySelector('.man-gate-card p');
       if (g) g.textContent = '인증 기능을 불러오지 못했습니다. 페이지를 새로고침해 주세요.';
+    }
+    function ask() {
+      fetch('/api/admin/session', { credentials: 'same-origin' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) { if (d && d.authenticated) unlock(); else askClient(); })
+        .catch(askClient);   // 정적 호스팅 — API 가 없다
     }
     document.addEventListener('click', function (e) {
       if (e.target.closest('#manAuth')) { ask(); return; }

@@ -16,7 +16,16 @@ vinegar.html        식초(서련 瑞蓮)      nuruk.html      누룩이야기
 instructor.html     체험지도사 과정      products.html   제품 목록
 product.html        상품 상세(?id=)      news.html       소식마당
 contact.html        문의                admin.html      관리자 콘솔
-manual.html         운영 매뉴얼 — 관리자 전용(requireAdmin 게이트 · noindex · 공개 링크 없음)
+manual.html         운영 매뉴얼 — 관리자 전용(noindex · 공개 링크 없음)
+login.html          관리자 로그인 — 서버 세션(functions/api/admin/login)
+
+functions/          Cloudflare Pages Functions — 서버 인증(1단계). 정적 호스팅에서는 동작하지 않는다
+  _shared/auth.js     세션 토큰(HMAC) · PBKDF2 비밀번호 · 쿠키
+  _middleware.js      admin.html · manual.html 서버 차단 → login.html
+  api/admin/…         login · logout · session · password · users
+db/0001_auth.sql    D1 스키마(admin_users · admin_login_attempts)
+wrangler.toml       Pages 설정 · D1(DB) · R2(MEDIA) 바인딩
+docs/migration-cloudflare.md   서버 이전 계획 — 단계·스키마·전환 절차
 terms.html / privacy.html                robots.txt / sitemap.xml / llms.txt
 
 assets/

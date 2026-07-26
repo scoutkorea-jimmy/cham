@@ -37,3 +37,7 @@ venv/
 
 # 고객사 원본 자료 (pptx·hwp·pdf 수백 MB) — 사이트에 쓸 파일만 assets/ 로 옮겨 커밋한다
 Basic_Infomation/
+
+# Cloudflare 로컬 개발 비밀값·상태
+.dev.vars
+.wrangler/

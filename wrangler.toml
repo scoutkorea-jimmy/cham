@@ -1,0 +1,25 @@
+# cham · Cloudflare Pages 설정
+# 로컬 개발:  npx wrangler pages dev   → http://localhost:8788
+# 운영 바인딩(D1 · R2 · 시크릿)은 Cloudflare Pages 대시보드에서도 설정해야 한다.
+
+name = "cham"
+compatibility_date = "2026-07-26"
+
+# [1단계] 배포 대상 = 저장소 루트. HTML 이 전부 루트에 있고, 아직 GitHub Pages 와
+# 병행하는 중이라 파일을 옮기지 않는다. 3단계(배포 전환)에서 public/ 으로 분리하면서
+# rules/ · docs/ · CLAUDE.md 가 배포에 섞이는 것도 함께 정리한다.
+pages_build_output_dir = "."
+
+# ── D1 (주문 · 신청 · 문의 · 상품 · 계정) ──────────────────────
+# 최초 1회:  npx wrangler d1 create cham-db
+# 출력된 database_id 를 아래에 넣는다.
+[[d1_databases]]
+binding = "DB"
+database_name = "cham-db"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+# ── R2 (상품 · 페이지 · 게시글 첨부 이미지) ────────────────────
+# 최초 1회:  npx wrangler r2 bucket create cham-media
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "cham-media"

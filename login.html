@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>관리자 로그인 · 한국참전통발효식품협동조합</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="preconnect" href="https://unpkg.com" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="assets/site.css">
+<style id="page-style">
+  /* 로그인 한 화면만 있는 페이지 — 내비·푸터 없이 카드 하나로 */
+  body { min-height: 100vh; display: grid; place-items: center;
+    background: var(--main-deeper); background-image: var(--pat-light); background-size: var(--pat-size); }
+  .lg-card { background: var(--surface); border-radius: var(--r-xl); box-shadow: var(--sh-lg);
+    padding: 40px 36px; width: min(420px, 92vw); }
+  .lg-head { text-align: center; }
+  .lg-head img { width: 54px; height: 54px; mix-blend-mode: multiply; margin-inline: auto; display: block; }
+  .lg-head h1 { font-size: 23px; margin-top: var(--s4); }
+  .lg-head p { color: var(--ink-mute); font-size: 14.5px; line-height: 1.7; margin-top: var(--s2); }
+
+  .lg-form { margin-top: var(--s7); display: grid; gap: var(--s4); }
+  .lg-form label { display: block; font-size: 15px; font-weight: 700; margin-bottom: 7px; }
+  /* 시니어 친화 — 입력칸 높이 52px, 글자 17px */
+  .lg-form input { width: 100%; min-height: 52px; padding: 13px 16px; font: inherit; font-size: 17px;
+    border: 1.5px solid var(--line); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); }
+  .lg-form input:focus { outline: 3px solid var(--main-tint); outline-offset: 1px; border-color: var(--main); }
+  .lg-form .btn { width: 100%; justify-content: center; min-height: 52px; }
+
+  .lg-msg { font-size: 14.5px; line-height: 1.65; min-height: 20px; }
+  .lg-msg.err { color: var(--danger); font-weight: 600; }
+  .lg-msg.ok { color: var(--olive-deep); font-weight: 600; }
+  .lg-hint { font-size: 13px; color: var(--ink-faint); line-height: 1.7; margin-top: var(--s5);
+    padding-top: var(--s4); border-top: 1px solid var(--line-soft); text-align: center; }
+  .lg-hint a { color: var(--ink-mute); text-decoration: underline; }
+
+  /* 비밀번호 변경 강제 단계 */
+  .lg-step { display: none; }
+  .lg-step.on { display: block; }
+  .lg-note { display: grid; grid-template-columns: 22px 1fr; gap: var(--s3); align-items: start;
+    background: var(--point-tint); border: 1px solid var(--point); border-radius: var(--r-md);
+    padding: 14px 16px; font-size: 14.5px; line-height: 1.7; color: var(--ink-soft); margin-top: var(--s4); }
+  .lg-note i[data-lucide] { width: 19px; height: 19px; color: var(--point-ink); margin-top: 1px; }
+  .lg-rule { font-size: 13px; color: var(--ink-mute); margin-top: 6px; line-height: 1.6; }
+</style>
+</head>
+<body data-page="login">
+
+<main class="lg-card">
+  <!-- 1단계 — 로그인 -->
+  <section class="lg-step on" id="stepLogin">
+    <div class="lg-head">
+      <img src="assets/logo.png" alt="한국참전통발효식품협동조합 로고">
+      <h1>관리자 로그인</h1>
+      <p>한국참전통발효식품협동조합 홈페이지 관리</p>
+    </div>
+    <form class="lg-form" id="loginForm" autocomplete="on">
+      <div>
+        <label for="lgId">아이디</label>
+        <input id="lgId" name="username" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" required>
+      </div>
+      <div>
+        <label for="lgPw">비밀번호</label>
+        <input id="lgPw" name="password" type="password" autocomplete="current-password" required>
+      </div>
+      <div class="lg-msg" id="lgMsg" role="status" aria-live="polite"></div>
+      <button class="btn btn-point btn-lg" type="submit" id="lgBtn">로그인</button>
+    </form>
+    <p class="lg-hint">관리자만 이용하는 화면입니다.<br><a href="index.html">홈페이지로 돌아가기</a></p>
+  </section>
+
+  <!-- 2단계 — 첫 로그인·초기화 직후 비밀번호 변경 -->
+  <section class="lg-step" id="stepChange">
+    <div class="lg-head">
+      <img src="assets/logo.png" alt="한국참전통발효식품협동조합 로고">
+      <h1>비밀번호를 바꿔 주세요</h1>
+      <p id="cgWho">처음 로그인하셨습니다.</p>
+    </div>
+    <div class="lg-note">
+      <i data-lucide="shield-alert"></i>
+      <span>받으신 비밀번호는 <b>다른 사람도 알고 있습니다.</b> 본인만 아는 것으로 바꿔야 계속 이용할 수 있습니다.</span>
+    </div>
+    <form class="lg-form" id="changeForm" autocomplete="off">
+      <div>
+        <label for="cgNew">새 비밀번호</label>
+        <input id="cgNew" name="newPassword" type="password" autocomplete="new-password" required>
+        <p class="lg-rule">10자 이상 · 영문·숫자·기호 중 두 가지 이상을 섞어 주세요.</p>
+      </div>
+      <div>
+        <label for="cgNew2">새 비밀번호 확인</label>
+        <input id="cgNew2" type="password" autocomplete="new-password" required>
+      </div>
+      <div class="lg-msg" id="cgMsg" role="status" aria-live="polite"></div>
+      <button class="btn btn-point btn-lg" type="submit" id="cgBtn">비밀번호 바꾸고 시작하기</button>
+    </form>
+  </section>
+</main>
+
+<script defer src="https://unpkg.com/lucide@1.17.0"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* 돌아갈 곳 — ?next 는 사용자가 고칠 수 있으니 같은 사이트 안의 경로만 허용한다.
+     '//evil.com' 같은 값을 그대로 쓰면 로그인 직후 남의 사이트로 보내는 통로가 된다. */
+  function safeNext() {
+    var raw = '';
+    try { raw = new URLSearchParams(location.search).get('next') || ''; } catch (e) {}
+    if (!raw || raw.charAt(0) !== '/' || raw.charAt(1) === '/') return '/admin.html';
+    return raw;
+  }
+
+  var idEl = document.getElementById('lgId');
+  var pwEl = document.getElementById('lgPw');
+  var msg = document.getElementById('lgMsg');
+  var btn = document.getElementById('lgBtn');
+  var lockTimer = null;
+  var pendingPw = '';   // 비밀번호 변경 단계에서 '현재 비밀번호'로 쓴다
+
+  function setMsg(el, text, kind) {
+    el.textContent = text || '';
+    el.className = 'lg-msg' + (kind ? ' ' + kind : '');
+  }
+  function icons(){ if (window.lucide) window.lucide.createIcons(); }
+
+  function post(url, body) {
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      credentials: 'same-origin',
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (d) { return { status: r.status, data: d }; });
+    });
+  }
+
+  /* 제한(429) 안내 — 남은 시간을 1초마다 줄여 보여준다 */
+  function startLock(seconds) {
+    var left = Math.max(1, Number(seconds) || 60);
+    btn.disabled = true;
+    (function tick() {
+      if (left <= 0) { btn.disabled = false; setMsg(msg, ''); lockTimer = null; return; }
+      setMsg(msg, '로그인을 여러 번 실패해 잠시 제한되었습니다. ' + left + '초 후 다시 시도해 주세요.', 'err');
+      left -= 1;
+      lockTimer = setTimeout(tick, 1000);
+    })();
+  }
+
+  function toChangeStep(user) {
+    document.getElementById('stepLogin').classList.remove('on');
+    document.getElementById('stepChange').classList.add('on');
+    var who = document.getElementById('cgWho');
+    who.textContent = (user && user.displayName ? user.displayName + '님, ' : '') + '처음 로그인하셨습니다.';
+    icons();
+    setTimeout(function () { document.getElementById('cgNew').focus(); }, 60);
+  }
+
+  document.getElementById('loginForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (lockTimer) return;
+    btn.disabled = true;
+    setMsg(msg, '확인 중…');
+    var pw = pwEl.value;
+    post('/api/admin/login', { username: idEl.value, password: pw }).then(function (res) {
+      if (res.status === 200 && res.data.user) {
+        pendingPw = pw;
+        if (res.data.user.mustChangePassword) { toChangeStep(res.data.user); return; }
+        location.replace(safeNext());
+        return;
+      }
+      btn.disabled = false;
+      pwEl.value = '';
+      if (res.status === 429) { startLock(res.data.retryAfter); return; }
+      setMsg(msg, res.data.error || '로그인할 수 없습니다.', 'err');
+      pwEl.focus();
+    }).catch(function () {
+      btn.disabled = false;
+      setMsg(msg, '서버에 연결할 수 없습니다. 인터넷 연결을 확인해 주세요.', 'err');
+    });
+  });
+
+  var cgBtn = document.getElementById('cgBtn');
+  var cgMsg = document.getElementById('cgMsg');
+  document.getElementById('changeForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var a = document.getElementById('cgNew').value;
+    var b = document.getElementById('cgNew2').value;
+    if (a !== b) { setMsg(cgMsg, '두 번 입력한 비밀번호가 서로 다릅니다.', 'err'); return; }
+    cgBtn.disabled = true;
+    setMsg(cgMsg, '바꾸는 중…');
+    post('/api/admin/password', { currentPassword: pendingPw, newPassword: a }).then(function (res) {
+      if (res.status === 200 && res.data.ok) {
+        setMsg(cgMsg, '비밀번호를 바꿨습니다. 이동합니다…', 'ok');
+        location.replace(safeNext());
+        return;
+      }
+      cgBtn.disabled = false;
+      setMsg(cgMsg, res.data.error || '비밀번호를 바꾸지 못했습니다.', 'err');
+    }).catch(function () {
+      cgBtn.disabled = false;
+      setMsg(cgMsg, '서버에 연결할 수 없습니다.', 'err');
+    });
+  });
+
+  // 이미 로그인돼 있으면 로그인 화면을 보여줄 이유가 없다
+  fetch('/api/admin/session', { credentials: 'same-origin' })
+    .then(function (r) { return r.json(); })
+    .then(function (d) { if (d && d.authenticated && !(d.user && d.user.mustChangePassword)) location.replace(safeNext()); })
+    .catch(function () {});
+
+  setTimeout(function () { idEl.focus(); }, 80);
+})();
+</script>
+</body>
+</html>
