@@ -413,8 +413,22 @@
       return '기타 사이트';
     } catch (e) { return '기타 사이트'; }
   }
+  /* 사람이 아닌 접속 — 방문자 수에 넣지 않는다.
+     검증 스크립트(Playwright·Puppeteer)는 navigator.webdriver 가 켜져 있고,
+     검색엔진 크롤러는 UA 로 자기를 밝힌다. 이것들을 세면 운영자가 보는 숫자가
+     실제 손님과 무관해진다 — 실제로 하루 방문자가 검증 때문에 399까지 올라갔다. */
+  var BOT_UA = /bot|crawl|spider|slurp|headless|playwright|puppeteer|lighthouse|pingdom|monitor|preview|facebookexternalhit|kakaotalk-scrap|yeti|daumoa/i;
+  function isAutomated() {
+    try {
+      if (navigator.webdriver) return true;
+      if (BOT_UA.test(navigator.userAgent || '')) return true;
+    } catch (e) {}
+    return false;
+  }
+
   function trackVisit() {
     if (currentPage() === 'admin') return;
+    if (isAutomated()) return;
     try {
       var d = todayStr();
       var isNew = sessionStorage.getItem('kach_uv_' + d) !== '1';
@@ -852,6 +866,10 @@
     eduCert: '교육부 교육기부 진로체험 인증기관',
     productTest: '발효식초 총산 4.7%(기준 4.00~20.00) 적합 — 강원특별자치도보건환경연구원 (2025.04.30)',
     lat: 37.50331, lng: 126.88262,         // 약도 핀 좌표
+    // 검색 노출 — 서버가 <head> 에 넣는다(functions/_shared/seo.js). 비워 두면 넣지 않는다.
+    seoGoogle: '',                         // 구글 서치콘솔 소유확인 코드
+    seoNaver: '',                          // 네이버 서치어드바이저 소유확인 코드
+    seoImage: 'assets/logo.png',           // 링크 공유 시 뜨는 기본 그림
   };
   function getSettings() {
     var s = getJSON(SETTINGS_KEY, {}) || {};

@@ -1494,6 +1494,66 @@
      사이트 설정 — 운영 정보(계좌·연락처·사업자정보·약도) 셀프 편집
      값은 kach_settings 에 저장되고, 전 페이지 푸터·결제 안내·모바일 메뉴·약도에 반영된다.
      ============================================================ */
+  /* ---------- 검색 노출 ----------
+     구글·네이버에 사이트를 등록하고, 링크를 붙였을 때 뜨는 그림을 정한다.
+     **넣는 일은 서버가 한다**(functions/_shared/seo.js) — 크롤러는 JS 를 돌리지 않는
+     경우가 많아 화면에서 넣으면 영영 못 본다. 여기서는 값만 받는다. */
+  function viewSeo() {
+    var st = (S.getSettings ? S.getSettings() : {});
+    var origin = location.origin;
+    var img = String(st.seoImage || 'assets/logo.png');
+    var imgAbs = /^https?:\/\//i.test(img) ? img : origin + '/' + img.replace(/^\.?\//, '');
+
+    function code(name, label, where, ph) {
+      return '<div class="field full"><label>' + label +
+        ' <span class="pc-sub" style="font-weight:400">— ' + where + '</span></label>' +
+        '<input name="' + name + '" value="' + esc(st[name] != null ? st[name] : '') + '" placeholder="' + ph + '">' +
+        '<p class="pc-sub">메타 태그를 통째로 붙여넣으셔도 됩니다 — 코드만 알아서 골라 씁니다.</p></div>';
+    }
+
+    return '<div class="modal-note"><i data-lucide="search"></i><span>여기 넣은 값은 <b>서버가 모든 공개 페이지의 &lt;head&gt; 에 직접 넣습니다.</b> ' +
+      '검색엔진과 카카오톡·페이스북의 미리보기 수집기는 자바스크립트를 실행하지 않는 경우가 많아, 화면에서 넣으면 보지 못합니다.</span></div>' +
+
+      '<form class="admin-form set-form" id="seoForm">' +
+        '<div class="set-sec full"><i data-lucide="badge-check"></i><b>사이트 소유 확인</b> ' +
+          '<span class="pc-sub">— 검색엔진에 "이 사이트는 내 것"이라고 알리는 코드입니다. 한 번만 하면 됩니다.</span></div>' +
+        code('seoGoogle', '구글 서치콘솔 인증 코드',
+             'search.google.com/search-console → 속성 추가 → HTML 태그', 'abc123def456...') +
+        code('seoNaver', '네이버 서치어드바이저 인증 코드',
+             'searchadvisor.naver.com → 사이트 등록 → HTML 태그', 'abc123def456...') +
+
+        '<div class="set-sec full"><i data-lucide="image"></i><b>링크 공유 그림</b> ' +
+          '<span class="pc-sub">— 카카오톡·페이스북·문자로 주소를 보냈을 때 함께 뜨는 그림입니다.</span></div>' +
+        '<div class="field"><label>그림 주소 <span class="pc-sub" style="font-weight:400">— assets/ 안의 파일 또는 전체 주소</span></label>' +
+          '<input name="seoImage" value="' + esc(img) + '" placeholder="assets/logo.png"></div>' +
+        '<div class="field"><label>미리보기</label>' +
+          '<div class="seo-prev"><img src="' + esc(imgAbs) + '" alt="공유 그림 미리보기" ' +
+            'onerror="this.closest(\'.seo-prev\').classList.add(\'bad\')">' +
+            '<span class="seo-bad">그림을 불러오지 못했습니다 — 주소를 확인해 주세요.</span></div></div>' +
+        '<div class="field full"><p class="pc-sub">실제로 쓰이는 주소: <code>' + esc(imgAbs) + '</code><br>' +
+          '가로로 긴 그림(1200×630 정도)이 가장 잘 나옵니다. 로고처럼 정사각형이면 양옆이 잘릴 수 있습니다.</p></div>' +
+
+        '<div class="set-sec full"><i data-lucide="save"></i><b>저장</b></div>' +
+        '<div class="field full"><button class="btn btn-point" type="submit"><i data-lucide="check"></i>저장</button></div>' +
+      '</form>' +
+
+      '<div class="panel"><div class="panel-head"><h3>검색엔진에 알리기</h3>' +
+        '<span class="ph-sub">등록할 때 이 주소를 넣으세요</span></div>' +
+        '<table class="admin-table"><tbody>' +
+        '<tr><td><b>사이트맵</b><div class="pc-sub">페이지 목록. 검색엔진에 제출하면 더 빨리 찾아갑니다</div></td>' +
+          '<td><code>' + esc(origin) + '/sitemap.xml</code></td>' +
+          '<td><a class="btn btn-ghost" href="/sitemap.xml" target="_blank" rel="noopener"><i data-lucide="external-link"></i>열기</a></td></tr>' +
+        '<tr><td><b>robots.txt</b><div class="pc-sub">수집 규칙. 관리자 화면은 막혀 있습니다</div></td>' +
+          '<td><code>' + esc(origin) + '/robots.txt</code></td>' +
+          '<td><a class="btn btn-ghost" href="/robots.txt" target="_blank" rel="noopener"><i data-lucide="external-link"></i>열기</a></td></tr>' +
+        '</tbody></table></div>' +
+
+      '<div class="mnote"><i data-lucide="info"></i><div><b>제대로 들어갔는지 확인하는 법</b>' +
+        '<p class="note">저장한 뒤 공개 페이지에서 마우스 오른쪽 → <b>페이지 소스 보기</b>를 누르고 ' +
+        '<code>google-site-verification</code> 또는 <code>og:image</code> 를 찾아보세요. ' +
+        '보이면 검색엔진도 같은 것을 봅니다.</p></div></div>';
+  }
+
   function viewSettings() {
     var st = (S.getSettings ? S.getSettings() : {});
     function field(name, label, hint, ph) {
@@ -2362,6 +2422,8 @@
       { k: 'address',     label: '주소',          crit: false },
       { k: 'bizNo',       label: '사업자등록번호', crit: false },
       { k: 'mailOrderNo', label: '통신판매업 신고', crit: false },
+      { k: 'seoGoogle',   label: '구글 서치콘솔',  crit: false },
+      { k: 'seoNaver',    label: '네이버 서치어드바이저', crit: false },
     ];
     var todo = checks.filter(function (c) { return c.crit && isDefault(c.k); });
     var rows = checks.map(function (c) {
@@ -2503,6 +2565,7 @@
     { id: 'kms', label: 'KMS', icon: 'book-open', view: viewKMS, title: 'KMS — 표준 KMS · 디자인 룰북' },
     { id: 'accounts', label: '계정 관리', icon: 'users', view: viewAccounts, title: '관리자 계정 관리', serverOnly: true, ownerOnly: true },
     { id: 'settings', label: '설정', icon: 'settings', view: viewSettings, title: '사이트 설정 — 운영 정보' },
+    { id: 'seo', label: '검색 노출', icon: 'search', view: viewSeo, title: '검색 노출 관리 — 구글 · 네이버 · 링크 공유' },
     { id: 'backup', label: '데이터 백업', icon: 'database', view: viewBackup, title: '데이터 백업 · 복원' },
     { id: 'manual', label: '사용 설명서', icon: 'book-open-check', view: viewManual, title: '사용 설명서' },
     // 그룹 요약 — 사이드바 그룹 이름을 눌렀을 때 나오는 화면
@@ -2522,7 +2585,7 @@
     { group: 'g_sales',    items: ['products', 'orders', 'sales'] },
     { group: 'g_customer', items: ['cohorts', 'apps', 'inq'] },
     { group: 'g_content',  items: ['posts', 'images', 'popups', 'partners'] },
-    { group: 'g_site',     items: ['settings', 'accounts'] },
+    { group: 'g_site',     items: ['settings', 'seo', 'accounts'] },
     { group: 'g_system',   items: ['backup', 'consents', 'kms'], collapsed: true },
   ];
   var navOpen = null;   // 열려 있는 그룹 id. null = 아직 정하지 않음(현재 화면 따라 자동)
@@ -2533,7 +2596,8 @@
   function isEditingForm() {
     return prodEditing !== null || kmsMode === 'edit' || consentMode === 'edit'
       || !!document.getElementById('partnerForm') || !!document.getElementById('popupForm')
-      || !!document.getElementById('settingsForm');
+      || !!document.getElementById('settingsForm')
+      || !!document.getElementById('seoForm');
   }
   // 이동/취소 전 호출 — 변경이 있으면 확인, 사용자가 취소하면 false 반환(이동 중단)
   function confirmLeave() {
@@ -2745,6 +2809,21 @@
         toast('설정을 저장했습니다. 공개 페이지 새로고침 시 반영됩니다.');
       });
       initSettingsMap();
+    }
+
+    var seoF = document.getElementById('seoForm');
+    if (seoF) {
+      seoF.addEventListener('submit', function (e) {
+        e.preventDefault();
+        /* setSettings 는 **통째로 교체**한다. 이 화면은 설정의 일부만 다루므로
+           기존 값 위에 얹지 않으면 계좌·연락처·사업자정보가 통째로 날아간다. */
+        var cur = (S.getSettings ? S.getSettings() : {});
+        var obj = {}; for (var k in cur) obj[k] = cur[k];
+        new FormData(seoF).forEach(function (v, k) { obj[k] = String(v).trim(); });
+        if (S.setSettings && !S.setSettings(obj)) { toast('저장하지 못했습니다.'); return; }
+        dirty = false; render();
+        toast('검색 노출 설정을 저장했습니다. 공개 페이지를 새로고침하면 반영됩니다.');
+      });
     }
 
     bindProductForm();

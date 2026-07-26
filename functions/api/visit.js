@@ -8,9 +8,15 @@ import { json, methodNotAllowed, readJson } from '../_shared/http.js';
 
 const SOURCES = new Set(['직접 방문', '검색엔진', '소셜·블로그', '기타 사이트']);
 
+/* 사람이 아닌 접속은 세지 않는다. 화면(site.js)에서도 거르지만 여기서 한 번 더 본다 —
+   집계 주소는 공개라 스크립트가 바로 두드릴 수 있고, 그러면 화면 쪽 판정이 소용없다. */
+const BOT_UA = /bot|crawl|spider|slurp|headless|playwright|puppeteer|lighthouse|pingdom|monitor|preview|facebookexternalhit|kakaotalk-scrap|yeti|daumoa/i;
+
 export async function onRequestPost({ request, env }) {
   if (!env || !env.DB) return json({ ok: false }, 200);
+  if (BOT_UA.test(request.headers.get('user-agent') || '')) return json({ ok: true, counted: false });
   const body = await readJson(request) || {};
+  if (body.automated) return json({ ok: true, counted: false });
   const day = new Date().toISOString().slice(0, 10);
   const isNew = !!body.newVisitor;
 

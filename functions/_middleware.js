@@ -1,13 +1,17 @@
 /**
- * cham · 관리자 화면 서버 차단
+ * cham · 관리자 화면 서버 차단 + 검색 노출 태그 주입
  *
  * 관리자 화면은 서버가 세션 없는 요청을 돌려보낸다.
  * 사용 설명서는 관리자 콘솔 안의 한 메뉴이므로 이 차단에 함께 걸린다.
  *
  * 로그인 화면은 별도 페이지(login.html)로 두어야 순환이 생기지 않는다.
  * (admin.html 을 막아 두고 그 안에서 로그인시키면, 막힌 페이지에 들어가야 로그인할 수 있다.)
+ *
+ * 공개 HTML 은 내보내기 전에 `<head>` 를 손본다 → _shared/seo.js
  */
 import { getSession } from './_shared/auth.js';
+import { readDoc } from './_shared/store.js';
+import { rewriteHead } from './_shared/seo.js';
 
 /* 설명서 본문(assets/manual.html)도 함께 막는다.
    화면은 관리자 콘솔 안에 있지만 본문은 **정적 파일**이라, 주소를 아는 사람은
@@ -18,12 +22,31 @@ const PROTECTED = [/^\/admin(?:\.html)?$/, /^\/assets\/manual(?:\.html)?$/];
 // 사람이 보는 화면이 아닌 것은 로그인 화면으로 보내 봐야 소용없다 — 없는 것처럼 답한다
 const AS_NOT_FOUND = [/^\/assets\//];
 
+/* 검색 노출 태그를 붙일 대상.
+   관리자·로그인은 noindex 라 손댈 이유가 없고, api·자원은 HTML 이 아니다. */
+const NO_SEO = [/^\/api\//, /^\/assets\//, /^\/admin/, /^\/login/, /\.(css|js|png|jpe?g|svg|ico|txt|xml|webmanifest)$/i];
+
+async function withSeo(context, url) {
+  const res = await context.next();
+  if (NO_SEO.some((re) => re.test(url.pathname))) return res;
+  if (!context.env || !context.env.DB) return res;      // D1 없이도 페이지는 그대로 나가야 한다
+  try {
+    const st = (await readDoc(context.env, 'settings')) || {};
+    return rewriteHead(res, url, {
+      google: st.seoGoogle, naver: st.seoNaver, image: st.seoImage,
+    });
+  } catch {
+    return res;     // 설정을 못 읽는다고 페이지를 못 보게 만들지 않는다
+  }
+}
+
 export async function onRequest(context) {
   const { request, env } = context;
 
-  let path = '';
-  try { path = new URL(request.url).pathname; } catch { return context.next(); }
-  if (!PROTECTED.some((re) => re.test(path))) return context.next();
+  let url = null;
+  try { url = new URL(request.url); } catch { return context.next(); }
+  const path = url.pathname;
+  if (!PROTECTED.some((re) => re.test(path))) return withSeo(context, url);
 
   // D1/시크릿이 아직 연결되지 않은 환경에서는 막지 않는다 —
   // 설정 누락 때문에 운영자가 자기 사이트에서 잠기는 편이 더 나쁘다.
