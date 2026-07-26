@@ -748,6 +748,10 @@
                         '2026030248873', '2026022633019', '2026030411208'];
   function dropDemoData() {
     try {
+      // 브라우저에 남은 씨앗 데이터를 지우는 일이다. 서버 자료에는 씨앗이 없고,
+      // 여기서 목록을 통째로 저장하면 화면이 들고 있지 않은 1년 이전 자료가 걸린다
+      // (기간창으로 막혀 있지만 애초에 할 이유가 없는 쓰기다).
+      if (SERVER) return;
       if (localStorage.getItem('kach_demo_cleared') === '1') return;
 
       var posts = getJSON(POSTS_KEY, []);
