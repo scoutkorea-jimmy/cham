@@ -12,7 +12,14 @@
  */
 import { json, badRequest, methodNotAllowed, readJson } from '../../_shared/http.js';
 
-const MODEL = '@cf/qwen/qwen1.5-14b-chat-awq';   // 한국어 응답 품질이 더 낫다
+/* 쓸 수 있는 모델은 계정·시점에 따라 다르다. 하나가 막히면 다음 것으로 넘어간다 —
+   챗봇이 통째로 죽는 것보다 낫다. 앞쪽일수록 한국어 응답이 낫다. */
+const MODELS = [
+  '@cf/qwen/qwen1.5-14b-chat-awq',
+  '@cf/meta/llama-3.1-8b-instruct',
+  '@cf/meta/llama-3-8b-instruct',
+  '@cf/mistral/mistral-7b-instruct-v0.1',
+];
 const MAX_Q = 300;
 const MAX_CTX = 6000;
 
@@ -49,21 +56,24 @@ export async function onRequestPost({ request, env }) {
     passages.push(t);
   }
 
-  try {
-    const res = await env.AI.run(MODEL, {
-      messages: [
-        { role: 'system', content: SYSTEM },
-        { role: 'user', content: `[설명서]\n${passages.join('\n\n')}\n\n[질문]\n${question}` },
-      ],
-      max_tokens: 420,
-      temperature: 0.2,
-    });
-    const answer = String((res && (res.response || res.result || '')) || '').trim();
-    return json({ answer: answer || null });
-  } catch (err) {
-    // 한도 초과·모델 오류 — 근거 절은 화면이 이미 갖고 있으므로 그것만으로도 쓸 수 있다
-    return json({ answer: null, reason: 'model_error' });
+  const messages = [
+    { role: 'system', content: SYSTEM },
+    { role: 'user', content: `[설명서]\n${passages.join('\n\n')}\n\n[질문]\n${question}` },
+  ];
+  let lastErr = '';
+  for (const model of MODELS) {
+    try {
+      const res = await env.AI.run(model, { messages, max_tokens: 420, temperature: 0.2 });
+      const answer = String((res && (res.response || res.result || '')) || '').trim();
+      if (answer) return json({ answer, model });
+      lastErr = 'empty';
+    } catch (err) {
+      lastErr = String((err && err.message) || err).slice(0, 200);
+    }
   }
+  // 전부 막혔다 — 근거 절은 화면이 이미 갖고 있으므로 그것만으로도 쓸 수 있다.
+  // 관리자만 보는 응답이라 원인을 그대로 실어 준다(고칠 때 필요하다).
+  return json({ answer: null, reason: 'model_error', detail: lastErr });
 }
 
 export const onRequestGet = methodNotAllowed;
