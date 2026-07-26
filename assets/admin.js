@@ -2054,20 +2054,40 @@
       return el ? { a: a, el: el } : null;
     }).filter(Boolean);
     if (!pairs.length) return;
-    manTabIO = new IntersectionObserver(function (ents) {
-      ents.forEach(function (en) {
-        if (!en.isIntersecting) return;
-        var hit = pairs.filter(function (x) { return x.el === en.target; })[0];
-        if (!hit) return;
-        links.forEach(function (a) { a.classList.remove('on'); });
-        hit.a.classList.add('on');
-        var row = hit.a.parentElement;
-        if (row && row.scrollWidth > row.clientWidth) {
-          row.scrollTo({ left: hit.a.offsetLeft - (row.clientWidth - hit.a.offsetWidth) / 2, behavior: 'smooth' });
-        }
-      });
-    }, { rootMargin: '-15% 0px -70% 0px', threshold: 0 });
-    pairs.forEach(function (x) { manTabIO.observe(x.el); });
+
+    /* 지금 어느 절인지는 **위치로 정한다**.
+       전에는 IntersectionObserver 가 '들어온' 절만 표시했다 — 위로 스크롤하면 아무것도
+       들어오지 않아 표시가 옛것에 머물렀고(주문 처리를 켠 채 상품 관리를 보여 줬다),
+       한 번에 둘이 걸리면 나중에 발화한 쪽이 이겼다.
+       기준선(탭 바 바로 아래)을 지나간 절 중 마지막 것이 지금 보고 있는 절이다. */
+    var cur = null;
+    function paint() {
+      var line = bar.getBoundingClientRect().bottom + 4;
+      var hit = pairs[0];
+      pairs.forEach(function (x) { if (x.el.getBoundingClientRect().top <= line) hit = x; });
+      if (hit === cur) return;
+      cur = hit;
+      links.forEach(function (a) { a.classList.remove('on'); });
+      hit.a.classList.add('on');
+      var row = hit.a.parentElement;
+      if (row && row.scrollWidth > row.clientWidth) {
+        row.scrollTo({ left: hit.a.offsetLeft - (row.clientWidth - hit.a.offsetWidth) / 2, behavior: 'smooth' });
+      }
+    }
+    var queued = false;
+    function onScroll() {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(function () { queued = false; paint(); });
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    // 화면을 떠날 때 떼어 낸다 — 설명서가 사라진 뒤에도 계속 돌면 안 된다
+    manTabIO = { disconnect: function () {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+    } };
+    paint();
   }
 
   function loadManual() {
@@ -2597,10 +2617,13 @@
     var av = document.getElementById('adminView');
     av.innerHTML = n.view();
     av.classList.toggle('view-full', current === 'dashboard' || current === 'manual');
+    // 설명서는 절마다 색 밴드가 이어진다 — 좌우 여백을 화면이 아니라 각 절이 만든다
+    av.classList.toggle('view-manual', current === 'manual');
     renderNav();
     icons();
     bindForms();
     if (current === 'manual') bindManualTabs();
+    else if (manTabIO) { try { manTabIO.disconnect(); } catch (e) {} manTabIO = null; }
   }
 
   /* ---------- 이미지 리사이즈 ----------
