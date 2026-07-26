@@ -307,6 +307,27 @@
   .src-track { height: 13px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }
   .src-fill { height: 100%; border-radius: 99px; min-width: 6px; transition: width .45s var(--ease); }
 
+  /* 판매 현황 — 주간·월간 카드 + 일별 막대 */
+  .sale-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 18px 22px 4px; }
+  @media (max-width: 900px){ .sale-grid { grid-template-columns: 1fr; } }
+  .sale-card { border: 1.5px solid var(--line-soft); border-radius: 14px; background: var(--surface-2); padding: 18px 20px; }
+  .sale-card .sc-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .sale-card .sc-top b { font-size: 15.5px; }
+  .sale-card .sc-range { font-size: 12.5px; color: var(--ink-mute); font-variant-numeric: tabular-nums; }
+  .sale-card .sc-amt { font-family: var(--font-head); font-weight: 800; font-size: 32px; line-height: 1.1;
+    margin-top: 10px; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .sale-card .sc-amt em { font-style: normal; font-size: 17px; font-weight: 700; margin-left: 3px; color: var(--ink-mute); }
+  .sale-card .sc-sub { font-size: 13.5px; color: var(--ink-mute); margin-top: 6px; }
+  /* 증감은 색만으로 구분하지 않는다 — ▲▼ 기호를 함께 둬 색을 못 보는 경우에도 읽힌다 */
+  .sale-card .sc-delta { font-size: 14px; font-weight: 700; margin-top: 12px; padding-top: 12px;
+    border-top: 1px solid var(--line-soft); }
+  .sale-card .sc-delta span { font-weight: 500; color: var(--ink-mute); font-size: 12.5px; }
+  .sale-card .sc-delta.up   { color: var(--ok); }
+  .sale-card .sc-delta.down { color: var(--danger); }
+  .sale-card .sc-delta.flat { color: var(--ink-mute); }
+  .vc-bar.zero { background: var(--line); }
+  .vc-day em { display: block; font-style: normal; font-size: 10px; color: var(--ink-faint); margin-top: 1px; }
+
   /* 오늘 해야 할 일 — 실무 처리 대기 카드 */
   .todo-panel .panel-head { border-bottom: none; padding-bottom: 0; }
   .todo-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; padding: 16px 22px 22px; }

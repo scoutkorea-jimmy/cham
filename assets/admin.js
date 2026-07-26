@@ -324,6 +324,61 @@
     }).join('') : '<div class="admin-empty" style="padding:20px 10px"><i data-lucide="bell-off"></i><div>등록된 팝업이 없습니다. ‘팝업 관리’에서 추가하세요.</div></div>';
     var popPanel = '<div class="panel" style="margin-top:24px"><div class="panel-head"><h3>홈 팝업 게시/중지</h3><button class="btn btn-ghost" data-nav="popups" style="padding:8px 16px"><i data-lucide="bell"></i>팝업 관리로 이동</button></div><div style="padding:8px 22px 14px">' + popRows + '</div></div>';
 
+    /* ── 판매 현황 (주간 · 월간) ──────────────────────────────
+       매출은 '결제완료 이후'만 센다(매출·정산 화면과 같은 기준) — 입금 확인이 안 된
+       주문을 팔린 것으로 세면 통장과 어긋난다. 지난 기간 대비 증감을 함께 보여
+       '이번 주가 좋은가'를 숫자 하나로 판단하지 않게 한다. */
+    function sum(list){ return list.reduce(function (s, o) { return s + (Number(o.total) || 0); }, 0); }
+    function delta(now, prev) {
+      if (!prev) return now ? { txt: '새로 발생', cls: 'up' } : { txt: '지난 기간도 0', cls: 'flat' };
+      var r = Math.round((now - prev) / prev * 100);
+      if (r === 0) return { txt: '지난 기간과 같음', cls: 'flat' };
+      return { txt: (r > 0 ? '▲ ' : '▼ ') + Math.abs(r) + '%', cls: r > 0 ? 'up' : 'down' };
+    }
+    var wNow = salesOrders('week'), wPrev = salesOrders('lastweek');
+    var mNow = salesOrders('month'), mPrev = salesOrders('last');
+    var wSum = sum(wNow), wPrevSum = sum(wPrev), mSum = sum(mNow), mPrevSum = sum(mPrev);
+    var wD = delta(wSum, wPrevSum), mD = delta(mSum, mPrevSum);
+    var wR = periodRange('week'), mR = periodRange('month');
+
+    // 최근 7일 일별 매출 — 요일별 흐름을 보려면 합계 하나로는 부족하다
+    var paid = gj(K.orders, []).filter(function (o) { return PAID_STATES.indexOf(o.status) > -1; });
+    var byDay = {};
+    paid.forEach(function (o) { var d = (o.at || '').slice(0, 10); byDay[d] = (byDay[d] || 0) + (Number(o.total) || 0); });
+    var sdays = [];
+    for (var si = 6; si >= 0; si--) {
+      var sd = new Date(); sd.setDate(sd.getDate() - si);
+      var sk = ymd(sd);
+      sdays.push({ label: (sd.getMonth() + 1) + '.' + sd.getDate(), amt: byDay[sk] || 0,
+                   dow: ['일','월','화','수','목','금','토'][sd.getDay()] });
+    }
+    var sMax = Math.max.apply(null, sdays.map(function (d) { return d.amt; })) || 1;
+    var salesBars = '<div class="vchart">' + sdays.map(function (d) {
+      var h = d.amt ? Math.max(6, Math.round(d.amt / sMax * 100)) : 3;
+      return '<div class="vc-col" title="' + d.label + ' · ' + fmtWon(d.amt) + '원">' +
+        '<span class="vc-val">' + (d.amt ? Math.round(d.amt / 10000) + '만' : '-') + '</span>' +
+        '<div class="vc-bar' + (d.amt ? '' : ' zero') + '" style="height:' + h + 'px"></div>' +
+        '<span class="vc-day">' + d.label + '<em>' + d.dow + '</em></span></div>';
+    }).join('') + '</div>';
+
+    function saleCard(title, range, amount, count, dd, prevLabel, prevAmount) {
+      return '<div class="sale-card">' +
+        '<div class="sc-top"><b>' + title + '</b><span class="sc-range">' + range + '</span></div>' +
+        '<div class="sc-amt">' + fmtWon(amount) + '<em>원</em></div>' +
+        '<div class="sc-sub">주문 ' + count + '건' + (count ? ' · 건당 평균 ' + fmtWon(Math.round(amount / count)) + '원' : '') + '</div>' +
+        '<div class="sc-delta ' + dd.cls + '">' + dd.txt + ' <span>(' + prevLabel + ' ' + fmtWon(prevAmount) + '원)</span></div>' +
+      '</div>';
+    }
+    var salesPanel = '<div class="panel"><div class="panel-head"><h3>판매 현황</h3>' +
+        '<span class="ph-sub">입금이 확인된 주문만 셉니다 — 통장과 맞습니다</span>' +
+        '<button class="btn btn-ghost" data-nav="sales" style="padding:8px 16px;margin-left:auto"><i data-lucide="trending-up"></i>자세히 보기</button></div>' +
+      '<div class="sale-grid">' +
+        saleCard('주간 판매', wR.from.slice(5).replace('-', '.') + ' ~ ' + wR.to.slice(5).replace('-', '.'), wSum, wNow.length, wD, '지난 주', wPrevSum) +
+        saleCard('월간 판매', wR.from.slice(0, 4) + '년 ' + String(Number(mR.from.slice(5, 7))) + '월', mSum, mNow.length, mD, '지난 달', mPrevSum) +
+      '</div>' +
+      '<div style="padding:4px 22px 22px"><div class="ph-sub" style="margin-bottom:10px">최근 7일 일별 매출</div>' + salesBars + '</div>' +
+    '</div>';
+
     var visitPanel = '<div class="panel"><div class="panel-head"><h3>최근 7일 방문 추이</h3><span class="ph-sub">방문자 수 기준 · 데모 집계</span></div><div style="padding:22px">' + chart + '</div></div>';
     var sourcePanel = '<div class="panel"><div class="panel-head"><h3>방문자 유입 분석</h3><span class="ph-sub">총 ' + srcTotal + '회 방문</span></div><div style="padding:20px 22px 24px"><div class="src-list">' + srcBars + '</div></div></div>';
     var recentPanel = '<div class="panel"><div class="panel-head"><h3>최근 접수 내역</h3><span class="ph-sub">주문 · 신청 · 문의 통합</span></div><table class="admin-table"><thead><tr><th>일시</th><th>구분</th><th>이름</th><th>내용</th><th>상태</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
@@ -331,8 +386,9 @@
 
     return '<div class="dash">' +
       todoPanel +
+      salesPanel +
+      '<div class="stat-grid">' + cards + '</div>' +
       popPanel +
-      '<div class="stat-grid" style="margin-top:24px">' + cards + '</div>' +
       '<div class="dash-2col">' + visitPanel + sourcePanel + '</div>' +
       '<div class="dash-2col">' + recentPanel + statusPanel + '</div>' +
     '</div>';
@@ -1465,10 +1521,17 @@
      ============================================================ */
   var salesPeriod = 'month';   // today | month | last | all
   var PAID_STATES = ['결제완료', '배송준비중', '배송중', '배송완료'];
+  function ymd(dt){ return dt.getFullYear() + '-' + ('0'+(dt.getMonth()+1)).slice(-2) + '-' + ('0'+dt.getDate()).slice(-2); }
   function periodRange(p) {
-    var now = new Date(), y = now.getFullYear(), m = now.getMonth();
+    var now = new Date(), y = now.getFullYear(), m = now.getMonth(), day = now.getDate();
     if (p === 'today') { var d = S.todayStr(); return { from: d, to: d, label: '오늘' }; }
-    function ymd(dt){ return dt.getFullYear() + '-' + ('0'+(dt.getMonth()+1)).slice(-2) + '-' + ('0'+dt.getDate()).slice(-2); }
+    // 주는 월요일 시작 — 국내 업무 주간 기준. getDay()는 일=0이라 (+6)%7 로 월=0 으로 옮긴다.
+    if (p === 'week' || p === 'lastweek') {
+      var back = (now.getDay() + 6) % 7 + (p === 'lastweek' ? 7 : 0);
+      var s0 = new Date(y, m, day - back);
+      var e0 = new Date(y, m, day - back + 6);
+      return { from: ymd(s0), to: ymd(e0), label: p === 'week' ? '이번 주' : '지난 주' };
+    }
     if (p === 'month') return { from: ymd(new Date(y, m, 1)), to: ymd(new Date(y, m+1, 0)), label: '이번 달' };
     if (p === 'last') return { from: ymd(new Date(y, m-1, 1)), to: ymd(new Date(y, m, 0)), label: '지난 달' };
     return { from: '0000-00-00', to: '9999-99-99', label: '전체 기간' };
