@@ -8,8 +8,12 @@
  * 설계 기준은 gilwell-media/functions/_shared/auth.js 와 같다.
  */
 
-const PBKDF2_ITERS = 210_000;      // OWASP 2023 권고(PBKDF2-SHA256) 기준
-const PBKDF2_MAX_ITERS = 1_000_000; // 저장값이 조작돼도 CPU 를 태우지 못하게 상한을 둔다
+/* Cloudflare Workers 의 Web Crypto 는 PBKDF2 반복을 **100,000 회로 제한**한다.
+   넘기면 deriveBits 가 예외를 던지고 요청이 1101(Worker 예외)로 죽는다.
+   로컬 workerd 는 이 제한을 강제하지 않아 개발 중에는 드러나지 않는다 — 반드시 이 값을 지킬 것.
+   저장된 값이 조작돼도 상한을 넘기지 않도록 검증에서도 clamp 한다. */
+const PBKDF2_ITERS = 100_000;
+const PBKDF2_MAX_ITERS = 100_000;
 const SESSION_MS = 12 * 60 * 60 * 1000; // 12시간
 
 /* ── 인코딩 ───────────────────────────────────────────────── */
@@ -172,7 +176,10 @@ export async function verifyPassword(password, stored) {
   const expected = b64urlToBuf(String(stored.hash || ''));
   if (!salt.length || !expected.length) return false;
   const iters = Math.min(Number(stored.iters) || PBKDF2_ITERS, PBKDF2_MAX_ITERS);
-  const got = await pbkdf2(password, salt, iters);
+  // 해시 계산이 실패해도 로그인 실패로 끝나야 한다 — 예외가 새어 나가면 500(1101)이 되고,
+  // 그러면 '비밀번호가 틀렸다'와 '서버가 고장났다'를 밖에서 구분할 수 있게 된다.
+  let got;
+  try { got = await pbkdf2(password, salt, iters); } catch { return false; }
   if (got.length !== expected.length) return false;
   // 상수 시간 비교 — 앞자리가 언제 틀렸는지로 해시를 역추적하지 못하게
   let diff = 0;
