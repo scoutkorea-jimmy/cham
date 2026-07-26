@@ -881,9 +881,14 @@
     var cur = currentPage();
     var links = NAV.map(function (n) {
       var active = n.id === cur ? ' active' : '';
+      /* 지금 보고 있는 페이지의 드롭다운은 열지 않는다.
+         그 페이지에는 같은 절 목록이 목차 바(.jump)로 이미 떠 있고, 그쪽은 스크롤에 따라
+         현재 위치까지 표시한다. 둘을 함께 두면 같은 것을 가리키는 길이 둘이 되어
+         어느 쪽을 써야 할지 헷갈린다. 다른 페이지에서는 바로 절로 가는 길이 필요하므로 남긴다. */
+      var showDD = n.dd && n.id !== cur;
       var ddHead = '<span class="dd-head">' + n.label + '</span>';
-      var dd = n.dd ? '<div class="nav-dd">' + ddHead + n.dd.map(function (d) { return '<a href="' + d.href + '">' + d.label + '</a>'; }).join('') + '</div>' : '';
-      var caret = n.dd ? ' <i data-lucide="chevron-down" style="width:14px;height:14px;opacity:.6"></i>' : '';
+      var dd = showDD ? '<div class="nav-dd">' + ddHead + n.dd.map(function (d) { return '<a href="' + d.href + '">' + d.label + '</a>'; }).join('') + '</div>' : '';
+      var caret = showDD ? ' <i data-lucide="chevron-down" style="width:14px;height:14px;opacity:.6"></i>' : '';
       var currentAttr = n.id === cur ? ' aria-current="page"' : '';
       return '<div class="nav-item' + active + '"><a href="' + n.href + '"' + currentAttr + '>' + n.label + caret + '</a>' + dd + '</div>';
     }).join('');
