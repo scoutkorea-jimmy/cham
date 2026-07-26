@@ -61,7 +61,8 @@ export async function onRequestPost({ request, env }) {
     { role: 'user', content: `[설명서]\n${passages.join('\n\n')}\n\n[질문]\n${question}` },
   ];
   let lastErr = '';
-  for (const model of MODELS) {
+  const list = body.model ? [body.model] : MODELS;   // 진단용 — 특정 모델만 시험
+  for (const model of list) {
     try {
       const res = await env.AI.run(model, { messages, max_tokens: 420, temperature: 0.2 });
       const answer = String((res && (res.response || res.result || '')) || '').trim();
