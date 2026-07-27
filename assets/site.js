@@ -1238,6 +1238,12 @@
      실행될 때 아직 설정을 받아오기 전이라, 미리 잡아 두면 기본값이 굳어 버린다. */
   function payBank(){ return getSettings().bank; }
   function payHolder(){ return getSettings().holder; }
+  /* 계좌가 아직 기본값(예시)인지. 실제 계좌를 넣었는데도 '예시입니다' 라고 적혀 있으면
+     손님이 입금을 망설인다 — 반대로 예시인 채로 안내가 없으면 엉뚱한 곳에 넣는다.
+     둘 다 막으려면 '지금 값이 기본값과 같은가' 로 판단해야 한다. */
+  function payBankIsSample(){
+    return String(payBank() || '').trim() === String(SETTINGS_DEFAULTS.bank).trim();
+  }
 
   /* ---------------- 지도사 모집 기수(期數) ---------------- */
   var COHORTS_KEY = 'kach_cohorts_v1';
@@ -1387,7 +1393,9 @@
       totalRow +
       '<div class="pay-row"><span>입금 기한</span><span>주문 후 3일 이내</span></div>' +
       '<p>입금자명은 ‘입금자명’ 항목과 동일하게 입금해 주세요. 입금 확인 후 결제완료 처리되며 순차 배송됩니다. 주문 완료 시 발급되는 <b>주문번호</b>와 연락처(또는 이메일)로 언제든 주문을 조회할 수 있습니다.</p>' +
-      '<p class="pay-demo">※ 데모 안내: 표시된 계좌번호는 예시이며 실제 운영 시 교체됩니다.</p>' +
+      (payBankIsSample()
+        ? '<p class="pay-demo">※ 표시된 계좌번호는 <b>예시</b>입니다. 입금 전 02-855-8806 으로 확인해 주세요.</p>'
+        : '') +
     '</div>';
   }
 
