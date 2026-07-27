@@ -17,11 +17,11 @@ export async function onRequestGet({ request, env }) {
 
   const q = ref
     ? env.DB.prepare(
-        `SELECT id, scope, ref, role, ord, mime, name, size, pcx, pcy, mbx, mby
+        `SELECT id, scope, ref, role, ord, mime, name, size, pcx, pcy, mbx, mby, created_at
            FROM images WHERE scope = ? AND ref = ? ORDER BY ord, id`
       ).bind(scope, ref)
     : env.DB.prepare(
-        `SELECT id, scope, ref, role, ord, mime, name, size, pcx, pcy, mbx, mby
+        `SELECT id, scope, ref, role, ord, mime, name, size, pcx, pcy, mbx, mby, created_at
            FROM images WHERE scope = ? ORDER BY ord, id`
       ).bind(scope);
 

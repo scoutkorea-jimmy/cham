@@ -206,10 +206,19 @@ export async function writeDoc(env, key, obj) {
 
 /* ── 이미지 ───────────────────────────────────────────────── */
 // 클라이언트에는 blob 대신 URL 을 준다. applySlot()·갤러리는 이미 URL 을 받는 구조라 그대로 맞는다.
+/* 사진 주소에 붙는 판(版) 번호.
+   페이지 슬롯은 id 가 슬롯 이름으로 **고정**이라(admin/images.js) 사진을 바꿔도 주소가 같다.
+   그런데 /api/images/:id 는 immutable 로 1년 캐시한다 — '주소가 바뀌니 안전하다'는
+   전제였지만 페이지 슬롯에는 성립하지 않아, 새 사진을 올려도 브라우저·CDN 이 옛 사진을
+   계속 내주었다. 갱신 시각을 주소에 붙이면 바뀐 순간 주소가 달라져 둘 다 해결된다. */
+function imageVersion(r) {
+  const v = String(r.created_at || '').replace(/\D/g, '');
+  return v ? `?v=${v}` : '';
+}
 export function imageRowToObj(r) {
   const o = {
     id: r.id, scope: r.scope, ref: r.ref, role: r.role, ord: r.ord,
-    url: `/api/images/${encodeURIComponent(r.id)}`,
+    url: `/api/images/${encodeURIComponent(r.id)}${imageVersion(r)}`,
     name: r.name, size: r.size, type: r.mime,
   };
   if (r.scope === 'page') {
@@ -224,4 +233,8 @@ export const IMAGE_INSERT = `
   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
   ON CONFLICT(id) DO UPDATE SET scope=excluded.scope, ref=excluded.ref, role=excluded.role,
     ord=excluded.ord, r2_key=excluded.r2_key, mime=excluded.mime, size=excluded.size,
-    name=excluded.name, pcx=excluded.pcx, pcy=excluded.pcy, mbx=excluded.mbx, mby=excluded.mby`;
+    name=excluded.name, pcx=excluded.pcx, pcy=excluded.pcy, mbx=excluded.mbx, mby=excluded.mby,
+    created_at=datetime('now')`;
+/* created_at 을 함께 올린다 — 이 UPDATE 가 도는 경우는 id 가 고정된 페이지 슬롯을
+   갈아끼울 때뿐이고, 그 시각이 곧 사진 주소의 판 번호가 된다(imageVersion).
+   다른 scope 는 올릴 때마다 새 id 를 받으므로 이 가지를 타지 않는다. */

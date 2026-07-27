@@ -872,15 +872,6 @@
 
     var pg = paged('orders', ordersOf(orderTab));
     var list = pg.rows;
-    /* 표의 금액은 **상품값**이다(매출 집계도 이 값을 쓴다). 손님이 실제로 넣는 돈은
-       택배비가 붙은 금액이라, 입금 확인 때 두 숫자가 어긋나 보이지 않도록 함께 적는다.
-       계산 규칙은 손님 화면과 같은 곳(site.js shipFeeFor)에서 온다. */
-    function depositSub(o) {
-      if (o.kind === 'seedjang' || !o.total) return '';
-      var fee = S.shipFeeFor(o.total);
-      return '<div class="pc-sub">입금 ' + fmtWon(Number(o.total) + fee) + '원' +
-        (fee ? ' (택배비 ' + fmtWon(fee) + ')' : ' (택배비 무료)') + '</div>';
-    }
     var rows = list.length ? list.map(function (o) {
       var item = o.kind === 'seedjang' ? (o.amount || '씨장 분양') : (o.product || '-');
       var shipInfo = o.tracking ? '<div class="pc-sub">' + esc(o.courier || '') + ' ' + esc(o.tracking) + '</div>'
@@ -891,7 +882,7 @@
         '<td>' + (o.kind === 'seedjang' ? '<span class="tag point">씨장분양</span>' : '<span class="tag">제품</span>') + '</td>' +
         '<td><b>' + esc(item) + '</b>' + (o.optionLabel ? '<div class="pc-sub">' + esc(o.optionLabel) + '</div>' : '') + '</td>' +
         '<td>' + esc(o.qty || '-') + '</td>' +
-        '<td style="white-space:nowrap">' + (o.total ? fmtWon(o.total) + '원' + depositSub(o) : '-') + '</td>' +
+        '<td style="white-space:nowrap">' + (o.total ? fmtWon(o.total) + '원' : '-') + '</td>' +
         '<td>' + esc(o.name || '-') + '<div class="pc-sub">' + esc(o.phone || '') + '</div></td>' +
         '<td>' + esc(o.depositor || '-') + '<div class="pc-sub">' + esc(o.payMethod || '') + '</div></td>' +
         '<td style="max-width:170px">' + esc(o.address || o.region || '-') + '</td>' +

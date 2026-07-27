@@ -32,14 +32,14 @@ export async function onRequestGet({ env }) {
     readDoc(env, 'consents'),
 
     env.DB.prepare(
-      `SELECT id, scope, ref, role, ord, mime, name, size, pcx, pcy, mbx, mby
+      `SELECT id, scope, ref, role, ord, mime, name, size, pcx, pcy, mbx, mby, created_at
          FROM images WHERE scope = 'page'`
     ).all().then((r) => (r.results || []).map(imageRowToObj)),
 
     // 목록의 카드 썸네일 — 없으면 화면이 상품 수만큼 요청을 따로 보낸다(N+1).
     // 대표 한 장이면 카드에 충분하고, 상세 페이지는 필요할 때 한 번만 더 부른다.
     env.DB.prepare(
-      `SELECT id, scope, ref, role, ord, mime, name, size, pcx, pcy, mbx, mby
+      `SELECT id, scope, ref, role, ord, mime, name, size, pcx, pcy, mbx, mby, created_at
          FROM images WHERE scope = 'product' AND role = 'main'`
     ).all().then((r) => (r.results || []).map(imageRowToObj)),
   ]);

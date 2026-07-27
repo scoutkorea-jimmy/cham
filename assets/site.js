@@ -830,6 +830,7 @@
   // 무료 기준은 '50,000원'보다 '5만원'이 읽기 쉽다 — 값 하나에서 두 표기를 다 만든다
   var SHIP_FREE_TXT = (SHIP_FREE_OVER / 10000) + '만원';
   var SHIP_NOTE = '택배비 ' + fmtWon(SHIP_FEE) + '원 별도 · ' + SHIP_FREE_TXT + ' 이상 구매 시 무료';
+  var SHIP_NOTE_SHORT = '별도 (' + SHIP_FREE_TXT + ' 이상 무료)';
   var SHIP_TPL = '· 배송비: ' + fmtWon(SHIP_FEE) + '원 (' + SHIP_FREE_TXT + ' 이상 구매 시 무료)\n· 배송 방법: 택배 (CJ대한통운)\n· 출고: 결제(입금) 확인 후 2~3 영업일 이내\n· 제주 및 도서산간 지역은 추가 배송비가 발생할 수 있습니다.\n· 발효식품 특성상 기온이 높은 시기에는 아이스팩 포장으로 출고됩니다.';
   var REFUND_TPL = '· 단순 변심에 의한 교환·반품: 상품 수령 후 7일 이내 신청 가능 (왕복 배송비 구매자 부담)\n· 식품 특성상 개봉했거나 포장이 훼손된 경우 교환·반품이 불가합니다.\n· 상품 하자·오배송: 수령 후 30일 이내 무상 교환 또는 환불해 드립니다.\n· 환불은 반품 상품 확인 후 3영업일 이내 입금 계좌로 처리됩니다.\n· 기타 사항은 소비자분쟁해결기준(공정거래위원회 고시)에 따릅니다.';
   function gosiBase(over) {
@@ -1338,23 +1339,16 @@
     }).join('');
   }
 
-  // 무료가 된 택배비는 '0원'이 아니라 왜 0인지를 보여 준다
-  function shipFeeText(goods) {
-    var fee = shipFeeFor(goods);
-    return fee ? fmtWon(fee) + '원' : '무료 (' + SHIP_FREE_TXT + ' 이상)';
-  }
   function payBoxHTML(mode, data) {
     var qty = Number((data && data.qty) || 1) || 1;
     var unit = Number((data && data.unitPrice) || 0) || 0;
-    /* 손님이 실제로 입금해야 하는 금액은 상품값 + 택배비다. 상품값만 보여 주면
-       그 금액만 입금하고, 관리자는 모자란 입금을 일일이 확인해야 한다. */
-    var goods = unit * qty;
+    /* 택배비는 '별도'라는 사실만 알린다 — 지역·묶음배송에 따라 실제 금액이 달라져
+       화면이 계산한 숫자를 입금액으로 못박으면 도리어 어긋난다. */
     var totalRow = mode === 'note'
       ? '<div class="pay-row"><span>분양 금액</span><span>1kg당 15만원 · 30kg 분양 가능 (상담 후 확정)</span></div>'
       : (unit
-        ? '<div class="pay-row"><span>상품 금액</span><span id="payGoods">' + fmtWon(goods) + '원</span></div>' +
-          '<div class="pay-row"><span>택배비</span><span id="payShip">' + shipFeeText(goods) + '</span></div>' +
-          '<div class="pay-row"><span>입금하실 금액</span><b class="pay-total" id="payTotal">' + fmtWon(goods + shipFeeFor(goods)) + '원</b></div>'
+        ? '<div class="pay-row"><span>총 상품 금액</span><b class="pay-total" id="payTotal">' + fmtWon(unit * qty) + '원</b></div>' +
+          '<div class="pay-row"><span>택배비</span><span>' + esc(SHIP_NOTE_SHORT) + '</span></div>'
         : '');
     return '<div class="pay-box"><b><i data-lucide="landmark"></i>무통장입금(계좌이체) 안내</b>' +
       '<div class="pay-row"><span>입금 계좌</span><span>' + esc(payBank()) + '<br>(예금주: ' + esc(payHolder()) + ')</span></div>' +
@@ -1569,14 +1563,7 @@
         var form = e.target.closest('#modalForm');
         var unit = Number((form.querySelector('[name=unitPrice]') || {}).value || 0);
         var totalEl = document.getElementById('payTotal');
-        if (!unit || !totalEl) return;
-        // 수량이 늘면 택배비가 무료로 바뀔 수 있다 — 세 줄을 함께 다시 쓴다
-        var goods = unit * Math.max(1, Number(e.target.value) || 1);
-        var goodsEl = document.getElementById('payGoods');
-        var shipEl = document.getElementById('payShip');
-        if (goodsEl) goodsEl.textContent = fmtWon(goods) + '원';
-        if (shipEl) shipEl.textContent = shipFeeText(goods);
-        totalEl.textContent = fmtWon(goods + shipFeeFor(goods)) + '원';
+        if (unit && totalEl) totalEl.textContent = fmtWon(unit * Math.max(1, Number(e.target.value) || 1)) + '원';
       }
     });
     document.addEventListener('submit', function(e){
