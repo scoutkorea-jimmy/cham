@@ -1155,8 +1155,10 @@ button[type=submit]:disabled, .btn:disabled { opacity: 0.45; cursor: not-allowed
 .pd-badge-soldout { background: var(--ink); color: #fff; }
 /* 섭취 유의사항 — 상세설명 끝에 붙는 안전 안내. 읽고 지나치지 않도록 면을 달리한다 */
 .pd-caution { background: var(--point-tint); border-radius: var(--r-md); padding: 16px 18px; margin-top: var(--gap-related); }
-.pd-caution b:first-child { display: flex; align-items: center; gap: var(--gap-tight); color: var(--point-ink); font-size: var(--fs-sm); }
-.pd-caution b:first-child i[data-lucide] { width: 16px; height: 16px; }
+/* 제목 줄만 잡는다. `b:first-child` 로 쓰면 본문 <p> 안의 <b> 도 걸려
+   그 자리에서 줄이 꺾인다(flex 는 블록이다) */
+.pd-caution > b:first-child { display: flex; align-items: center; gap: var(--gap-tight); color: var(--point-ink); font-size: var(--fs-sm); }
+.pd-caution > b:first-child i[data-lucide] { width: 16px; height: 16px; }
 .pd-caution p { margin: var(--gap-tight) 0 0; font-size: var(--fs-sm); color: var(--ink-soft); line-height: var(--lh-relaxed); }
 /* 모바일 하단 고정 구매 바 */
 .buybar { display: none; position: fixed; left: 0; right: 0; bottom: 0; z-index: 800; background: var(--surface); border-top: 1px solid var(--line); padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); gap: 10px; align-items: center; box-shadow: 0 -8px 24px rgba(42,39,35,0.08); }
