@@ -13,7 +13,7 @@ import { json } from '../_shared/http.js';
 export async function onRequestGet({ env }) {
   if (!env || !env.DB) return json({ error: '데이터베이스가 연결되지 않았습니다.', code: 'server_unavailable' }, 503);
 
-  const [products, posts, cohorts, partners, popups, settings, consents, pageImages, productImages] = await Promise.all([
+  const [products, posts, cohorts, partners, popups, settings, consents, texts, pageImages, productImages] = await Promise.all([
     env.DB.prepare(
       `SELECT id, name, cat, price, sale_price, unit, status, stock, summary, price_on_request, doc
          FROM products WHERE status != '숨김' ORDER BY sort_order, id`
@@ -30,6 +30,8 @@ export async function onRequestGet({ env }) {
     readCollection(env, 'popups'),
     readDoc(env, 'settings'),
     readDoc(env, 'consents'),
+    // 페이지 문구(관리자가 고친 제목·소개문). 없으면 HTML 의 원문이 그대로 나간다.
+    readDoc(env, 'texts'),
 
     env.DB.prepare(
       `SELECT id, scope, ref, role, ord, mime, name, size, pcx, pcy, mbx, mby, created_at
@@ -47,5 +49,5 @@ export async function onRequestGet({ env }) {
   // 캐시하지 않는다. 30초만 캐시해도 "설정을 고쳤는데 홈페이지가 그대로"가 되어
   // 운영자가 저장이 안 된 줄 안다. 조합 규모의 방문량에서 D1 조회 몇 번이 더 싸다.
   // (이미지 본문은 /api/images/:id 에서 immutable 로 길게 캐시한다.)
-  return json({ products, posts, cohorts, partners, popups, settings, consents, pageImages, productImages });
+  return json({ products, posts, cohorts, partners, popups, settings, consents, texts, pageImages, productImages });
 }

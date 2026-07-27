@@ -34,7 +34,7 @@ import { json, badRequest, forbidden, notFound, methodNotAllowed, readJson } fro
 import { getOwnerSession } from '../../../../_shared/auth.js';
 
 const COLLECTIONS = new Set(['cohorts', 'partners', 'popups']);
-const DOCS = new Set(['settings', 'consents', 'kms']);
+const DOCS = new Set(['settings', 'consents', 'kms', 'texts']);
 // 설정은 계좌·사업자정보라 owner 만 바꾼다. 나머지는 staff 도 일상 운영으로 다룬다.
 const OWNER_ONLY_WRITE = new Set(['settings']);
 

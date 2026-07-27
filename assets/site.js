@@ -1808,6 +1808,7 @@
         cache['kach_popups_v1']    = d.popups;
         cache['kach_settings_v1']  = d.settings || {};
         cache['kach_consents_v1']  = d.consents || {};
+        cache['kach_texts_v1']     = d.texts || {};
         cache.__pageImages = d.pageImages || [];
         // 상품 대표 이미지: ref → 레코드. 목록 카드가 상품마다 요청하지 않도록 미리 담아 둔다
         cache.__mainImages = {};
