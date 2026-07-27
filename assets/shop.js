@@ -89,6 +89,36 @@
     if (any) { icons(); fillCardImages(); if (S.revealScan) S.revealScan(); }
   }
 
+  /* 가격표 — 상품 데이터에서 만든다.
+     예전에는 같은 페이지 안에서 표는 손으로 적은 숫자를, 상품 카드는 실제 데이터를
+     보여 주었다. 관리자가 값을 고쳐도 표는 그대로라 선물상자가 표에서는 45,000원,
+     카드에서는 50,000원이었다. 값이 두 군데 있으면 반드시 어긋난다. */
+  function priceCell(p) {
+    if (p.priceOnRequest) return '가격 문의';
+    var base = p.salePrice != null && p.salePrice !== '' ? Number(p.salePrice) : Number(p.price);
+    var adds = (p.option && p.option.values ? p.option.values : []).map(function (v) { return Number(v.add) || 0; });
+    var max = adds.length ? Math.max.apply(null, adds) : 0;
+    return max > 0 ? fmtWon(base) + ' ~ ' + fmtWon(base + max) + '원' : fmtWon(base) + '원';
+  }
+  // 용량 칸 — 옵션이 있으면 옵션 이름이 곧 용량이다(300ml (소) → 300ml)
+  function volCell(p) {
+    var vals = p.option && p.option.values ? p.option.values : [];
+    if (!vals.length) return p.unit || '-';
+    return vals.map(function (v) { return String(v.label || '').replace(/\s*\([^)]*\)\s*$/, ''); }).join(' · ');
+  }
+  function renderPriceTable() {
+    var tb = document.getElementById('price-rows');
+    if (!tb) return;
+    var products = S.getProducts().filter(function (p) { return p.status !== '숨김'; });
+    var rows = products.map(function (p) {
+      return '<tr><td>' + esc(p.cat || '-') + '</td><td>' + esc(p.name) + '</td>' +
+        '<td>' + esc(volCell(p)) + '</td><td class="num">' + esc(priceCell(p)) + '</td></tr>';
+    }).join('');
+    // 씨장 분양은 상품표에 없는 별도 안내다(상담 후 확정) — 표 끝에 붙인다
+    rows += '<tr><td>씨장</td><td>씨장 분양</td><td>-</td><td class="num">가격 문의</td></tr>';
+    tb.innerHTML = rows;
+  }
+
   /* ================= 상품 상세 페이지 ================= */
   /* 식초 섭취 유의사항 — 상품 하나하나의 상세설명에 적어 넣지 않는다.
      같은 글이 식초 품목 수만큼 흩어지면 한 곳만 고쳐지고 나머지는 옛말로 남으며,
@@ -334,6 +364,7 @@
   }
   ready(function () {
     renderLists();
+    renderPriceTable();
     renderDetail();
   });
 })();

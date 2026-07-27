@@ -1025,18 +1025,72 @@
     });
     return map;
   }
+  /* 기수 순서 바꾸기 — 끌어서 놓기.
+     이 순서가 곧 지도사 과정 페이지의 일정표 순서다(site.js renderCohortSchedule 이
+     위에서부터 5개를 보여 준다). 예전에는 '등록순의 역순'이라 가정해 뒤집어 보여 주었는데,
+     운영자가 원하는 차례는 등록한 차례와 다를 수 있다 — 이제 여기서 정한 대로 나간다.
+     라이브러리를 쓰지 않고 브라우저 기본 drag&drop 만 쓴다(이 저장소는 바닐라 JS). */
+  var cohortDragId = null;
+  function bindCohortDrag() {
+    var tb = document.getElementById('cohortRows');
+    if (!tb || tb.dataset.dragBound) return;
+    tb.dataset.dragBound = '1';
+
+    tb.addEventListener('dragstart', function (e) {
+      var tr = e.target.closest('[data-crow]'); if (!tr) return;
+      cohortDragId = tr.dataset.crow;
+      tr.classList.add('row-dragging');
+      // 끌고 있다는 사실을 브라우저에 알려야 drop 이 열린다(Firefox 는 데이터가 없으면 막는다)
+      if (e.dataTransfer) { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', cohortDragId); }
+    });
+
+    tb.addEventListener('dragover', function (e) {
+      if (!cohortDragId) return;
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+      var over = e.target.closest('[data-crow]');
+      var dragging = tb.querySelector('.row-dragging');
+      if (!over || !dragging || over === dragging) return;
+      // 행의 절반을 넘겼는지로 위/아래를 정한다 — 넘기는 순간 자리가 바뀌어 결과가 보인다
+      var r = over.getBoundingClientRect();
+      tb.insertBefore(dragging, (e.clientY - r.top) > r.height / 2 ? over.nextSibling : over);
+    });
+
+    tb.addEventListener('dragend', function () {
+      var dragging = tb.querySelector('.row-dragging');
+      if (dragging) dragging.classList.remove('row-dragging');
+      if (!cohortDragId) return;
+      cohortDragId = null;
+      saveCohortOrder(tb);
+    });
+    // 표 밖에 놓아도 브라우저가 되돌리지 않도록
+    tb.addEventListener('drop', function (e) { e.preventDefault(); });
+  }
+  function saveCohortOrder(tb) {
+    var ids = [].map.call(tb.querySelectorAll('[data-crow]'), function (tr) { return tr.dataset.crow; });
+    var byId = {};
+    S.getCohorts().forEach(function (c) { byId[c.id] = c; });
+    var next = ids.map(function (id) { return byId[id]; }).filter(Boolean);
+    // 화면에 없는 기수가 있으면(있을 수 없지만) 지우지 않는다 — 순서만 바꾸는 일이다
+    if (next.length !== Object.keys(byId).length) { toast('순서를 저장하지 못했습니다. 새로고침해 주세요.'); render(); return; }
+    if (!S.setCohorts(next)) { toast('순서를 저장하지 못했습니다.'); render(); return; }
+    render();
+    toast('순서를 바꿨습니다. 지도사 과정 페이지에 그대로 반영됩니다.');
+  }
   function cohortPanel() {
     var list = S.getCohorts();
     var per = applicantsPerCohort();
     var rows = list.length ? list.map(function (c) {
       var nApp = per[c.id] || 0;
-      return '<tr><td><b>' + esc(c.name) + '</b></td><td>' + esc(c.period || '-') + '</td><td>' + esc(c.schedule || '-') + '</td><td>' + esc(c.place || '-') + '</td>' +
+      return '<tr draggable="true" data-crow="' + c.id + '">' +
+        '<td class="drag-grip" title="끌어서 순서를 바꿉니다"><i data-lucide="grip-vertical"></i></td>' +
+        '<td><b>' + esc(c.name) + '</b></td><td>' + esc(c.period || '-') + '</td><td>' + esc(c.schedule || '-') + '</td><td>' + esc(c.place || '-') + '</td>' +
         '<td>' + (nApp ? '<b>' + nApp + '명</b>' : '<span class="pc-sub">0명</span>') + '</td>' +
         '<td>' + cohortStatusSel(c) +
         '</td><td><button class="icon-btn" data-act="cdel" data-id="' + c.id + '" title="기수 삭제"><i data-lucide="trash-2"></i></button></td></tr>';
-    }).join('') : emptyRow(7, '등록된 기수가 없습니다. 아래에서 추가하세요.');
-    return '<div class="panel"><div class="panel-head"><h3>모집 기수</h3><span class="ph-sub">여기서 추가·수정한 기수가 지도사 과정 페이지와 신청서에 그대로 반영됩니다</span></div>' +
-      '<div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>기수명</th><th>교육 기간</th><th>요일·시간</th><th>장소</th><th>신청 인원</th><th>모집 상태</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+    }).join('') : emptyRow(8, '등록된 기수가 없습니다. 아래에서 추가하세요.');
+    return '<div class="panel"><div class="panel-head"><h3>모집 기수</h3><span class="ph-sub">여기 순서가 지도사 과정 페이지의 일정표 순서입니다 — 행을 끌어 올리거나 내려서 바꾸세요 (위에서부터 5개가 보입니다)</span></div>' +
+      '<div style="overflow-x:auto"><table class="admin-table" id="cohortTable"><thead><tr><th></th><th>기수명</th><th>교육 기간</th><th>요일·시간</th><th>장소</th><th>신청 인원</th><th>모집 상태</th><th></th></tr></thead><tbody id="cohortRows">' + rows + '</tbody></table></div>' +
       '<form class="admin-form" id="cohortForm" style="border-top:1px solid var(--line-soft)">' +
         '<div class="field"><label>기수명 <span style="color:var(--point)">*</span></label><input name="name" required placeholder="예) 2026년 3기"></div>' +
         '<div class="field"><label>교육 기간</label><input name="period" placeholder="예) 2026.09.05 ~ 09.26"></div>' +
@@ -2849,6 +2903,7 @@
     renderNav();
     icons();
     bindForms();
+    bindCohortDrag();
     if (current === 'manual') bindManualTabs();
     else if (manTabIO) { try { manTabIO.disconnect(); } catch (e) {} manTabIO = null; }
   }

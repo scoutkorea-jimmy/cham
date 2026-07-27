@@ -368,6 +368,12 @@
   .admin-table th { background: var(--surface-2); font-size: 12px; color: var(--ink-soft); font-weight: 700; letter-spacing: .02em; }
   .admin-table tr:last-child td { border-bottom: none; }
   .admin-table tbody tr:hover { background: var(--surface-2); }
+  /* 끌어서 순서 바꾸기 — 손잡이가 보여야 끌 수 있다는 것을 안다 */
+  .admin-table td.drag-grip { width: 34px; padding-right: 0; color: var(--ink-faint); cursor: grab; }
+  .admin-table td.drag-grip:active { cursor: grabbing; }
+  .admin-table tbody tr:hover td.drag-grip { color: var(--ink-mute); }
+  .admin-table td.drag-grip i[data-lucide] { width: 16px; height: 16px; display: block; }
+  .admin-table tr.row-dragging { opacity: .45; background: var(--main-tint); }
   .admin-table .dt { color: var(--ink-mute); font-size: 12.5px; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .admin-empty { padding: 48px 24px; text-align: center; color: var(--ink-mute); }
   .admin-empty i[data-lucide]{ width: 34px; height: 34px; opacity: .4; margin-bottom: 10px; }

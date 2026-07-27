@@ -1231,15 +1231,16 @@
   /* 일정표에 보여줄 기수 개수. 해가 지날수록 지난 기수가 쌓이는데, 방문자가 알아야 할 것은
      지금 신청할 수 있는 기수와 그 직전 몇 개뿐이다. 관리자 화면에서는 전부 보인다. */
   var COHORT_VISIBLE = 5;
-  // 지도사 과정 페이지의 일정표(#cohort-rows)를 기수 데이터로 채움 — 최신부터 COHORT_VISIBLE 개
+  // 지도사 과정 페이지의 일정표(#cohort-rows)를 채움 — 관리자가 정한 순서로 위에서부터 COHORT_VISIBLE 개
   function renderCohortSchedule(){
     var tb = document.getElementById('cohort-rows');
     if (!tb) return;
     var all = getCohorts();
     if (!all.length) { tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--ink-mute);padding:24px">현재 안내된 기수가 없습니다. 신청 후 일정을 안내드립니다.</td></tr>'; return; }
-    /* 관리자에서 새 기수를 뒤에 붙이므로(admin.js 의 cohortForm) 저장 순서는 오래된 것 → 최신이다.
-       뒤집어야 최신이 위로 온다. */
-    var list = all.slice().reverse().slice(0, COHORT_VISIBLE);
+    /* 순서는 관리자가 정한다 — 관리자 > 지도사 신청 > 모집 기수에서 행을 끌어 올린 차례가
+       그대로 이 표의 차례다. 예전에는 '등록순의 역순이 최신순'이라 가정해 뒤집었는데,
+       운영자가 보이고 싶은 차례가 등록한 차례와 같으리라는 보장이 없었다. */
+    var list = all.slice(0, COHORT_VISIBLE);
     var rows = list.map(function (c) {
       var cls = COHORT_STATUS_TAG[c.status] || 'tag';
       return '<tr' + (c.status === '마감' ? ' style="opacity:.55"' : '') + '><td><b>' + esc(c.name) + '</b></td><td>' + esc(c.period || '-') + '</td><td>' + esc(c.schedule || '-') + '</td><td>' + esc(c.place || '-') + '</td><td><span class="' + cls + '">' + esc(c.status) + '</span></td></tr>';
@@ -1247,7 +1248,7 @@
     // 가린 기수가 있으면 숨겼다는 사실을 밝힌다 — 말없이 자르면 '이게 전부'로 읽힌다.
     if (all.length > list.length) {
       rows += '<tr><td colspan="5" style="text-align:center;color:var(--ink-mute);padding:14px;font-size:var(--fs-caption)">' +
-        '최근 ' + COHORT_VISIBLE + '개 기수만 표시합니다. 지난 기수는 02-855-8806으로 문의해 주세요.</td></tr>';
+        '기수 ' + COHORT_VISIBLE + '개만 표시합니다. 다른 기수는 02-855-8806으로 문의해 주세요.</td></tr>';
     }
     tb.innerHTML = rows;
   }
