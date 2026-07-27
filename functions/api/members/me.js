@@ -7,7 +7,7 @@
  * 아이디를 바꾸면 지난 주문·문의와의 연결이 끊기고, 나머지는 운영자 몫이다.
  */
 import {
-  getMemberSession, hashPassword, verifyPassword, checkPasswordStrength,
+  getMemberSession, hashPassword, verifyPassword, checkPasswordStrength, loadMemberSecret,
   createMemberToken, buildMemberCookies, isSecureRequest,
 } from '../../_shared/auth.js';
 import { checkEmail, normPhone, publicMember } from '../../_shared/members.js';
@@ -43,8 +43,7 @@ export async function onRequestPatch({ request, env }) {
   /* 비밀번호 변경은 **지금 비밀번호를 확인한 뒤에만** 한다.
      로그인된 화면을 잠깐 빌려도 비밀번호까지 바꾸지는 못하게 하기 위해서다. */
   if (b.newPassword) {
-    let stored = null;
-    try { stored = JSON.parse(s.member.password_hash || 'null'); } catch {}
+    const stored = await loadMemberSecret(env, s.mid);
     if (!stored || !await verifyPassword(String(b.currentPassword || ''), stored)) {
       return json({ error: '지금 쓰시는 비밀번호가 올바르지 않습니다.', code: 'bad_password' }, 400);
     }

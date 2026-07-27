@@ -17,7 +17,7 @@
  * 그쪽은 방침 제6조대로 본인이 요청하면 운영자가 확인 후 지운다.
  */
 import {
-  getMemberSession, verifyPassword, clearMemberCookies, isSecureRequest,
+  getMemberSession, verifyPassword, loadMemberSecret, clearMemberCookies, isSecureRequest,
 } from '../../_shared/auth.js';
 import { json, badRequest, readJson, methodNotAllowed } from '../../_shared/http.js';
 
@@ -28,8 +28,7 @@ export async function onRequestPost({ request, env }) {
   const b = await readJson(request);
   if (!b) return badRequest();
 
-  let stored = null;
-  try { stored = JSON.parse(s.member.password_hash || 'null'); } catch {}
+  const stored = await loadMemberSecret(env, s.mid);
   if (!stored || !await verifyPassword(String(b.password || ''), stored)) {
     return json({ error: '비밀번호가 올바르지 않습니다.', code: 'bad_password' }, 400);
   }

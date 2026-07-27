@@ -287,6 +287,23 @@ export async function getMemberSession(request, env) {
   return { mid: row.id, username: row.username, member: row };
 }
 
+/**
+ * 회원의 저장된 비밀번호 해시를 읽는다.
+ *
+ * getMemberSession 이 담아 오지 **않는다** — 세션 객체는 화면에 내려보낼 값과 가까이
+ * 다뤄지므로 비밀번호 해시가 딸려 다니면 언젠가 새어 나간다. 비밀번호를 확인해야 하는
+ * 곳(변경·탈퇴)에서만 이 함수로 따로 읽는다.
+ *
+ * @returns {Promise<object|null>} verifyPassword 에 넘길 값. 없으면 null.
+ */
+export async function loadMemberSecret(env, mid) {
+  try {
+    const row = await env.DB.prepare(`SELECT password_hash FROM members WHERE id = ?`).bind(mid).first();
+    if (!row || !row.password_hash) return null;
+    return JSON.parse(row.password_hash);
+  } catch { return null; }
+}
+
 /* 회원 쿠키 2종. member_token 만 자격이고, member_session 은 화면이 '로그인했다'를
    아는 표식일 뿐이다 — 서버는 이 값을 절대 신뢰하지 않는다. */
 export function buildMemberCookies(token, { secure = true, maxAge = MEMBER_SESSION_MS / 1000 } = {}) {
