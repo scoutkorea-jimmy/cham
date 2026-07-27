@@ -48,10 +48,14 @@
     border-bottom: 1px solid var(--line-soft); margin: -8px 0 24px; padding: 10px 0 0; }
   .man-tabs .mt-row { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
   .man-tabs .mt-row::-webkit-scrollbar { display: none; }
-  .man-tabs a { white-space: nowrap; padding: 11px 16px; font-size: 14.5px; font-weight: 700;
-    color: var(--ink-mute); border-bottom: 3px solid transparent; margin-bottom: -1px; border-radius: 8px 8px 0 0; }
+  /* 지금 보는 절 표시는 테두리가 아니라 밑줄 하나(::after)다. 테두리로 주면 모서리를
+     둥글린 탭의 라운드와 겹쳐 한쪽만 잘린 모양이 된다. */
+  .man-tabs a { position: relative; white-space: nowrap; padding: 11px 16px 13px; font-size: 14.5px;
+    font-weight: 700; color: var(--ink-mute); border-radius: 8px 8px 0 0; }
   .man-tabs a:hover { color: var(--ink); background: var(--surface); }
-  .man-tabs a.on { color: var(--point-deep); border-bottom-color: var(--point); background: var(--surface); }
+  .man-tabs a.on { color: var(--point-deep); background: var(--surface); }
+  .man-tabs a.on::after { content: ''; position: absolute; left: 10px; right: 10px; bottom: 0;
+    height: 3px; border-radius: 3px 3px 0 0; background: var(--point); }
 
   /* 3) 도움말 챗봇 — 우측 하단 */
   /* site.js 의 '맨 위로'(.to-top)가 같은 자리(오른쪽 아래)에 z-index 900 으로 뜬다.
@@ -963,8 +967,9 @@
 </div>
 
 <!-- 사진 원본 보기 -->
+<!-- 사진은 누른 순간 스크립트가 만들어 넣는다(cbImgOpen).
+     src 없는 <img> 를 미리 두면 화면에 '깨진 그림' 자리가 남고, 검사 도구도 그렇게 읽는다. -->
 <div class="cb-img" id="cbImg" role="dialog" aria-modal="true" aria-label="사진 크게 보기">
-  <img alt="">
   <p>아무 곳이나 누르면 닫힙니다</p>
 </div>
 

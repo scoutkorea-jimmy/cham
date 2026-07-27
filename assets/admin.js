@@ -3747,8 +3747,10 @@
   function cbImgOpen(src, alt) {
     var lay = cbEl('cbImg');
     if (!lay) return;
+    // 사진은 열 때 만든다 — 닫혀 있는 동안 빈 <img> 를 두지 않는다
     var img = lay.querySelector('img');
-    img.src = src; img.alt = alt || '';
+    if (!img) { img = document.createElement('img'); lay.insertBefore(img, lay.firstChild); }
+    img.src = src; img.alt = alt || '사진 크게 보기';
     lay.classList.add('open');
     document.body.classList.add('cb-locked');
   }
@@ -3756,7 +3758,8 @@
     var lay = cbEl('cbImg');
     if (lay && lay.classList.contains('open')) {
       lay.classList.remove('open');
-      lay.querySelector('img').removeAttribute('src');
+      var img = lay.querySelector('img');
+      if (img) img.remove();          // 남겨 두면 다시 src 없는 <img> 가 된다
       if (!(cbEl('cbZoom') && cbEl('cbZoom').classList.contains('open'))) document.body.classList.remove('cb-locked');
     }
   }
