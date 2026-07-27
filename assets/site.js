@@ -935,7 +935,9 @@
       summary: '직접 장을 담그실 분들을 위한 자연 건조 메주.', icon: 'package', tone: 'tone-main',
       descHtml: '<h3>장 담그기의 시작</h3><p>국산 콩을 삶아 빚고 자연 바람에 말려 띄운 전통 메주입니다. 장 담그기 시기(정월)에 맞춰 예약 주문을 권장합니다.</p>',
       gosi: gosiBase({ pname: '전통 메주', volume: '약 1.5kg/개', ingredients: '국산 콩 100%', storage: '통풍이 잘 되는 서늘한 곳' }), ship: SHIP_TPL, refund: REFUND_TPL, related: ['p_doenjang', 'p_jangajji'] },
-    { id: 'p_set_vinegar', name: '서연 수제식초 선물상자 (2본)', cat: '선물세트', price: 45000, salePrice: null, unit: '세트',
+    /* 가격은 운영 DB(관리자가 정한 값)를 따라 50,000원. 기본값은 새로 깔 때와 옛 GitHub Pages 가
+       쓰는 값이라, 여기가 어긋나 있으면 같은 상품이 주소마다 다른 값으로 보인다. */
+    { id: 'p_set_vinegar', name: '서연 수제식초 선물상자 (2본)', cat: '선물세트', price: 50000, salePrice: null, unit: '세트',
       status: '판매중', stock: 25, option: null, photo: 'assets/product-giftbox.jpg',
       summary: '수제식초 2본을 담은 선물상자. 명절·집들이 선물로 가장 많이 찾는 구성입니다.', icon: 'gift', tone: 'tone-point',
       descHtml: '<h3>“식초는 신이 내린 선물, 자연이 준 기적의 물”</h3><p>서연(瑞蓮) 수제식초 2본(500ml·300ml)을 전용 선물상자에 담았습니다. 사과·포도·오미자·감귤·매실·수박 중 원하시는 종류로 구성해 드립니다.</p><p>구성 변경은 주문 시 요청사항에 남겨 주시거나 02-855-8806으로 문의해 주세요.</p>',
