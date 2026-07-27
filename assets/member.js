@@ -216,6 +216,27 @@
         }).catch(function () { lock(btn, false); say(msg, '연결하지 못했습니다.', 'bad'); });
     });
 
+    /* 탈퇴 — 되돌릴 수 없어서 문을 셋 둔다: 비밀번호 · 체크 · 마지막 확인창.
+       셋 다 지나야 요청이 나간다. */
+    var quit = document.getElementById('quitForm');
+    if (quit) quit.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var v = vals(quit);
+      var msg = document.getElementById('quitMsg');
+      var btn = quit.querySelector('button[type=submit]');
+      if (!v.confirm) { say(msg, '되돌릴 수 없다는 것을 확인해 주세요.', 'bad'); return; }
+      if (!v.password) { say(msg, '지금 비밀번호를 넣어 주세요.', 'bad'); return; }
+      if (!window.confirm('정말 탈퇴하시겠습니까?\n\n이름·연락처·주소가 모두 지워지고 되돌릴 수 없습니다.')) return;
+      say(msg, ''); lock(btn, true, '처리 중…');
+      api('/api/members/withdraw', { method: 'POST', body: { password: v.password } })
+        .then(function (r) {
+          lock(btn, false);
+          if (!r.ok) { say(msg, (r.data && r.data.error) || '탈퇴하지 못했습니다.', 'bad'); return; }
+          alert('탈퇴가 완료되었습니다. 그동안 이용해 주셔서 감사합니다.');
+          location.href = 'index.html';
+        }).catch(function () { lock(btn, false); say(msg, '연결하지 못했습니다.', 'bad'); });
+    });
+
     // 로그아웃
     var out = document.getElementById('mpLogout');
     if (out) out.addEventListener('click', function () {
