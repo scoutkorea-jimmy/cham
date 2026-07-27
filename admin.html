@@ -374,6 +374,11 @@
   .admin-table tbody tr:hover td.drag-grip { color: var(--ink-mute); }
   .admin-table td.drag-grip i[data-lucide] { width: 16px; height: 16px; display: block; }
   .admin-table tr.row-dragging { opacity: .45; background: var(--main-tint); }
+  /* 고치는 중인 행 — 입력칸이 칸 안에 그대로 들어간다 */
+  .admin-table tr.row-editing { background: var(--sub-soft); }
+  .admin-table .crow-in { width: 100%; min-width: 90px; padding: 7px 9px; font: inherit; font-size: 13.5px;
+    border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); }
+  .admin-table .crow-in:focus { outline: none; border-color: var(--main); }
   .admin-table .dt { color: var(--ink-mute); font-size: 12.5px; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .admin-empty { padding: 48px 24px; text-align: center; color: var(--ink-mute); }
   .admin-empty i[data-lucide]{ width: 34px; height: 34px; opacity: .4; margin-bottom: 10px; }

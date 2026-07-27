@@ -1036,6 +1036,14 @@
     if (!tb || tb.dataset.dragBound) return;
     tb.dataset.dragBound = '1';
 
+    // 고치는 중: Enter 로 저장, Esc 로 취소 — 칸마다 마우스로 버튼을 찾아가지 않는다
+    tb.addEventListener('keydown', function (e) {
+      if (!e.target.classList.contains('crow-in')) return;
+      var tr = e.target.closest('[data-crow]');
+      if (e.key === 'Enter') { e.preventDefault(); saveCohortEdit(tr.dataset.crow); }
+      else if (e.key === 'Escape') { e.preventDefault(); cohortEditing = null; render(); }
+    });
+
     tb.addEventListener('dragstart', function (e) {
       var tr = e.target.closest('[data-crow]'); if (!tr) return;
       cohortDragId = tr.dataset.crow;
@@ -1077,19 +1085,67 @@
     render();
     toast('순서를 바꿨습니다. 지도사 과정 페이지에 그대로 반영됩니다.');
   }
+  // 지금 고치고 있는 기수 id (없으면 null)
+  var cohortEditing = null;
+  function cohortInput(name, val, ph) {
+    return '<td><input class="crow-in" data-f="' + name + '" value="' + esc(val || '') + '" placeholder="' + esc(ph) + '"></td>';
+  }
+  /* 고친 값 저장. 기수명은 비울 수 없다 — 신청서의 '신청 기수' 선택칸과 신청 인원 집계가
+     모두 기수명으로 이어져 있어(applicantsPerCohort), 이름이 사라지면 둘 다 끊긴다. */
+  function saveCohortEdit(id) {
+    var tr = document.querySelector('[data-crow="' + id + '"]');
+    if (!tr) return;
+    var vals = {};
+    [].forEach.call(tr.querySelectorAll('.crow-in'), function (el) { vals[el.dataset.f] = el.value.trim(); });
+    if (!vals.name) { toast('기수명은 비울 수 없습니다.'); tr.querySelector('[data-f=name]').focus(); return; }
+    var list = S.getCohorts();
+    var before = null;
+    list.forEach(function (c) {
+      if (c.id !== id) return;
+      before = c.name;
+      c.name = vals.name; c.period = vals.period; c.schedule = vals.schedule; c.place = vals.place;
+    });
+    if (!S.setCohorts(list)) { toast('저장하지 못했습니다.'); return; }
+    cohortEditing = null;
+    render();
+    // 이름을 바꾸면 이미 접수된 신청서의 '신청 기수' 는 옛 이름 그대로다 — 말없이 넘어가지 않는다
+    toast(before && before !== vals.name
+      ? '수정했습니다. 이미 접수된 신청서에는 옛 기수명(' + before + ')이 남아 있어 인원 집계가 달라질 수 있습니다.'
+      : '수정했습니다. 지도사 과정 페이지와 신청서에 그대로 반영됩니다.');
+  }
   function cohortPanel() {
     var list = S.getCohorts();
     var per = applicantsPerCohort();
     var rows = list.length ? list.map(function (c) {
       var nApp = per[c.id] || 0;
+      /* 고치는 중인 행은 같은 칸에 입력칸을 놓는다 — 별도 화면으로 보내면 어느 기수를
+         고치는 중인지, 다른 기수와 어떻게 다른지가 눈에서 사라진다.
+         고치는 동안은 끌 수 없다(draggable 해제) — 입력칸 안에서 글자를 끌면 행이 끌린다. */
+      if (cohortEditing === c.id) {
+        return '<tr data-crow="' + c.id + '" class="row-editing">' +
+          '<td class="drag-grip"><i data-lucide="pencil"></i></td>' +
+          cohortInput('name', c.name, '예) 33기') +
+          cohortInput('period', c.period, '예) 2026.09.05 ~ 09.26') +
+          cohortInput('schedule', c.schedule, '예) 토 10:00–16:00') +
+          cohortInput('place', c.place, '예) 구로 본원') +
+          '<td>' + (nApp ? '<b>' + nApp + '명</b>' : '<span class="pc-sub">0명</span>') + '</td>' +
+          '<td>' + cohortStatusSel(c) + '</td>' +
+          '<td style="white-space:nowrap"><div style="display:inline-flex;gap:6px">' +
+            '<button class="btn btn-point" data-act="csave" data-id="' + c.id + '" style="padding:7px 13px">저장</button>' +
+            '<button class="btn btn-ghost" data-act="ccancel" style="padding:7px 13px">취소</button>' +
+          '</div></td></tr>';
+      }
       return '<tr draggable="true" data-crow="' + c.id + '">' +
         '<td class="drag-grip" title="끌어서 순서를 바꿉니다"><i data-lucide="grip-vertical"></i></td>' +
         '<td><b>' + esc(c.name) + '</b></td><td>' + esc(c.period || '-') + '</td><td>' + esc(c.schedule || '-') + '</td><td>' + esc(c.place || '-') + '</td>' +
         '<td>' + (nApp ? '<b>' + nApp + '명</b>' : '<span class="pc-sub">0명</span>') + '</td>' +
         '<td>' + cohortStatusSel(c) +
-        '</td><td><button class="icon-btn" data-act="cdel" data-id="' + c.id + '" title="기수 삭제"><i data-lucide="trash-2"></i></button></td></tr>';
+        '</td><td style="white-space:nowrap"><div style="display:inline-flex;gap:6px;align-items:center">' +
+          '<button class="icon-btn" data-act="cedit" data-id="' + c.id + '" title="기수 수정"><i data-lucide="pen-line"></i></button>' +
+          '<button class="icon-btn" data-act="cdel" data-id="' + c.id + '" title="기수 삭제"><i data-lucide="trash-2"></i></button>' +
+        '</div></td></tr>';
     }).join('') : emptyRow(8, '등록된 기수가 없습니다. 아래에서 추가하세요.');
-    return '<div class="panel"><div class="panel-head"><h3>모집 기수</h3><span class="ph-sub">여기 순서가 지도사 과정 페이지의 일정표 순서입니다 — 행을 끌어 올리거나 내려서 바꾸세요 (위에서부터 5개가 보입니다)</span></div>' +
+    return '<div class="panel"><div class="panel-head"><h3>모집 기수</h3><span class="ph-sub">연필을 눌러 고치고, 행을 끌어 순서를 바꿉니다 — 이 순서대로 지도사 과정 페이지에 위에서부터 5개가 나갑니다</span></div>' +
       '<div style="overflow-x:auto"><table class="admin-table" id="cohortTable"><thead><tr><th></th><th>기수명</th><th>교육 기간</th><th>요일·시간</th><th>장소</th><th>신청 인원</th><th>모집 상태</th><th></th></tr></thead><tbody id="cohortRows">' + rows + '</tbody></table></div>' +
       '<form class="admin-form" id="cohortForm" style="border-top:1px solid var(--line-soft)">' +
         '<div class="field"><label>기수명 <span style="color:var(--point)">*</span></label><input name="name" required placeholder="예) 2026년 3기"></div>' +
@@ -3225,6 +3281,14 @@
     } else if (act === 'pnew') { prodEditing = 'new'; pImgState.removed = []; render();
     } else if (act === 'pedit') { prodEditing = b.dataset.id; pImgState.removed = []; render();
     } else if (act === 'pback') { if (!confirmLeave()) return; prodEditing = null; pImgState = { main: null, extra: [], detail: [], removed: [] }; render();
+    } else if (act === 'cedit') {
+      cohortEditing = b.dataset.id; render();
+      var first = document.querySelector('.row-editing [data-f=name]');
+      if (first) { first.focus(); first.select(); }
+    } else if (act === 'csave') {
+      saveCohortEdit(b.dataset.id);
+    } else if (act === 'ccancel') {
+      cohortEditing = null; render();
     } else if (act === 'pcopy') {
       copyProduct(b.dataset.id);
     } else if (act === 'pdel') {
