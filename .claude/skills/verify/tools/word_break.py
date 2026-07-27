@@ -13,15 +13,22 @@ from playwright.sync_api import sync_playwright
 B = (sys.argv[1] if len(sys.argv) > 1 else "https://cham-3ef.pages.dev").rstrip("/")
 PUBLIC = ["/", "/about.html", "/ferments.html", "/vinegar.html", "/nuruk.html",
           "/instructor.html", "/products.html", "/news.html", "/contact.html",
-          "/terms.html", "/privacy.html", "/login.html", "/404.html"]
-ADMIN = ["dashboard", "products", "orders", "sales", "apps", "inq", "posts", "images",
-         "popups", "partners", "settings", "accounts", "members", "roles",
-         "backup", "consents", "kms", "manual"]
+          "/terms.html", "/privacy.html", "/signup.html", "/mypage.html",
+          "/login.html", "/404.html"]
+# admin.js 의 NAV 와 같은 목록(그룹 요약 화면 제외). 메뉴가 늘면 여기도 늘린다.
+ADMIN = ["dashboard", "products", "orders", "sales", "cohorts", "apps", "inq",
+         "posts", "texts", "images", "partners", "popups", "consents", "kms",
+         "accounts", "settings", "seo", "backup", "manual"]
 
 # 한글을 직접 담은 요소만 훑는다. white-space 가 nowrap/pre 면 애초에 줄바꿈이 없다.
+#
+# [hidden] 을 먼저 풀고 본다 — 로그인 전/후, 빈 목록, 탈퇴 안내처럼 조건이 맞아야
+# 나오는 패널이 많다. 숨은 채로 두면 그 안의 word-break 를 영영 못 본다.
+# 여기서 재는 것은 계산된 스타일뿐이라 화면을 건드려도 결과가 흔들리지 않는다.
 SCAN = r"""(root) => {
   const HANGUL = /[가-힣]/;
   const out = [], seen = new Set();
+  (root || document).querySelectorAll('[hidden]').forEach(el => { el.hidden = false; });
   (root || document).querySelectorAll('*').forEach(el => {
     if (el.closest('script,style,head,noscript')) return;
     let own = '';
