@@ -434,6 +434,7 @@ p  { margin: 0 0 var(--s4); text-wrap: pretty; }
   .brand img { width: 32px; height: 32px; }
   .brand .bt b { font-size: 16px; }
   .nav-cta .btn-point { display: none; }  /* 좁은 화면: 상단 CTA는 숨기고 햄버거 메뉴의 신청 버튼 사용 */
+  .nav-cta .nav-member { display: none; } /* 로그인 진입점도 같은 이유로 햄버거 메뉴 안에 있다 */
 }
 @media (max-width: 360px){
   .brand img { width: 28px; height: 28px; }

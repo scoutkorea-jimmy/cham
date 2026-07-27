@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>마이페이지 · 한국참전통발효식품협동조합</title>
+<meta name="description" content="회원 로그인 · 내 정보와 주문 내역을 확인합니다.">
+<meta name="robots" content="noindex,nofollow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="한국참전통발효식품협동조합">
+<meta property="og:title" content="마이페이지 · 한국참전통발효식품협동조합">
+<link rel="preconnect" href="https://unpkg.com" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="assets/site.css">
+<style id="page-style">
+  .auth-wrap { max-width: 640px; margin: 0 auto; }
+  .mp-wrap { max-width: 860px; margin: 0 auto; }
+  .form-msg { margin: 0; padding: 11px 14px; border-radius: var(--r-md); font-size: var(--fs-sm); line-height: var(--lh-normal); }
+  .form-msg.bad  { background: var(--danger-tint, #FBEAE8); color: var(--danger); }
+  .form-msg.good { background: var(--main-tint); color: var(--main-deep); }
+  .mp-sub { color: var(--ink-mute); font-size: var(--fs-caption); margin-top: 3px; }
+  .agree { display: flex; gap: 10px; align-items: flex-start; font-size: var(--fs-sm); color: var(--ink-soft); line-height: var(--lh-normal); }
+  .agree input { width: 18px; height: 18px; margin-top: 2px; flex-shrink: 0; accent-color: var(--main); }
+  /* 주문 내역 — 좁은 화면에서는 표가 넘치므로 가로로만 스크롤한다(페이지는 넘치지 않는다) */
+  .mp-table-scroll { overflow-x: auto; }
+  .mp-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); min-width: 460px; }
+  .mp-table th, .mp-table td { text-align: left; padding: 13px 14px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  .mp-table th { background: var(--surface-2); font-size: var(--fs-caption); color: var(--ink-soft); font-weight: 700; white-space: nowrap; }
+  .mp-table tr:last-child td { border-bottom: none; }
+  .mp-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s4); flex-wrap: wrap; }
+</style>
+</head>
+<body data-page="mypage">
+<header id="site-nav"></header>
+
+<section class="section" id="mpRoot">
+  <!-- 로그인 전 -->
+  <div class="wrap auth-wrap" id="mpGate" hidden>
+    <div class="section-head reveal">
+      <span class="eyebrow">회원</span>
+      <h2>로그인</h2>
+      <p class="lede">회원 로그인입니다. 관리자 로그인과는 다릅니다.</p>
+    </div>
+    <div class="card card-pad reveal">
+      <form id="loginFormM" novalidate>
+        <div class="form-grid">
+          <div class="field full">
+            <label for="mi-id">아이디</label>
+            <input id="mi-id" name="username" required autocomplete="username">
+          </div>
+          <div class="field full">
+            <label for="mi-pw">비밀번호</label>
+            <input id="mi-pw" name="password" type="password" required autocomplete="current-password">
+          </div>
+          <div class="field full"><p id="loginMsgM" class="form-msg" hidden></p></div>
+          <div class="field full">
+            <button class="btn btn-point btn-lg" type="submit" style="width:100%">로그인</button>
+          </div>
+        </div>
+      </form>
+      <p class="muted" style="margin:var(--gap-related) 0 0;font-size:var(--fs-sm);text-align:center">
+        아직 회원이 아니신가요? <a href="signup.html" style="text-decoration:underline">회원가입</a>
+      </p>
+    </div>
+    <p class="muted reveal" style="font-size:var(--fs-caption);margin-top:var(--gap-related)">
+      ※ 비밀번호를 잊으셨다면 <b>02-855-8806</b>으로 연락 주세요. 본인 확인 후 다시 설정해 드립니다.
+    </p>
+  </div>
+
+  <!-- 로그인 후 -->
+  <div class="wrap mp-wrap stack" id="mpBody" hidden>
+    <div class="section-head">
+      <span class="eyebrow">마이페이지</span>
+      <div class="mp-head">
+        <h2 id="mpHello">내 정보</h2>
+        <button class="btn btn-ghost" id="mpLogout" style="padding:9px 16px">로그아웃</button>
+      </div>
+    </div>
+    <p id="mpMsg" class="form-msg" hidden></p>
+
+    <div class="card card-pad">
+      <h4 style="margin:0 0 var(--gap-related)">주문 내역</h4>
+      <div class="mp-table-scroll">
+        <table class="mp-table">
+          <thead><tr><th>주문번호</th><th>상품</th><th>금액</th><th>상태</th></tr></thead>
+          <tbody id="mpOrders"><tr><td colspan="4" style="text-align:center;color:var(--ink-mute);padding:24px">불러오는 중…</td></tr></tbody>
+        </table>
+      </div>
+      <p class="muted" style="margin:var(--gap-related) 0 0;font-size:var(--fs-caption)">
+        로그인한 채로 넣으신 주문만 모입니다. 비회원으로 주문하신 건은
+        <a href="products.html#lookup" style="text-decoration:underline">주문 조회</a>에서 주문번호로 확인해 주세요.
+      </p>
+    </div>
+
+    <div class="card card-pad">
+      <h4 style="margin:0 0 var(--gap-related)">내 정보</h4>
+      <form id="profileForm" novalidate>
+        <div class="form-grid">
+          <div class="field">
+            <label for="mp-name">이름 <span class="req">*</span></label>
+            <input id="mp-name" name="name" required autocomplete="name">
+          </div>
+          <div class="field">
+            <label for="mp-phone">휴대전화 <span class="req">*</span></label>
+            <input id="mp-phone" name="phone" type="tel" required autocomplete="tel">
+          </div>
+          <div class="field full">
+            <label for="mp-email">이메일</label>
+            <input id="mp-email" name="email" type="email" autocomplete="email">
+          </div>
+          <div class="field">
+            <label for="mp-post">우편번호</label>
+            <input id="mp-post" name="postcode" autocomplete="postal-code">
+          </div>
+          <div class="field">
+            <label for="mp-addr">주소</label>
+            <input id="mp-addr" name="address" autocomplete="street-address">
+          </div>
+          <div class="field full">
+            <label for="mp-addr2">상세주소</label>
+            <input id="mp-addr2" name="addressDetail">
+          </div>
+          <div class="field full">
+            <label class="agree"><input type="checkbox" name="marketingOptin" value="1"><span>[선택] 교육 일정·신제품 소식을 받아보겠습니다.</span></label>
+          </div>
+          <div class="field full"><p id="profileMsg" class="form-msg" hidden></p></div>
+          <div class="field full"><button class="btn btn-point" type="submit" style="padding:11px 22px">저장</button></div>
+        </div>
+      </form>
+    </div>
+
+    <div class="card card-pad">
+      <h4 style="margin:0 0 var(--gap-related)">비밀번호 변경</h4>
+      <form id="pwForm" novalidate>
+        <div class="form-grid">
+          <div class="field full">
+            <label for="mp-pw0">지금 비밀번호 <span class="req">*</span></label>
+            <input id="mp-pw0" name="currentPassword" type="password" required autocomplete="current-password">
+          </div>
+          <div class="field">
+            <label for="mp-pw1">새 비밀번호 <span class="req">*</span></label>
+            <input id="mp-pw1" name="newPassword" type="password" required autocomplete="new-password" placeholder="10자 이상">
+          </div>
+          <div class="field">
+            <label for="mp-pw2">새 비밀번호 확인 <span class="req">*</span></label>
+            <input id="mp-pw2" name="newPassword2" type="password" required autocomplete="new-password">
+          </div>
+          <div class="field full"><p id="pwMsg" class="form-msg" hidden></p></div>
+          <div class="field full"><button class="btn btn-ghost" type="submit" style="padding:11px 22px">비밀번호 바꾸기</button></div>
+        </div>
+      </form>
+      <p class="muted" style="margin:var(--gap-related) 0 0;font-size:var(--fs-caption)">
+        바꾸시면 다른 기기에서 로그인된 것은 모두 끊깁니다. 이 화면은 그대로 쓰실 수 있습니다.
+      </p>
+    </div>
+  </div>
+</section>
+
+<footer id="site-footer"></footer>
+<script defer src="https://unpkg.com/lucide@1.17.0"></script>
+<script defer src="assets/site.js"></script>
+<script defer src="assets/member.js"></script>
+</body>
+</html>

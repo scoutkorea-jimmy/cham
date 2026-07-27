@@ -222,3 +222,85 @@ export function checkPasswordStrength(pw) {
 }
 
 export { SESSION_MS };
+
+/* ══ 일반 회원(손님) 세션 ═════════════════════════════════════
+   관리자와 **같은 비밀키로 서명하되 절대 섞이지 않아야 한다.**
+   섞이지 않는 근거는 두 가지이고, 둘 다 무너지면 회원이 관리자가 된다.
+     1. payload 의 `sub` — 관리자 토큰은 'admin', 회원 토큰은 'member'.
+        readToken() 은 sub!=='admin' 이면 버리고, readMemberToken() 은 그 반대다.
+     2. 쿠키 이름 — admin_token / member_token 은 서로 읽지 않는다.
+   회원 세션은 장바구니가 아니라 '내 정보'를 여는 열쇠라 관리자와 같은 12시간이 아니라
+   더 길게 잡는다(재로그인 요구가 잦으면 손님은 그냥 떠난다). */
+const MEMBER_SESSION_MS = 14 * 24 * 60 * 60 * 1000; // 14일
+
+export async function createMemberToken(secret, m) {
+  const header = b64url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+  const now = Date.now();
+  const payload = b64url(JSON.stringify({
+    sub: 'member',
+    mid: Number(m.mid),
+    username: String(m.username || '').toLowerCase(),
+    iat: now,
+    exp: now + MEMBER_SESSION_MS,
+  }));
+  const data = `${header}.${payload}`;
+  const sig = await crypto.subtle.sign('HMAC', await hmacKey(secret, ['sign']), enc(data));
+  return `${data}.${bufToB64url(sig)}`;
+}
+
+export async function readMemberToken(token, secret) {
+  try {
+    if (!token || typeof token !== 'string') return null;
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const [header, payload, sig] = parts;
+    const ok = await crypto.subtle.verify(
+      'HMAC', await hmacKey(secret, ['verify']), b64urlToBuf(sig), enc(`${header}.${payload}`)
+    );
+    if (!ok) return null;
+    const body = JSON.parse(new TextDecoder().decode(b64urlToBuf(payload)));
+    if (!body || body.sub !== 'member') return null;   // 관리자 토큰을 여기로 들여보내지 않는다
+    if (!Number.isFinite(body.exp) || Date.now() >= body.exp) return null;
+    return body;
+  } catch { return null; }
+}
+
+/**
+ * 회원 세션을 읽어 계정 행까지 확인한다.
+ * 관리자와 같은 이유로 토큰만 믿지 않는다 — 탈퇴·정지·비밀번호 변경이 즉시 반영돼야 한다.
+ * @returns {Promise<null | {mid, username, member}>}
+ */
+export async function getMemberSession(request, env) {
+  if (!env || !env.ADMIN_SECRET || !env.DB) return null;
+  const payload = await readMemberToken(readCookie(request, 'member_token'), env.ADMIN_SECRET);
+  if (!payload) return null;
+  let row = null;
+  try {
+    row = await env.DB.prepare(
+      `SELECT id, username, name, phone, email, postcode, address, address_detail,
+              status, must_change_password, token_min_iat, marketing_optin, created_at, last_login_at
+         FROM members WHERE id = ?`
+    ).bind(payload.mid).first();
+  } catch { return null; }
+  if (!row || row.status !== 'active') return null;
+  if (Number(row.token_min_iat || 0) > Number(payload.iat || 0)) return null;
+  return { mid: row.id, username: row.username, member: row };
+}
+
+/* 회원 쿠키 2종. member_token 만 자격이고, member_session 은 화면이 '로그인했다'를
+   아는 표식일 뿐이다 — 서버는 이 값을 절대 신뢰하지 않는다. */
+export function buildMemberCookies(token, { secure = true, maxAge = MEMBER_SESSION_MS / 1000 } = {}) {
+  const sec = secure ? '; Secure' : '';
+  return [
+    `member_token=${encodeURIComponent(token)}; Path=/; HttpOnly${sec}; SameSite=Lax; Max-Age=${maxAge}`,
+    `member_session=1; Path=/${sec}; SameSite=Lax; Max-Age=${maxAge}`,
+  ];
+}
+export function clearMemberCookies({ secure = true } = {}) {
+  const sec = secure ? '; Secure' : '';
+  return [
+    `member_token=; Path=/; HttpOnly${sec}; SameSite=Lax; Max-Age=0`,
+    `member_session=; Path=/${sec}; SameSite=Lax; Max-Age=0`,
+  ];
+}
+export { MEMBER_SESSION_MS };

@@ -10,6 +10,7 @@
  *   · status 는 항상 '주문접수'/'신규'로 시작한다(클라이언트가 정하지 못한다).
  */
 import { ORDER_INSERT, orderObjToBind, APP_INSERT, INQ_INSERT, appBind, inqBind, parseJSON } from '../_shared/store.js';
+import { getMemberSession } from '../_shared/auth.js';
 import { json, badRequest, methodNotAllowed, readJson } from '../_shared/http.js';
 
 const MAX_LEN = 2000;
@@ -104,8 +105,12 @@ export async function onRequestPost({ request, env }) {
   if (!clean(d.name) || !clean(d.phone)) return badRequest('이름과 연락처를 입력해 주세요.');
 
   const orderNo = await issueOrderNo(env);
+  /* 회원이 로그인한 채로 넣은 주문이면 계정에 묶는다.
+     **쿠키로만 판단한다** — 브라우저가 보낸 memberId 를 믿으면 남의 계정에 주문을 꽂을 수 있다. */
+  const ms = await getMemberSession(request, env);
   const rec = {
     id, orderNo, kind, status: '주문접수', payMethod: '무통장입금', at: now,
+    memberId: ms ? ms.mid : null,
     name: clean(d.name, 60), phone: clean(d.phone, 40), email: clean(d.email, 120),
     address: clean(d.address, 300), depositor: clean(d.depositor, 60),
     request: clean(d.request, MAX_LEN), memo: clean(d.memo, MAX_LEN),

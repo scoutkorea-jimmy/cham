@@ -1062,6 +1062,31 @@
       else elx.textContent = val;
     }
   }
+  /* 회원 진입점.
+     로그인 여부는 `member_session` 쿠키(HttpOnly 가 아닌 표식)로만 판단한다 —
+     이 값은 **화면을 고르는 데만** 쓰고 권한으로 쓰지 않는다. 실제 자격은 member_token
+     이고 서버가 매 요청마다 계정 행까지 확인한다. 표식이 거짓이어도 마이페이지를 열면
+     서버가 로그인 화면을 돌려줄 뿐이다. */
+  function memberLoggedIn() {
+    return /(?:^|;\s*)member_session=1(?:;|$)/.test(document.cookie || '');
+  }
+  /* 로그인한 회원의 정보. 주문 폼을 미리 채우는 데만 쓴다.
+     표식 쿠키가 있을 때만 한 번 물어본다 — 손님 대부분은 비회원이라, 모든 방문에
+     회원 조회를 붙이면 아무 소용 없는 요청이 페이지마다 늘어난다. */
+  var memberProfile = null;
+  function loadMemberProfile() {
+    if (!memberLoggedIn()) return Promise.resolve(null);
+    return api('/api/members/me').then(function (r) {
+      memberProfile = (r.ok && r.data && r.data.member) || null;
+      return memberProfile;
+    }).catch(function () { return null; });
+  }
+  function memberLinkHTML() {
+    return memberLoggedIn()
+      ? '<a class="btn btn-ghost nav-member" href="mypage.html"><i data-lucide="user-round"></i>마이페이지</a>'
+      : '<a class="btn btn-ghost nav-member" href="mypage.html"><i data-lucide="log-in"></i>로그인</a>';
+  }
+
   function buildNav() {
     var cur = currentPage();
     var links = NAV.map(function (n) {
@@ -1084,6 +1109,7 @@
             '<span class="bt"><b>' + brandMarkup() + '</b></span>' +
           '</a>' +
           '<div class="nav-cta">' +
+            memberLinkHTML() +
             '<button class="btn btn-point" data-modal="apply"><i data-lucide="sprout"></i>지도사 신청</button>' +
             '<button class="btn btn-ghost nav-toggle" aria-label="메뉴 열기" id="navToggle" style="padding:11px 13px"><i data-lucide="menu"></i></button>' +
           '</div>' +
@@ -1105,6 +1131,8 @@
       '<div class="mm-body"><div class="mm-head"><b>메뉴</b><button id="mmClose" aria-label="닫기"><i data-lucide="x"></i></button></div>' +
       '<a class="mm-call" href="tel:' + getSettings().phone.replace(/[^0-9+]/g, '') + '"><i data-lucide="phone"></i><span><b>' + esc(getSettings().phone) + '</b><small>교육 · 제품 문의</small></span></a>' +
       items +
+      '<div class="mm-group"><a class="mm-top" href="mypage.html">' + (memberLoggedIn() ? '마이페이지' : '로그인') + '</a>' +
+        (memberLoggedIn() ? '' : '<div class="mm-sub"><a href="signup.html">회원가입</a></div>') + '</div>' +
       '<button class="btn btn-point btn-lg" data-modal="apply" style="margin-top:var(--gap-related)"><i data-lucide="sprout"></i>전통발효식품 체험지도사 신청</button>' +
       '</div></div>';
   }
@@ -1124,6 +1152,7 @@
           '<a href="instructor.html">체험지도사 과정</a><a href="nuruk.html">누룩이야기</a>' +
           '<a href="products.html">제품 판매</a>' +
           '<a href="news.html">소식마당</a><a href="contact.html">문의하기</a>' +
+          '<a href="mypage.html">' + (memberLoggedIn() ? '마이페이지' : '로그인 · 회원가입') + '</a>' +
         '</div>' +
         '<div class="footer-col footer-info">' +
           '<h6>사업자 정보</h6>' +
@@ -1375,8 +1404,28 @@
     return root;
   }
 
+  /* 로그인한 회원이 열면 주문자·연락처·주소를 미리 채운다.
+     화면이 채워 주는 편의일 뿐이고, 주문이 누구 것인지는 서버가 쿠키로 정한다
+     (functions/api/submit.js) — 여기 값을 고쳐도 남의 계정에 붙지 않는다.
+     이미 값이 있으면 덮지 않는다. 손님이 다른 주소로 보내려고 고쳐 둔 것일 수 있다. */
+  function prefillFromMember(type, data) {
+    if (type !== 'order' && type !== 'seedjang') return data;
+    var m = memberProfile;
+    if (!m) return data;
+    var d = data || {};
+    if (!d.name && m.name) d.name = m.name;
+    if (!d.phone && m.phone) d.phone = m.phone;
+    if (!d.email && m.email) d.email = m.email;
+    if (!d.depositor && m.name) d.depositor = m.name;
+    if (!d.address && (m.address || m.addressDetail)) {
+      d.address = [m.address, m.addressDetail].filter(Boolean).join(' ');
+    }
+    return d;
+  }
+
   function openModal(type, data) {
     var cfg = MODALS[type]; if (!cfg) return;
+    data = prefillFromMember(type, data);
     var fields = cfg.fields.map(function(f){ return fieldHTML(f, data); }).join('');
     var consents = cfg.consents ? consentHTML(cfg.consents) : '';
     var pay = cfg.pay ? payBoxHTML(cfg.pay === 'note' ? 'note' : 'total', data) : '';
@@ -1711,6 +1760,8 @@
   function start() {
     if (!SERVER) { seedProducts(); dropDemoData(); }   // 로컬 모드에서만 상품 카탈로그를 심는다
     if (!isPreviewFrame) trackVisit();
+    // 회원 정보는 주문 폼을 채울 때만 쓴다 — 화면을 그리는 것을 기다리게 하지 않는다
+    if (!isPreviewFrame) loadMemberProfile();
     mountChrome();
     applySiteSettings();
     enhanceSEO();

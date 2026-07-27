@@ -30,6 +30,7 @@ export function orderRowToObj(r) {
     depositor: r.depositor, payMethod: r.pay_method,
     shipMethod: r.ship_method, courier: r.courier, tracking: r.tracking,
     cancelReason: r.cancel_reason, rmaReason: r.rma_reason, pickupAddr: r.pickup_addr,
+    memberId: r.member_id,
     at: r.created_at,
   };
   // null 열은 내보내지 않는다 — 기존 코드가 `o.tracking ? …` 처럼 존재 여부로 분기한다
@@ -41,7 +42,7 @@ const ORDER_COLS = new Set([
   'id', 'orderNo', 'kind', 'status', 'name', 'phone', 'email', 'address',
   'productId', 'product', 'optionLabel', 'qty', 'unitPrice', 'total',
   'depositor', 'payMethod', 'shipMethod', 'courier', 'tracking',
-  'cancelReason', 'rmaReason', 'pickupAddr', 'at',
+  'cancelReason', 'rmaReason', 'pickupAddr', 'at', 'memberId',
 ]);
 
 export function orderObjToBind(o) {
@@ -56,6 +57,7 @@ export function orderObjToBind(o) {
     o.shipMethod ?? null, o.courier ?? null, o.tracking ?? null,
     o.cancelReason ?? null, o.rmaReason ?? null, o.pickupAddr ?? null,
     JSON.stringify(payload), o.at || new Date().toISOString(),
+    o.memberId == null ? null : Number(o.memberId),
   ];
 }
 
@@ -63,8 +65,8 @@ export const ORDER_INSERT = `
   INSERT INTO orders (id, order_no, kind, status, name, phone, email, address,
     product_id, product_name, option_label, qty, unit_price, total,
     depositor, pay_method, ship_method, courier, tracking,
-    cancel_reason, rma_reason, pickup_addr, payload, created_at)
-  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    cancel_reason, rma_reason, pickup_addr, payload, created_at, member_id)
+  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
   ON CONFLICT(id) DO UPDATE SET
     order_no=excluded.order_no, kind=excluded.kind, status=excluded.status,
     name=excluded.name, phone=excluded.phone, email=excluded.email, address=excluded.address,
@@ -74,7 +76,7 @@ export const ORDER_INSERT = `
     ship_method=excluded.ship_method, courier=excluded.courier, tracking=excluded.tracking,
     cancel_reason=excluded.cancel_reason, rma_reason=excluded.rma_reason,
     pickup_addr=excluded.pickup_addr, payload=excluded.payload,
-    created_at=excluded.created_at, updated_at=datetime('now')`;
+    created_at=excluded.created_at, member_id=excluded.member_id, updated_at=datetime('now')`;
 
 /* ── 신청 · 문의 ──────────────────────────────────────────── */
 export function recordRowToObj(r, kind) {
