@@ -363,7 +363,7 @@
     var srcMeta = { '직접 방문': { c: 'var(--main)', i: 'link' }, '검색엔진': { c: 'var(--info)', i: 'search' }, '소셜·블로그': { c: 'var(--point)', i: 'share-2' }, '기타 사이트': { c: 'var(--ink-mute)', i: 'globe' } };
     var srcBars = srcTotal ? srcOrder.map(function (k) {
       var n = srcData[k] || 0, pct = Math.round(n / srcTotal * 100), m = srcMeta[k];
-      return '<div class="src-row"><div class="src-top"><span class="src-name"><i data-lucide="' + m.i + '"></i>' + k + '</span><span class="src-num">' + n + '명 <em>' + pct + '%</em></span></div><div class="src-track"><div class="src-fill" style="width:' + Math.max(2, pct) + '%;background:' + m.c + '"></div></div></div>';
+      return '<div class="src-row"><div class="src-top"><span class="src-name"><i data-lucide="' + m.i + '"></i>' + k + '</span><span class="src-num">' + n + '명 <em>' + pct + '%</em></span></div><div class="src-track"><div class="src-fill" style="--pct:' + Math.max(2, pct) + '%;background:' + m.c + '"></div></div></div>';
     }).join('') : '<div class="admin-empty" style="padding:30px 10px"><i data-lucide="route"></i><div>아직 유입 데이터가 없습니다.<br>방문이 쌓이면 경로별로 표시됩니다.</div></div>';
 
     // 주문 상태 분포 그래프
@@ -372,7 +372,7 @@
     var stMax = stKeys.length ? Math.max.apply(null, stKeys.map(function (k) { return stMap[k]; })) : 1;
     var stBars = stKeys.length ? stKeys.map(function (k) {
       var n = stMap[k], c = (S.ST_COLOR && S.ST_COLOR[k]) || '#6E8252', w = Math.round(n / stMax * 100);
-      return '<div class="src-row"><div class="src-top"><span class="src-name">' + stTag(k) + '</span><span class="src-num">' + n + '건</span></div><div class="src-track"><div class="src-fill" style="width:' + Math.max(3, w) + '%;background:' + c + '"></div></div></div>';
+      return '<div class="src-row"><div class="src-top"><span class="src-name">' + stTag(k) + '</span><span class="src-num">' + n + '건</span></div><div class="src-track"><div class="src-fill" style="--pct:' + Math.max(3, w) + '%;background:' + c + '"></div></div></div>';
     }).join('') : '<div class="admin-empty" style="padding:30px 10px"><i data-lucide="inbox"></i><div>주문이 없습니다.</div></div>';
 
     // 오늘 해야 할 일(실무 처리 대기 항목 — 누르면 해당 화면으로 이동)
@@ -1978,7 +1978,7 @@
     var prodMax = prodKeys.length ? byProd[prodKeys[0]].amt : 1;
     var prodBars = prodKeys.length ? prodKeys.map(function (k) {
       var d = byProd[k], w = Math.round(d.amt / prodMax * 100);
-      return '<div class="src-row"><div class="src-top"><span class="src-name" style="max-width:52%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(k) + '</span><span class="src-num">' + fmtWon(d.amt) + '원 <em>' + d.q + '개</em></span></div><div class="src-track"><div class="src-fill" style="width:' + Math.max(3, w) + '%;background:var(--olive)"></div></div></div>';
+      return '<div class="src-row"><div class="src-top"><span class="src-name" style="max-width:52%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(k) + '</span><span class="src-num">' + fmtWon(d.amt) + '원 <em>' + d.q + '개</em></span></div><div class="src-track"><div class="src-fill" style="--pct:' + Math.max(3, w) + '%;background:var(--olive)"></div></div></div>';
     }).join('') : '<div class="admin-empty" style="padding:30px 10px"><i data-lucide="inbox"></i><div>해당 기간 매출이 없습니다.</div></div>';
 
     // 결제수단별 분포
@@ -1987,7 +1987,7 @@
     var payKeys = Object.keys(byPay).sort(function (a, b) { return byPay[b] - byPay[a]; });
     var payBars = payKeys.length ? payKeys.map(function (k) {
       var pct = revenue ? Math.round(byPay[k] / revenue * 100) : 0;
-      return '<div class="src-row"><div class="src-top"><span class="src-name"><i data-lucide="credit-card"></i>' + esc(k) + '</span><span class="src-num">' + fmtWon(byPay[k]) + '원 <em>' + pct + '%</em></span></div><div class="src-track"><div class="src-fill" style="width:' + Math.max(3, pct) + '%;background:var(--main)"></div></div></div>';
+      return '<div class="src-row"><div class="src-top"><span class="src-name"><i data-lucide="credit-card"></i>' + esc(k) + '</span><span class="src-num">' + fmtWon(byPay[k]) + '원 <em>' + pct + '%</em></span></div><div class="src-track"><div class="src-fill" style="--pct:' + Math.max(3, pct) + '%;background:var(--main)"></div></div></div>';
     }).join('') : '<div class="admin-empty" style="padding:20px 10px"><i data-lucide="credit-card"></i><div>데이터 없음</div></div>';
 
     var tabs = '<div class="subtabs">' + periods.map(function (p) {
@@ -2451,7 +2451,7 @@
   function bar(label, num, pct, color) {
     return '<div class="src-row"><div class="src-top"><span class="src-name">' + label + '</span>' +
       '<span class="src-num">' + num + '</span></div>' +
-      '<div class="src-track"><div class="src-fill" style="width:' + Math.max(3, pct) + '%;background:' + color + '"></div></div></div>';
+      '<div class="src-track"><div class="src-fill" style="--pct:' + Math.max(3, pct) + '%;background:' + color + '"></div></div></div>';
   }
   function panelWrap(title, sub, body) {
     return '<div class="panel"><div class="panel-head"><h3>' + title + '</h3>' +

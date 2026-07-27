@@ -64,6 +64,9 @@
   --warn:  #C9912F;
   --danger:#C0492E;
   --info:  #4A6E86;
+  /* 안내 상자용 — 색 막대를 세우는 대신 면과 글자로 성격을 드러낸다 */
+  --info-tint: #EDF2F6;
+  --info-ink:  #33536A;
 
   /* ---- Type ---- */
   --font-head: 'PayboocFont', 'Pretendard Variable', sans-serif;  /* tweakable: 글꼴 변형 */
@@ -468,8 +471,11 @@ p  { margin: 0 0 var(--s4); text-wrap: pretty; }
 .nav-dd {
   position: absolute; top: 100%; left: 50%; transform: translateX(-50%) translateY(6px);
   min-width: 212px; background: var(--surface);
-  border: 1px solid var(--line-soft); border-top: 3px solid var(--point);
-  border-radius: 0 0 var(--r-md) var(--r-md); box-shadow: var(--sh-lg); padding: 6px;
+  /* 예전에는 위쪽에 3px 포인트 선을 두고 그 모서리만 각지게 뒀다. 선이 굵어 상자보다
+     먼저 눈에 들었고 라운드와도 어긋났다. 메뉴와의 연결은 위치와 그림자가 이미 말해 주므로,
+     테두리는 한 겹으로 두르고 상자를 온전히 둥글린다. 강조는 안쪽 제목(.dd-head)이 맡는다. */
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-md); box-shadow: var(--sh-lg); padding: 6px;
   opacity: 0; visibility: hidden; transition: all var(--dur-fast) var(--ease); pointer-events: none;
 }
 .nav-item:hover .nav-dd { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); pointer-events: auto; }
@@ -478,7 +484,7 @@ p  { margin: 0 0 var(--s4); text-wrap: pretty; }
   display: block; padding: 8px 13px 9px; margin-bottom: 4px;
   border-bottom: 1px solid var(--line-soft);
   font-size: var(--fs-micro); font-weight: 700; letter-spacing: var(--tracking-kicker);
-  color: var(--ink-faint);
+  color: var(--point-deep);   /* 위쪽 굵은 선을 걷어낸 자리 — 강조는 이 글자가 맡는다 */
 }
 .nav-dd a {
   display: block; padding: 9px 13px; border-radius: var(--r-sm); font-size: var(--fs-sm);
@@ -1038,7 +1044,16 @@ button[type=submit]:disabled, .btn:disabled { opacity: 0.45; cursor: not-allowed
 .rich img { max-width: 100%; height: auto; border-radius: var(--r-sm); margin: 8px 0; }
 .rich a { color: var(--info); text-decoration: underline; }
 .rich ul, .rich ol { padding-left: 24px; margin: 8px 0 12px; }
-.rich blockquote { border-left: 3px solid var(--main); margin: 14px 0; padding: 8px 16px; color: var(--ink-soft); background: var(--surface-2); border-radius: 0 var(--r-sm) var(--r-sm) 0; }
+/* 인용 — 왼쪽 3px 막대 대신 면과 여백으로 구분한다. 막대를 세우면 그쪽 모서리만
+   각지게 둬야 해서 상자가 한쪽만 잘린 모양이 된다. 인용부호가 시작을 알린다. */
+.rich blockquote {
+  position: relative; margin: 14px 0; padding: 12px 16px 12px 40px;
+  color: var(--ink-soft); background: var(--surface-2); border-radius: var(--r-sm);
+}
+.rich blockquote::before {
+  content: '\201C'; position: absolute; left: 14px; top: 6px;
+  font-family: var(--font-head); font-size: 28px; line-height: 1; color: var(--main); opacity: .45;
+}
 .rich pre { background: #322F29; color: #EFEDE6; padding: 14px 16px; border-radius: var(--r-sm); overflow-x: auto; font-size: 13px; line-height: 1.6; }
 .rich code { background: var(--surface-2); border-radius: 4px; padding: 1px 5px; font-size: 0.9em; }
 .rich pre code { background: none; padding: 0; }
