@@ -13,7 +13,7 @@ Cloudflare Pages(Functions + D1 + R2)로 이전 중이며, 배포 전까지 GitH
 ```
 index.html          홈
 about.html          협동조합 소개        ferments.html   전통발효식품
-vinegar.html        식초(서련 瑞蓮)      nuruk.html      누룩이야기
+vinegar.html        식초(서연 瑞蓮)      nuruk.html      누룩이야기
 instructor.html     체험지도사 과정      products.html   제품 목록
 product.html        상품 상세(?id=)      news.html       소식마당
 contact.html        문의                admin.html      관리자 콘솔
@@ -60,7 +60,7 @@ Basic_Infomation/   고객사 원본 자료(pptx·jpg) — 콘텐츠 근거. 편
 | 상황 | 문서 |
 |---|---|
 | **모든 작업 시작 전** | [docs/handoff.md](docs/handoff.md) — 받은 요청과 상태. 새 요청은 여기 먼저 적는다 |
-| 작업 절차 | [rules/workflow.md](rules/workflow.md) — 외부 변경 감지 · 조사 · 계획 · 검증 · 보고 |
+| 작업 절차 | [rules/workflow.md](rules/workflow.md) — 외부 변경 감지 · 조사 · 계획 · 검증 · **커밋·배포** · 보고 |
 | 코드를 쓰거나 고칠 때 | [rules/code-quality.md](rules/code-quality.md) — 중복 · 책임 분리 · 타입 · 오류 · 네이밍 |
 | 색 · 글꼴 · 그림자 · 모션 | [rules/design-tokens.md](rules/design-tokens.md) |
 | 여백 · 간격 · 리듬 | [rules/spacing-rhythm.md](rules/spacing-rhythm.md) |
@@ -86,6 +86,9 @@ Basic_Infomation/   고객사 원본 자료(pptx·jpg) — 콘텐츠 근거. 편
 9. **작은 수정에 파일 전체를 다시 쓰지 않는다.**
 10. **하지 않은 테스트를 했다고 하지 않는다.** 검증하지 못했으면 그 사실을 밝힙니다.
 11. **`new` · `v2` · `final` · `copy` · `temp` 같은 이름을 쓰지 않는다.**
+12. **검증을 마쳤으면 묻지 말고 커밋하고 push 한다.** "커밋할까요?" 라고 되묻지 않습니다.
+    `main` push = Cloudflare Pages 자동 배포이므로, push 하지 않으면 사용자가 보는 사이트는
+    그대로입니다 → [workflow.md](rules/workflow.md) 8절
 
 ## 멈추고 물어봐야 하는 때
 
