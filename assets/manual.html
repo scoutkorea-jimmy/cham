@@ -89,7 +89,7 @@
       <a href="#settings"><span class="icon-badge sm"><i data-lucide="settings"></i></span><span><b>설정</b><span>계좌 · 전화 · 주소 · 약도</span></span></a>
       <a href="#backup"><span class="icon-badge sm"><i data-lucide="database"></i></span><span><b>데이터 백업</b><span>자료 내려받기 · 되살리기</span></span></a>
     </div>
-    <p class="note reveal">이 밖에 <span class="ui">동의문 관리</span>(개인정보 동의 문구)와 <span class="ui">KMS</span>(개발·디자인 기준 문서)가 있습니다. 두 메뉴는 담당자와 상의해 고치는 곳이라 평소에는 손대지 않으셔도 됩니다.</p>
+    <p class="note reveal">이 밖에 <span class="mpath"><span>시스템</span><i>›</i><span class="last">동의문 관리</span></span>(개인정보 동의 문구)와 <span class="ui">KMS</span>(개발·디자인 기준 문서)가 있습니다. 두 메뉴는 담당자와 상의해 고치는 곳이라 평소에는 손대지 않으셔도 됩니다.</p>
   </div>
 </section>
 
@@ -101,6 +101,8 @@
       <h2>대시보드에서 하루를 시작합니다</h2>
       <p class="lede">로그인하면 가장 먼저 나오는 화면입니다. <b>「오늘 해야 할 일」</b> 칸만 보시면 밀린 일이 무엇인지 알 수 있습니다.</p>
     </div>
+
+    <p class="mwhere"><b>어디로 가나요</b><span class="mpath"><span class="last">대시보드</span></span></p>
 
     <div class="card card-pad reveal">
       <h4>「오늘 해야 할 일」 다섯 칸</h4>
@@ -148,6 +150,8 @@
       <p class="lede">모든 주문은 아래 다섯 단계를 차례로 지나갑니다. 지금 어느 단계인지만 알면 무엇을 눌러야 할지 정해집니다.</p>
     </div>
 
+    <p class="mwhere"><b>어디로 가나요</b><span class="mpath"><span>판매 관리</span><i>›</i><span class="last">주문 관리</span></span></p>
+
     <div class="card card-pad reveal">
       <div class="flow">
         <span class="fs on">주문접수</span><i data-lucide="chevron-right"></i>
@@ -164,7 +168,7 @@
     <h3 class="reveal">주문 하나를 처리하는 순서</h3>
     <ol class="mstep reveal">
       <li>
-        <b>왼쪽 메뉴에서 <span class="ui">주문 관리</span> 를 누릅니다</b>
+        <b>왼쪽 메뉴에서 <span class="mpath"><span>판매 관리</span><i>›</i><span class="last">주문 관리</span></span> 를 누릅니다</b>
         <p>화면 위쪽에 <b>전체 / 주문접수 / 결제완료 / 배송준비중 / 배송중 / 배송완료 / 취소·반품·교환</b> 탭이 있습니다. 처리할 단계의 탭을 고르세요.</p>
       </li>
       <li>
@@ -266,12 +270,14 @@
       <h2>상품 올리기 · 가격과 재고 고치기</h2>
     </div>
 
+    <p class="mwhere"><b>어디로 가나요</b><span class="mpath"><span>판매 관리</span><i>›</i><span class="last">상품 관리</span></span></p>
+
     <div class="split reveal" style="grid-template-columns:1fr 1fr">
       <div class="card card-pad">
         <div class="icon-badge point"><i data-lucide="plus"></i></div>
         <h4>새 상품 올리기</h4>
         <ol class="mstep">
-          <li><b><span class="ui">상품 관리</span> → <span class="ui point">상품 등록</span></b><p>오른쪽 위 노란 버튼입니다.</p></li>
+          <li><b><span class="mpath"><span>판매 관리</span><i>›</i><span class="last">상품 관리</span></span> → <span class="ui point">상품 등록</span></b><p>오른쪽 위 노란 버튼입니다.</p></li>
           <li><b>기본 정보를 채웁니다</b><p><b>상품명 · 판매가</b>는 반드시 넣어야 합니다. 할인가는 비워두면 할인 없이 표시됩니다.</p></li>
           <li><b>상세 설명을 씁니다</b><p>글자 크기·굵기·사진·표를 넣을 수 있는 편집기입니다. 워드 쓰듯 작성하세요.</p></li>
           <li><b>사진을 올립니다</b><p><b>대표 1장</b>(목록에 보이는 사진), 추가 사진, 상세 사진을 따로 올립니다. 고르는 즉시 미리보기가 뜹니다.</p></li>
@@ -286,6 +292,13 @@
           <h4>이미 올린 상품 고치기</h4>
           <p class="muted">상품 목록에서 <span class="ui">수정</span> 을 누르면 등록할 때와 같은 화면이 열립니다. 고친 뒤 <span class="ui point">수정 저장</span> 을 누르세요.</p>
           <p class="muted"><span class="ui">보기</span> 를 누르면 손님에게 보이는 실제 상세 페이지가 새 창으로 열립니다. 고치기 전후를 비교할 때 쓰세요.</p>
+        </div>
+
+        <div class="card card-pad">
+          <div class="icon-badge sm"><i data-lucide="copy"></i></div>
+          <h4>비슷한 상품은 복제해서 만드세요</h4>
+          <p class="muted">목록의 <span class="ui">복제</span>(종이 두 장 모양) 를 누르면 그 상품을 본떠 새 상품이 만들어집니다. <b>옵션 · 상품정보고시 · 배송 안내 · 사진까지 그대로 따라옵니다.</b> 새 식초를 하나 더 낼 때 열 몇 칸을 다시 적지 않아도 됩니다.</p>
+          <p class="muted">복제한 상품은 <b>‘숨김’ 상태로 만들어지고 곧바로 수정 화면이 열립니다.</b> 이름을 아직 안 고친 상품이 손님에게 보이면 안 되기 때문입니다. 이름과 내용을 고친 뒤 판매 상태를 <b>판매중</b> 으로 바꾸세요.</p>
         </div>
 
         <div class="card card-pad">
@@ -328,8 +341,10 @@
     <div class="section-head reveal">
       <span class="eyebrow">5. 매출 · 정산</span>
       <h2>얼마나 팔렸는지 확인하기</h2>
-      <p class="lede"><span class="ui">매출 · 정산</span> 메뉴에서 <b>오늘 / 이번 달 / 지난 달 / 전체</b> 기간을 골라 봅니다.</p>
+      <p class="lede"><span class="mpath"><span>판매 관리</span><i>›</i><span class="last">매출 · 정산</span></span> 메뉴에서 <b>오늘 / 이번 달 / 지난 달 / 전체</b> 기간을 골라 봅니다.</p>
     </div>
+
+    <p class="mwhere"><b>어디로 가나요</b><span class="mpath"><span>판매 관리</span><i>›</i><span class="last">매출 · 정산</span></span></p>
 
     <div class="grid g-4 reveal">
       <div class="card card-pad"><div class="icon-badge sm"><i data-lucide="wallet"></i></div><h5>기간 매출</h5><p class="muted">고른 기간에 <b>실제로 팔린 금액</b>입니다.</p></div>
@@ -360,6 +375,8 @@
       <h2>신청자에게 연락하고 기록 남기기</h2>
     </div>
 
+    <p class="mwhere"><b>어디로 가나요</b><span class="mpath"><span>고객 관리</span><i>›</i><span class="last">교육과정 관리</span></span><span class="mpath"><span>고객 관리</span><i>›</i><span class="last">신청자 관리</span></span><span class="mpath"><span>고객 관리</span><i>›</i><span class="last">문의 내역</span></span></p>
+
     <div class="split reveal" style="grid-template-columns:1fr 1fr">
       <div class="card card-pad">
         <div class="icon-badge sm"><i data-lucide="user-check"></i></div>
@@ -374,8 +391,21 @@
 
       <div class="card card-pad">
         <div class="icon-badge sm"><i data-lucide="calendar-days"></i></div>
-        <h4>모집 기수 등록하기</h4>
-        <p class="muted"><span class="ui">지도사 신청</span> 화면 <b>맨 위</b>에 「모집 기수 관리」 표가 있습니다. 여기서 넣은 기수가 <b>지도사 과정 페이지의 일정표</b>와 <b>신청서의 기수 선택칸</b>에 그대로 나옵니다.</p>
+        <h4>모집 기수 등록 · 수정 · 순서 바꾸기</h4>
+        <p class="muted"><span class="mpath"><span>고객 관리</span><i>›</i><span class="last">교육과정 관리</span></span> 화면 <b>맨 위</b>에 「모집 기수」 표가 있습니다. 여기서 넣은 기수가 <b>지도사 과정 페이지의 일정표</b>와 <b>신청서의 기수 선택칸</b>에 그대로 나옵니다.</p>
+        <ul class="iconlist">
+          <li class="il"><i data-lucide="plus"></i><div><b>추가</b><p class="note">표 아래 칸을 채우고 <span class="ui point">기수 추가</span> 를 누릅니다.</p></div></li>
+          <li class="il"><i data-lucide="pen-line"></i><div><b>수정</b><p class="note">행 오른쪽 <b>연필</b>을 누르면 그 줄이 바로 입력칸으로 바뀝니다. 고친 뒤 <b>Enter</b> 또는 <span class="ui point">저장</span>, 되돌리려면 <b>Esc</b> 또는 <span class="ui">취소</span>.</p></div></li>
+          <li class="il"><i data-lucide="grip-vertical"></i><div><b>순서 바꾸기</b><p class="note">행 왼쪽 <b>손잡이</b>를 잡고 위아래로 끌면 순서가 바뀝니다. <b>여기 순서가 그대로 손님 화면의 순서</b>입니다.</p></div></li>
+        </ul>
+        <div class="mnote">
+          <i data-lucide="eye"></i>
+          <span><b>손님 화면에는 위에서부터 5개만 보입니다.</b> 기수가 쌓여도 일정표가 길어지지 않게 하기 위해서입니다. 지금 보여 주고 싶은 기수를 <b>표의 위쪽으로 끌어 올리세요.</b> 가려진 기수가 있으면 손님 화면 표 아래에 그 사실이 안내됩니다.</span>
+        </div>
+        <div class="mnote warn">
+          <i data-lucide="alert-circle"></i>
+          <span><b>기수 이름을 바꾸면</b> 이미 접수된 신청서에는 옛 이름이 그대로 남습니다. 신청 인원 집계가 기수 이름으로 이어져 있어, 이름을 바꾸면 그 기수의 인원이 0명으로 보일 수 있습니다. 모집을 시작하기 <b>전에</b> 이름을 확정하세요.</span>
+        </div>
         <div class="hr"></div>
         <p class="muted"><b>모집 상태 네 가지</b></p>
         <ul class="iconlist">
@@ -401,23 +431,25 @@
       <h2>공지를 올리고 첫 화면에 알리기</h2>
     </div>
 
+    <p class="mwhere"><b>어디로 가나요</b><span class="mpath"><span>콘텐츠 관리</span><i>›</i><span class="last">게시글 관리</span></span><span class="mpath"><span>콘텐츠 관리</span><i>›</i><span class="last">팝업 관리</span></span><span class="mpath"><span>콘텐츠 관리</span><i>›</i><span class="last">파트너 관리</span></span></p>
+
     <div class="grid g-3 reveal">
       <div class="card card-pad">
         <div class="icon-badge point"><i data-lucide="pen-line"></i></div>
         <h4>공지 · 소식 올리기</h4>
         <p class="muted">글쓰기는 <b>관리자 페이지가 아니라 소식마당 페이지</b>에서 합니다.</p>
         <ol class="mstep">
-          <li><b>소식마당으로 갑니다</b><p>관리자의 <span class="ui">게시글 관리</span> → <span class="ui point">소식마당에서 글쓰기</span> 를 누르면 새 창으로 열립니다.</p></li>
+          <li><b>소식마당으로 갑니다</b><p>관리자의 <span class="mpath"><span>콘텐츠 관리</span><i>›</i><span class="last">게시글 관리</span></span> → <span class="ui point">소식마당에서 글쓰기</span> 를 누르면 새 창으로 열립니다.</p></li>
           <li><b><span class="ui">글쓰기</span> 를 누릅니다</b><p>여기서 <b>다시 한 번 관리자 확인</b>을 합니다. 아이디·비밀번호를 넣으세요.</p></li>
           <li><b>제목과 본문을 쓰고 등록합니다</b><p>사진·표·파일 첨부를 넣을 수 있습니다.</p></li>
         </ol>
-        <p class="note">관리자의 <span class="ui">게시글 관리</span> 화면에서는 <b>목록 확인과 삭제</b>만 합니다.</p>
+        <p class="note">관리자의 <span class="mpath"><span>콘텐츠 관리</span><i>›</i><span class="last">게시글 관리</span></span> 화면에서는 <b>목록 확인과 삭제</b>만 합니다.</p>
       </div>
 
       <div class="card card-pad">
         <div class="icon-badge point"><i data-lucide="bell"></i></div>
         <h4>홈 첫 화면 팝업</h4>
-        <p class="muted">손님이 홈에 들어오면 뜨는 알림창입니다. <span class="ui">팝업 관리</span> 에서 만듭니다.</p>
+        <p class="muted">손님이 홈에 들어오면 뜨는 알림창입니다. <span class="mpath"><span>콘텐츠 관리</span><i>›</i><span class="last">팝업 관리</span></span> 에서 만듭니다.</p>
         <ul class="iconlist">
           <li class="il"><i data-lucide="type"></i><div><b>제목 · 내용</b><p class="note">필수는 제목뿐입니다.</p></div></li>
           <li class="il"><i data-lucide="image"></i><div><b>이미지</b><p class="note">넣으면 팝업 위쪽에 크게 나옵니다. 자동으로 용량이 줄어듭니다.</p></div></li>
@@ -432,7 +464,7 @@
       <div class="card card-pad">
         <div class="icon-badge point"><i data-lucide="handshake"></i></div>
         <h4>파트너 로고</h4>
-        <p class="muted">홈 아래쪽에서 옆으로 흐르는 로고 띠입니다. <span class="ui">파트너 관리</span> 에서 추가합니다.</p>
+        <p class="muted">홈 아래쪽에서 옆으로 흐르는 로고 띠입니다. <span class="mpath"><span>콘텐츠 관리</span><i>›</i><span class="last">파트너 관리</span></span> 에서 추가합니다.</p>
         <ul class="iconlist">
           <li class="il"><i data-lucide="image"></i><div><b>가로로 긴 로고</b><p class="note">배경이 투명한 PNG를 권합니다. 세로 높이는 자동으로 맞춰집니다.</p></div></li>
           <li class="il"><i data-lucide="external-link"></i><div><b>링크</b><p class="note">넣으면 로고를 눌렀을 때 그 사이트가 새 창으로 열립니다.</p></div></li>
@@ -452,6 +484,8 @@
       <p class="lede">홈 · 소개 · 전통발효식품 · 식초 · 체험지도사 · 누룩이야기 · 제품 — <b>일곱 페이지의 사진 자리</b>를 직접 갈아 끼울 수 있습니다.</p>
     </div>
 
+    <p class="mwhere"><b>어디로 가나요</b><span class="mpath"><span>콘텐츠 관리</span><i>›</i><span class="last">페이지 이미지</span></span></p>
+
     <div class="split reveal" style="grid-template-columns:1fr 1fr">
       <div class="card card-pad">
         <div class="icon-badge point"><i data-lucide="upload"></i></div>
@@ -461,6 +495,10 @@
           <li><b>바꾸려는 자리의 <span class="ui">사진 올리기</span> 를 누릅니다</b><p>자리마다 “히어로 배경 — 장독대 전경” 처럼 어디에 쓰이는 사진인지 이름이 붙어 있습니다.</p></li>
           <li><b>오른쪽 미리보기에서 확인합니다</b><p>올리는 즉시 <b>실제 페이지 모습</b>으로 보여줍니다. 새 탭을 열 필요가 없습니다.</p></li>
         </ol>
+        <div class="mnote">
+          <i data-lucide="refresh-cw"></i>
+          <span><b>바꾼 사진은 곧바로 손님 화면에도 반영됩니다.</b> 예전에는 새 사진을 올려도 한동안 옛 사진이 계속 보이는 일이 있었는데(2026년 7월 고쳤습니다), 지금은 그렇지 않습니다. 그래도 옛 사진이 보인다면 <b>Ctrl+Shift+R</b>(맥은 <b>Cmd+Shift+R</b>)로 새로고침해 보세요.</span>
+        </div>
       </div>
 
       <div class="card card-pad">
@@ -494,8 +532,25 @@
   <div class="wrap">
     <div class="section-head reveal">
       <span class="eyebrow">계정 관리</span>
-      <h2>직원 계정 만들기 · 권한 나누기</h2>
-      <p class="lede"><b>관리자(owner)</b>에게만 보이는 메뉴입니다. 함께 일하는 분께 각자 계정을 만들어 주세요.</p>
+      <h2>직원 계정 만들기 · 권한 나누기 · 손님 회원 보기</h2>
+      <p class="lede"><b>관리자(owner)</b>에게만 보이는 메뉴입니다. 이 화면은 <b>탭 세 개</b>로 나뉘어 있습니다 — 함께 일하는 분의 <b>관리자 계정</b>, 홈페이지에 가입한 <b>일반 계정(손님 회원)</b>, 무엇을 할 수 있는지 정하는 <b>권한 그룹</b>.</p>
+    </div>
+
+    <p class="mwhere"><b>어디로 가나요</b><span class="mpath"><span>운영 설정</span><i>›</i><span class="last">계정 관리</span></span></p>
+
+    <div class="card card-pad reveal">
+      <div class="icon-badge sm"><i data-lucide="users-round"></i></div>
+      <h4>손님이 직접 가입한 회원 보기 — <b>일반 계정</b> 탭</h4>
+      <p class="muted">홈페이지 오른쪽 위 <span class="ui">로그인</span> 을 통해 손님이 <b>직접 회원가입</b>할 수 있습니다. 가입한 분들은 <span class="mpath"><span>운영 설정</span><i>›</i><span class="last">계정 관리</span></span> 의 <span class="ui">일반 계정</span> 탭에 모입니다.</p>
+      <ul class="iconlist">
+        <li class="il"><i data-lucide="shopping-bag"></i><div><b>회원이 좋은 점</b><p class="note">주문할 때 이름·연락처·주소가 <b>자동으로 채워지고</b>, 마이페이지에서 <b>지난 주문 내역</b>을 한눈에 봅니다. 주문번호를 몰라도 됩니다.</p></div></li>
+        <li class="il"><i data-lucide="user-round-x"></i><div><b>가입은 선택입니다</b><p class="note">지금까지처럼 <b>비회원 주문</b>도 그대로 됩니다. 회원가입을 강요하지 않습니다.</p></div></li>
+        <li class="il"><i data-lucide="key-round"></i><div><b>비밀번호를 잊었다는 연락이 오면</b><p class="note">본인 확인 후 <span class="ui">일반 계정</span> 탭에서 그 회원의 비밀번호를 새로 정해 주세요. <b>지금 비밀번호가 무엇인지는 아무도 볼 수 없습니다</b> — 되돌릴 수 없는 형태로 저장되기 때문입니다.</p></div></li>
+      </ul>
+      <div class="mnote warn">
+        <i data-lucide="shield-alert"></i>
+        <span>회원 명단에는 <b>이름 · 연락처 · 주소</b>가 들어 있습니다. 화면을 켜 둔 채 자리를 비우지 마시고, 필요한 사람에게만 관리자 계정을 만들어 주세요.</span>
+      </div>
     </div>
 
     <div class="split reveal" style="grid-template-columns:1fr 1fr">
@@ -503,7 +558,7 @@
         <div class="icon-badge point"><i data-lucide="user-plus"></i></div>
         <h4>계정 만들기</h4>
         <ol class="mstep">
-          <li><b><span class="ui">계정 관리</span> 로 갑니다</b><p>표 아래에 계정 만들기 칸이 있습니다.</p></li>
+          <li><b><span class="mpath"><span>운영 설정</span><i>›</i><span class="last">계정 관리</span></span> 로 갑니다</b><p>표 아래에 계정 만들기 칸이 있습니다.</p></li>
           <li><b>아이디와 이름을 넣습니다</b><p>아이디는 <b>영문 소문자·숫자</b>로 3자 이상(예: staff01). 이름은 화면에 표시할 실명입니다.</p></li>
           <li><b>권한을 고릅니다</b><p>대부분은 <b>직원(staff)</b>이면 충분합니다.</p></li>
           <li><b>처음 비밀번호를 정해 알려 줍니다</b><p>그 사람이 <b>첫 로그인 때 직접 바꿉니다</b>. 알려 주신 비밀번호는 그때 없어집니다.</p></li>
@@ -548,6 +603,8 @@
       <p class="lede">여기서 한 번만 고치면 <b>홈페이지 전체</b>가 함께 바뀝니다. 페이지마다 따로 고칠 필요가 없습니다.</p>
     </div>
 
+    <p class="mwhere"><b>어디로 가나요</b><span class="mpath"><span>운영 설정</span><i>›</i><span class="last">설정</span></span><span class="mpath"><span>운영 설정</span><i>›</i><span class="last">검색 노출</span></span></p>
+
     <div class="table-wrap reveal">
       <table class="table">
         <thead><tr><th style="width:24%">고치는 항목</th><th>어디에 반영되나</th></tr></thead>
@@ -588,7 +645,7 @@
     </div>
 
     <h3 class="reveal">검색에 잘 나오게 하기</h3>
-    <p class="lede reveal"><span class="ui">운영 설정</span> &gt; <span class="ui">검색 노출</span> 에서 합니다. 한 번만 해 두면 됩니다.</p>
+    <p class="lede reveal"><span class="ui">운영 설정</span> &gt; <span class="mpath"><span>운영 설정</span><i>›</i><span class="last">검색 노출</span></span> 에서 합니다. 한 번만 해 두면 됩니다.</p>
 
     <div class="grid g-2 reveal">
       <div class="card card-pad">
@@ -645,6 +702,8 @@
         그래도 백업은 필요합니다 — 서버가 지켜 주지 <b>못하는</b> 것이 있기 때문입니다.</p>
     </div>
 
+    <p class="mwhere"><b>어디로 가나요</b><span class="mpath"><span>시스템</span><i>›</i><span class="last">데이터 백업</span></span></p>
+
     <div class="grid g-3 reveal">
       <div class="card card-pad"><div class="icon-badge point"><i data-lucide="trash-2"></i></div><h5>실수로 지웠을 때</h5><p class="muted">서버는 지우라는 대로 지웁니다. 되돌리려면 백업이 있어야 합니다.</p></div>
       <div class="card card-pad"><div class="icon-badge point"><i data-lucide="file-x"></i></div><h5>잘못 덮어썼을 때</h5><p class="muted">가격표나 게시글을 잘못 고쳐 저장한 경우입니다.</p></div>
@@ -656,7 +715,7 @@
         <div class="icon-badge point"><i data-lucide="download"></i></div>
         <h4>백업하기 (내보내기)</h4>
         <ol class="mstep">
-          <li><b><span class="ui">데이터 백업</span> 메뉴로 갑니다</b><p>왼쪽 메뉴 맨 아래에 있습니다.</p></li>
+          <li><b><span class="mpath"><span>시스템</span><i>›</i><span class="last">데이터 백업</span></span> 메뉴로 갑니다</b><p>왼쪽 메뉴 맨 아래에 있습니다.</p></li>
           <li><b><span class="ui point">백업 파일 내려받기</span> 를 누릅니다</b><p>모든 자료와 사진이 <b>파일 하나</b>로 내려받아집니다.</p></li>
           <li><b>안전한 곳에 보관합니다</b><p>파일 이름 예) <b>kach-backup-20260726-1204.json</b> — USB나 클라우드(구글 드라이브·네이버 마이박스 등)에 옮겨두세요.</p><p>사진까지 함께 담기므로 파일이 큽니다(수 MB~수십 MB).</p></li>
         </ol>
@@ -775,8 +834,9 @@
       <div class="card card-pad">
         <h4>운영자가 직접 하실 일</h4>
         <ul class="mcheck">
-          <li class="todo"><i data-lucide="square"></i><div><b>실제 입금 계좌 넣기</b><span>설정 → 무통장입금 계좌. 지금은 예시 번호입니다.</span></div></li>
-          <li class="todo"><i data-lucide="square"></i><div><b>사업자 정보 확인</b><span>설정 → 사업자 정보. 등록번호·신고번호가 맞는지 확인하세요.</span></div></li>
+          <li class="todo"><i data-lucide="square"></i><div><b>관리자 비밀번호 바꾸기 — 가장 급합니다</b><span>왼쪽 아래 <span class="ui">비밀번호 변경</span>. 지금은 <b>처음 정한 값 그대로</b>라, 주소를 아는 사람이 들어와 주문자 이름·연락처·주소를 볼 수 있습니다. 회원가입을 열어 개인정보가 쌓이기 시작했으므로 오늘 바꾸세요.</span></div></li>
+          <li class="todo"><i data-lucide="square"></i><div><b>실제 입금 계좌 넣기</b><span><span class="mpath"><span>운영 설정</span><i>›</i><span class="last">설정</span></span> → 무통장입금 계좌. 지금은 예시 번호라 손님이 엉뚱한 곳에 입금합니다.</span></div></li>
+          <li class="todo"><i data-lucide="square"></i><div><b>사업자 정보 확인</b><span><span class="mpath"><span>운영 설정</span><i>›</i><span class="last">설정</span></span> → 사업자 정보. 등록번호·신고번호가 맞는지 확인하세요.</span></div></li>
           <li><i data-lucide="check-square"></i><div><b>샘플 자료 지우기</b><span>완료 — 예시 공지·주문·신청·문의를 지웠고, 코드에서도 없앴습니다. 이제 들어오는 것이 실제 자료입니다.</span></div></li>
           <li class="todo"><i data-lucide="square"></i><div><b>실제 상품 가격·재고 넣기</b><span>상품 관리에서 판매가와 재고를 실제 값으로 맞추세요.</span></div></li>
           <li class="todo"><i data-lucide="square"></i><div><b>직원 계정 만들기</b><span>함께 일하는 분께 각자 계정을 만들어 주세요. 아이디를 같이 쓰지 않습니다.</span></div></li>
@@ -788,9 +848,11 @@
         <ul class="mcheck">
           <li><i data-lucide="check-square"></i><div><b>관리자 로그인을 서버 방식으로 바꾸기</b><span>완료 — 계정별 로그인, 권한 구분, 실패 시 잠금.</span></div></li>
           <li><i data-lucide="check-square"></i><div><b>자료를 서버에 저장하도록 바꾸기</b><span>완료 — 주문·상품·게시글은 데이터베이스에, 사진은 파일 저장소에 있습니다.</span></div></li>
-          <li class="todo"><i data-lucide="square"></i><div><b>Cloudflare 에 실제로 올리기</b><span>지금은 담당자 컴퓨터에서만 돌아갑니다. 서버에 올려야 손님이 볼 수 있습니다.</span></div></li>
-          <li class="todo"><i data-lucide="square"></i><div><b>도메인 확정 후 검색 설정 파일 교체</b><span>검색 노출에 쓰이는 파일의 주소를 실제 도메인으로 바꿔야 합니다.</span></div></li>
-          <li class="todo"><i data-lucide="square"></i><div><b>이용약관·개인정보처리방침 법무 검토</b><span>지금 문구는 초안입니다.</span></div></li>
+          <li><i data-lucide="check-square"></i><div><b>Cloudflare 에 실제로 올리기</b><span>완료 — 손님이 볼 수 있는 상태입니다.</span></div></li>
+          <li><i data-lucide="check-square"></i><div><b>도메인 연결</b><span>완료 — <b>charmjt.org</b> 로 열립니다(www 도 같이). 검색 설정 파일의 주소는 자동으로 맞춰지므로 따로 고칠 것이 없습니다.</span></div></li>
+          <li><i data-lucide="check-square"></i><div><b>회원가입 열기</b><span>완료 — 손님이 직접 가입해 주문 내역을 봅니다. 가입은 선택이고 비회원 주문도 그대로 됩니다.</span></div></li>
+          <li class="todo"><i data-lucide="square"></i><div><b>이용약관·개인정보처리방침 법무 검토</b><span>회원 수집 항목을 반영해 문구를 고쳤지만(2026년 7월), <b>아직 초안</b>입니다. 시행 전 검토가 필요합니다.</span></div></li>
+          <li class="todo"><i data-lucide="square"></i><div><b>회원 비밀번호 찾기 자동화</b><span>지금은 전화로 본인 확인 후 관리자가 다시 정해 줍니다. 메일로 자동 처리하려면 발송 수단을 정해야 합니다.</span></div></li>
         </ul>
       </div>
     </div>
