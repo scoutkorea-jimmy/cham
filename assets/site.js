@@ -29,7 +29,7 @@
       { label: '발효식품의 효능', href: 'ferments.html#benefits' },
     ]},
     { id: 'vinegar', label: '식초', href: 'vinegar.html', dd: [
-      { label: '서련(瑞蓮) 이야기', href: 'vinegar.html#brand' },
+      { label: '서연(瑞蓮) 이야기', href: 'vinegar.html#brand' },
       { label: '식초란 무엇인가', href: 'vinegar.html#what' },
       { label: '만드는 과정', href: 'vinegar.html#process' },
       { label: '식초 종류', href: 'vinegar.html#lineup' },
@@ -53,7 +53,7 @@
       { label: '수업 안내', href: 'nuruk.html#notice' },
     ]},
     { id: 'products', label: '제품', href: 'products.html', dd: [
-      { label: '식초 · 와인 (서련)', href: 'products.html#vinegar' },
+      { label: '식초 · 와인 (서연)', href: 'products.html#vinegar' },
       { label: '장류', href: 'products.html#jang' },
       { label: '발효식품', href: 'products.html#ferment' },
       { label: '선물세트', href: 'products.html#gift' },
@@ -819,7 +819,7 @@
   }
 
   /* ---------------- 상품 (목록 · 상세 · 관리자 등록) ---------------- */
-  /* v3: 서련 식초·와인 라인업 도입으로 기본 카탈로그가 전면 교체됨 (v2 데이터는 갱신 대상) */
+  /* v3: 서연 식초·와인 라인업 도입으로 기본 카탈로그가 전면 교체됨 (v2 데이터는 갱신 대상) */
   var PRODUCTS_KEY = 'kach_products_v3';
   var SHIP_TPL = '· 배송비: 3,500원 (5만원 이상 구매 시 무료)\n· 배송 방법: 택배 (CJ대한통운)\n· 출고: 결제(입금) 확인 후 2~3 영업일 이내\n· 제주 및 도서산간 지역은 추가 배송비가 발생할 수 있습니다.\n· 발효식품 특성상 기온이 높은 시기에는 아이스팩 포장으로 출고됩니다.';
   var REFUND_TPL = '· 단순 변심에 의한 교환·반품: 상품 수령 후 7일 이내 신청 가능 (왕복 배송비 구매자 부담)\n· 식품 특성상 개봉했거나 포장이 훼손된 경우 교환·반품이 불가합니다.\n· 상품 하자·오배송: 수령 후 30일 이내 무상 교환 또는 환불해 드립니다.\n· 환불은 반품 상품 확인 후 3영업일 이내 입금 계좌로 처리됩니다.\n· 기타 사항은 소비자분쟁해결기준(공정거래위원회 고시)에 따릅니다.';
@@ -840,7 +840,7 @@
     { name: '선물세트', gridId: 'grid-gift' },
   ];
 
-  /* 서련(瑞蓮) 수제식초 — 용량 옵션과 고시 항목이 전 품목 동일하므로 한 곳에서 만든다.
+  /* 서연(瑞蓮) 수제식초 — 용량 옵션과 고시 항목이 전 품목 동일하므로 한 곳에서 만든다.
      가격 근거: 조합 가격표(300ml 25,000 / 500ml 35,000) */
   var VINEGAR_ACID = '총산 4.7%(기준 4.00~20.00) — 강원특별자치도보건환경연구원 시험·검사 적합 (2025.04.30)';
   function vinegarProduct(o) {
@@ -861,7 +861,7 @@
   }
 
   var PRODUCT_DEFAULTS = [
-    /* ---- 식초 · 와인 (서련 瑞蓮) ---- */
+    /* ---- 식초 · 와인 (서연 瑞蓮) ---- */
     vinegarProduct({ id: 'p_vin_omija', name: '오미자 식초', photo: 'assets/product-vinegar-omija.jpg',
       summary: '다섯 가지 맛이 어우러진 오미자를 발효시킨 붉은빛 수제 식초.',
       body: '오미자 청을 담가 숙성한 뒤 와인 단계를 거쳐 초산 발효시킨 식초입니다. 오미자 특유의 새콤하고 은은한 향이 남아 물에 희석해 마시기 좋습니다.',
@@ -925,11 +925,11 @@
       summary: '직접 장을 담그실 분들을 위한 자연 건조 메주.', icon: 'package', tone: 'tone-main',
       descHtml: '<h3>장 담그기의 시작</h3><p>국산 콩을 삶아 빚고 자연 바람에 말려 띄운 전통 메주입니다. 장 담그기 시기(정월)에 맞춰 예약 주문을 권장합니다.</p>',
       gosi: gosiBase({ pname: '전통 메주', volume: '약 1.5kg/개', ingredients: '국산 콩 100%', storage: '통풍이 잘 되는 서늘한 곳' }), ship: SHIP_TPL, refund: REFUND_TPL, related: ['p_doenjang', 'p_jangajji'] },
-    { id: 'p_set_vinegar', name: '서련 수제식초 선물상자 (2본)', cat: '선물세트', price: 45000, salePrice: null, unit: '세트',
+    { id: 'p_set_vinegar', name: '서연 수제식초 선물상자 (2본)', cat: '선물세트', price: 45000, salePrice: null, unit: '세트',
       status: '판매중', stock: 25, option: null, photo: 'assets/product-giftbox.jpg',
       summary: '수제식초 2본을 담은 선물상자. 명절·집들이 선물로 가장 많이 찾는 구성입니다.', icon: 'gift', tone: 'tone-point',
-      descHtml: '<h3>“식초는 신이 내린 선물, 자연이 준 기적의 물”</h3><p>서련(瑞蓮) 수제식초 2본(500ml·300ml)을 전용 선물상자에 담았습니다. 사과·포도·오미자·감귤·매실·수박 중 원하시는 종류로 구성해 드립니다.</p><p>구성 변경은 주문 시 요청사항에 남겨 주시거나 02-855-8806으로 문의해 주세요.</p>',
-      gosi: gosiBase({ pname: '서련 수제식초 선물상자 (500ml + 300ml)', volume: '500ml + 300ml', ingredients: '과일(사과·포도·오미자·감귤·매실·수박 중 택), 정제수, 설탕, 초산균',
+      descHtml: '<h3>“식초는 신이 내린 선물, 자연이 준 기적의 물”</h3><p>서연(瑞蓮) 수제식초 2본(500ml·300ml)을 전용 선물상자에 담았습니다. 사과·포도·오미자·감귤·매실·수박 중 원하시는 종류로 구성해 드립니다.</p><p>구성 변경은 주문 시 요청사항에 남겨 주시거나 02-855-8806으로 문의해 주세요.</p>',
+      gosi: gosiBase({ pname: '서연 수제식초 선물상자 (500ml + 300ml)', volume: '500ml + 300ml', ingredients: '과일(사과·포도·오미자·감귤·매실·수박 중 택), 정제수, 설탕, 초산균',
         maker: '한국참전통발효식품협동조합 (제조: 정선다문화가정영농조합법인)', origin: '국산', expiry: '제조일로부터 2년 (제품 별도 표기)' }),
       ship: SHIP_TPL, refund: REFUND_TPL, related: ['p_vin_omija', 'p_wine_grape', 'p_set3'] },
     { priceOnRequest: true, id: 'p_set3', name: '명절 장(醬) 3종 세트', cat: '선물세트', price: 45000, salePrice: 42000, unit: '세트', status: '판매중', stock: 30,
@@ -1218,16 +1218,28 @@
     return names;
   }
   var COHORT_STATUS_TAG = { '모집중': 'tag solid', '예정': 'tag', '상시': 'tag point', '마감': 'tag' };
-  // 지도사 과정 페이지의 일정표(#cohort-rows)를 기수 데이터로 채움
+  /* 일정표에 보여줄 기수 개수. 해가 지날수록 지난 기수가 쌓이는데, 방문자가 알아야 할 것은
+     지금 신청할 수 있는 기수와 그 직전 몇 개뿐이다. 관리자 화면에서는 전부 보인다. */
+  var COHORT_VISIBLE = 5;
+  // 지도사 과정 페이지의 일정표(#cohort-rows)를 기수 데이터로 채움 — 최신부터 COHORT_VISIBLE 개
   function renderCohortSchedule(){
     var tb = document.getElementById('cohort-rows');
     if (!tb) return;
-    var list = getCohorts();
-    if (!list.length) { tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--ink-mute);padding:24px">현재 안내된 기수가 없습니다. 신청 후 일정을 안내드립니다.</td></tr>'; return; }
-    tb.innerHTML = list.map(function (c) {
+    var all = getCohorts();
+    if (!all.length) { tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--ink-mute);padding:24px">현재 안내된 기수가 없습니다. 신청 후 일정을 안내드립니다.</td></tr>'; return; }
+    /* 관리자에서 새 기수를 뒤에 붙이므로(admin.js 의 cohortForm) 저장 순서는 오래된 것 → 최신이다.
+       뒤집어야 최신이 위로 온다. */
+    var list = all.slice().reverse().slice(0, COHORT_VISIBLE);
+    var rows = list.map(function (c) {
       var cls = COHORT_STATUS_TAG[c.status] || 'tag';
       return '<tr' + (c.status === '마감' ? ' style="opacity:.55"' : '') + '><td><b>' + esc(c.name) + '</b></td><td>' + esc(c.period || '-') + '</td><td>' + esc(c.schedule || '-') + '</td><td>' + esc(c.place || '-') + '</td><td><span class="' + cls + '">' + esc(c.status) + '</span></td></tr>';
     }).join('');
+    // 가린 기수가 있으면 숨겼다는 사실을 밝힌다 — 말없이 자르면 '이게 전부'로 읽힌다.
+    if (all.length > list.length) {
+      rows += '<tr><td colspan="5" style="text-align:center;color:var(--ink-mute);padding:14px;font-size:var(--fs-caption)">' +
+        '최근 ' + COHORT_VISIBLE + '개 기수만 표시합니다. 지난 기수는 02-855-8806으로 문의해 주세요.</td></tr>';
+    }
+    tb.innerHTML = rows;
   }
 
   var MODALS = {
