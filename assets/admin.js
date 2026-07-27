@@ -506,12 +506,58 @@
         '<td style="white-space:nowrap"><div style="display:inline-flex;gap:6px;align-items:center">' +
         '<button class="btn btn-point" data-act="pedit" data-id="' + p.id + '" style="padding:8px 15px"><i data-lucide="pen-line"></i>수정</button>' +
         '<a class="btn btn-ghost" href="product.html?id=' + p.id + '" target="_blank" title="새 창에서 상세페이지 보기" style="padding:8px 13px;text-decoration:none"><i data-lucide="external-link"></i>보기</a>' +
+        '<button class="icon-btn" data-act="pcopy" data-id="' + p.id + '" title="복제 — 이 상품을 본떠 새 상품을 만듭니다"><i data-lucide="copy"></i></button>' +
         '<button class="icon-btn" data-act="pdel" data-id="' + p.id + '" title="삭제"><i data-lucide="trash-2"></i></button>' +
         '</div></td></tr>';
     }).join('') : emptyRow(7, '등록된 상품이 없습니다.');
     setTimeout(loadListThumbs, 20);
     return '<div class="panel" style="max-width:none"><div class="panel-head"><h3>상품 목록</h3><button class="btn btn-point" data-act="pnew" style="padding:10px 18px"><i data-lucide="plus"></i>상품 등록</button></div>' +
       '<div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>사진</th><th>상품명</th><th>분류</th><th>판매가</th><th>재고</th><th>판매 상태</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>' + pager(pg) + '</div>';
+  }
+  /* 상품 복제 — 옵션·고시항목·배송/환불 안내까지 같은 상품을 하나 더 낼 때,
+     빈 등록 화면에서 열 몇 개를 다시 옮겨 적는 일을 없앤다.
+     사본은 '숨김'으로 만든다 — 이름도 안 고친 상품이 목록에 바로 서는 것보다 낫다. */
+  function copyProduct(srcId) {
+    var src = S.getProducts().filter(function (p) { return p.id === srcId; })[0];
+    if (!src) { toast('원본 상품을 찾지 못했습니다. 새로고침해 주세요.'); return; }
+    var copy = JSON.parse(JSON.stringify(src));
+    copy.id = uid();
+    copy.name = src.name + ' (복제)';
+    copy.status = '숨김';
+    var list = S.getProducts();
+    list.push(copy);
+    if (!S.setProducts(list)) { toast('복제한 상품을 저장하지 못했습니다.'); return; }
+    toast('복제했습니다. 사진을 옮기는 중…');
+    copyProductImages(srcId, copy.id).then(function (r) {
+      prodEditing = copy.id; pImgState = { main: null, extra: [], detail: [], removed: [] };
+      render();
+      toast(r.failed
+        ? '복제했습니다. 사진 ' + r.copied + '장을 옮겼고 ' + r.failed + '장은 실패했습니다 — 실패한 사진은 직접 올려 주세요.'
+        : (r.copied ? '복제했습니다. 사진 ' + r.copied + '장도 함께 옮겼습니다. 이름과 판매 상태를 확인해 주세요.'
+                    : '복제했습니다. 이름과 판매 상태를 확인해 주세요.'));
+    });
+  }
+  /* 사진은 원본을 내려받아 다시 올린다. 서버에 '사진 복사' API 가 없기도 하지만,
+     한 파일을 두 상품이 가리키면 한쪽을 지울 때 다른 쪽이 깨진다. */
+  function copyProductImages(srcId, newId) {
+    return S.Media.list('product', srcId).then(function (imgs) {
+      imgs.sort(function (a, b) { return (a.ord || 0) - (b.ord || 0); });
+      var copied = 0, failed = 0;
+      return imgs.reduce(function (chain, im) {
+        return chain.then(function () {
+          return fetch(im.url)
+            .then(function (r) { return r.ok ? r.blob() : null; })
+            .then(function (blob) {
+              if (!blob) { failed++; return; }
+              var f = new File([blob], im.name || 'image.jpg', { type: blob.type || 'image/jpeg' });
+              return S.Media.put('product', newId, f, { role: im.role, ord: im.ord }).then(function (res) {
+                if (res && !res.error) copied++; else failed++;
+              });
+            })
+            .catch(function () { failed++; });
+        });
+      }, Promise.resolve()).then(function () { return { copied: copied, failed: failed }; });
+    });
   }
   function loadListThumbs() {
     document.querySelectorAll('[data-pthumb]').forEach(function (box) {
@@ -826,6 +872,15 @@
 
     var pg = paged('orders', ordersOf(orderTab));
     var list = pg.rows;
+    /* 표의 금액은 **상품값**이다(매출 집계도 이 값을 쓴다). 손님이 실제로 넣는 돈은
+       택배비가 붙은 금액이라, 입금 확인 때 두 숫자가 어긋나 보이지 않도록 함께 적는다.
+       계산 규칙은 손님 화면과 같은 곳(site.js shipFeeFor)에서 온다. */
+    function depositSub(o) {
+      if (o.kind === 'seedjang' || !o.total) return '';
+      var fee = S.shipFeeFor(o.total);
+      return '<div class="pc-sub">입금 ' + fmtWon(Number(o.total) + fee) + '원' +
+        (fee ? ' (택배비 ' + fmtWon(fee) + ')' : ' (택배비 무료)') + '</div>';
+    }
     var rows = list.length ? list.map(function (o) {
       var item = o.kind === 'seedjang' ? (o.amount || '씨장 분양') : (o.product || '-');
       var shipInfo = o.tracking ? '<div class="pc-sub">' + esc(o.courier || '') + ' ' + esc(o.tracking) + '</div>'
@@ -836,7 +891,7 @@
         '<td>' + (o.kind === 'seedjang' ? '<span class="tag point">씨장분양</span>' : '<span class="tag">제품</span>') + '</td>' +
         '<td><b>' + esc(item) + '</b>' + (o.optionLabel ? '<div class="pc-sub">' + esc(o.optionLabel) + '</div>' : '') + '</td>' +
         '<td>' + esc(o.qty || '-') + '</td>' +
-        '<td style="white-space:nowrap">' + (o.total ? fmtWon(o.total) + '원' : '-') + '</td>' +
+        '<td style="white-space:nowrap">' + (o.total ? fmtWon(o.total) + '원' + depositSub(o) : '-') + '</td>' +
         '<td>' + esc(o.name || '-') + '<div class="pc-sub">' + esc(o.phone || '') + '</div></td>' +
         '<td>' + esc(o.depositor || '-') + '<div class="pc-sub">' + esc(o.payMethod || '') + '</div></td>' +
         '<td style="max-width:170px">' + esc(o.address || o.region || '-') + '</td>' +
@@ -3124,6 +3179,8 @@
     } else if (act === 'pnew') { prodEditing = 'new'; pImgState.removed = []; render();
     } else if (act === 'pedit') { prodEditing = b.dataset.id; pImgState.removed = []; render();
     } else if (act === 'pback') { if (!confirmLeave()) return; prodEditing = null; pImgState = { main: null, extra: [], detail: [], removed: [] }; render();
+    } else if (act === 'pcopy') {
+      copyProduct(b.dataset.id);
     } else if (act === 'pdel') {
       if (!confirm('이 상품을 삭제할까요? 상품 이미지도 함께 삭제됩니다.')) return;
       S.setProducts(S.getProducts().filter(function (p) { return p.id !== b.dataset.id; }));

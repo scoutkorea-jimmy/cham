@@ -90,6 +90,20 @@
   }
 
   /* ================= 상품 상세 페이지 ================= */
+  /* 식초 섭취 유의사항 — 상품 하나하나의 상세설명에 적어 넣지 않는다.
+     같은 글이 식초 품목 수만큼 흩어지면 한 곳만 고쳐지고 나머지는 옛말로 남으며,
+     상세설명은 관리자가 지우거나 덮어쓸 수 있어 안전 안내가 조용히 사라진다.
+     품목 성격에서 판단해 화면이 붙인다. */
+  function isVinegar(p) {
+    return /식초/.test(String(p.name || '')) || String(p.id || '').indexOf('p_vin_') === 0;
+  }
+  function cautionHTML(p) {
+    if (!isVinegar(p)) return '';
+    return '<div class="pd-caution"><b><i data-lucide="alert-circle"></i>드시기 전에</b>' +
+      '<p>위장이 약하신 분은 <b>공복에 드시는 것을 권하지 않습니다.</b> 꼭 식후에 드세요. ' +
+      '식초는 산도가 높아 원액 그대로 드시면 치아와 위에 자극이 될 수 있으니, 반드시 물에 6배 이상 희석해 드시고 드신 뒤에는 물을 충분히 마셔 주세요.</p></div>';
+  }
+
   function qs(name) {
     var m = new RegExp('[?&]' + name + '=([^&]*)').exec(location.search);
     return m ? decodeURIComponent(m[1]) : null;
@@ -176,7 +190,8 @@
                 '<button type="button" id="pdPlus" aria-label="수량 늘리기">+</button>' +
               '</div></div>' +
             '</div>' +
-            '<div class="pd-total"><span>총 상품 금액</span><b id="pdTotal">' + fmtWon(basePrice) + '원</b></div>') +
+            '<div class="pd-total"><span>총 상품 금액</span><b id="pdTotal">' + fmtWon(basePrice) + '원</b></div>' +
+            '<p class="pd-ship-note"><i data-lucide="truck"></i>' + esc(S.SHIP_NOTE) + '</p>') +
           '<div class="pd-cta">' +
             (ask
               ? '<a class="btn btn-point btn-lg" href="tel:02-855-8806"><i data-lucide="phone"></i>02-855-8806</a>'
@@ -190,7 +205,7 @@
       '</div>' +
       '<div class="wrap" style="padding-bottom:64px">' +
         '<div class="pd-acc">' +
-          '<details open><summary>상세 설명 <i data-lucide="chevron-down"></i></summary><div class="pd-acc-body"><div class="rich" style="white-space:normal">' + (p.descHtml || '<p>상세 설명이 준비 중입니다.</p>') + '</div><div id="pdDetailImgs"></div></div></details>' +
+          '<details open><summary>상세 설명 <i data-lucide="chevron-down"></i></summary><div class="pd-acc-body"><div class="rich" style="white-space:normal">' + (p.descHtml || '<p>상세 설명이 준비 중입니다.</p>') + '</div>' + cautionHTML(p) + '<div id="pdDetailImgs"></div></div></details>' +
           '<details><summary>상품정보고시 <i data-lucide="chevron-down"></i></summary><div class="pd-acc-body" style="white-space:normal"><table class="gosi-table"><tbody>' + gosiRows(p.gosi || {}) + '</tbody></table></div></details>' +
           '<details><summary>배송안내 <i data-lucide="chevron-down"></i></summary><div class="pd-acc-body">' + esc(p.ship || S.SHIP_TPL) + '</div></details>' +
           '<details><summary>교환 · 반품 · 환불 안내 <i data-lucide="chevron-down"></i></summary><div class="pd-acc-body">' + esc(p.refund || S.REFUND_TPL) + '\n\n· 소비자 상담: ' + esc((p.gosi && p.gosi.phone) || '02-855-8806') + ' (평일 09:00–18:00)</div></details>' +

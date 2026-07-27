@@ -1142,10 +1142,22 @@ button[type=submit]:disabled, .btn:disabled { opacity: 0.45; cursor: not-allowed
 .pd-total { display: flex; justify-content: space-between; align-items: center; background: var(--sub-soft); border-radius: var(--r-md); padding: 14px 18px; margin-top: 16px; }
 .pd-total span { font-size: var(--fs-sm); font-weight: 600; color: var(--ink-soft); }
 .pd-total b { font-family: var(--font-head); font-weight: 800; font-size: 24px; color: var(--ink); }
+/* 택배비는 '총 상품 금액' 바로 아래에 붙는다 — 금액을 본 자리에서 별도 비용을 알아야
+   결제 단계에서 처음 보고 놀라지 않는다 */
+.pd-ship-note {
+  display: flex; align-items: center; gap: var(--gap-tight);
+  margin: var(--gap-tight) 0 0; font-size: var(--fs-caption); color: var(--ink-mute);
+}
+.pd-ship-note i[data-lucide] { width: 15px; height: 15px; flex-shrink: 0; }
 .pd-cta { display: flex; gap: 10px; margin-top: 16px; }
 .pd-cta .btn { flex: 1; }
 .pd-meta-note { margin-top: 14px; font-size: var(--fs-caption); color: var(--ink-mute); line-height: 1.7; }
 .pd-badge-soldout { background: var(--ink); color: #fff; }
+/* 섭취 유의사항 — 상세설명 끝에 붙는 안전 안내. 읽고 지나치지 않도록 면을 달리한다 */
+.pd-caution { background: var(--point-tint); border-radius: var(--r-md); padding: 16px 18px; margin-top: var(--gap-related); }
+.pd-caution b:first-child { display: flex; align-items: center; gap: var(--gap-tight); color: var(--point-ink); font-size: var(--fs-sm); }
+.pd-caution b:first-child i[data-lucide] { width: 16px; height: 16px; }
+.pd-caution p { margin: var(--gap-tight) 0 0; font-size: var(--fs-sm); color: var(--ink-soft); line-height: var(--lh-relaxed); }
 /* 모바일 하단 고정 구매 바 */
 .buybar { display: none; position: fixed; left: 0; right: 0; bottom: 0; z-index: 800; background: var(--surface); border-top: 1px solid var(--line); padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); gap: 10px; align-items: center; box-shadow: 0 -8px 24px rgba(42,39,35,0.08); }
 .buybar .bb-price { font-family: var(--font-head); font-weight: 800; font-size: 19px; flex-shrink: 0; }
