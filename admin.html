@@ -276,7 +276,9 @@
   .kms-view .kms-swatch { display: inline-block; width: 12px; height: 12px; border-radius: 3px; border: 1px solid var(--line); vertical-align: -1px; margin-right: 3px; }
 
   /* 서브탭 (KMS · 동의문) */
-  .subtabs { display: inline-flex; gap: 4px; background: var(--surface-2); border: 1px solid var(--line-soft); border-radius: 12px; padding: 5px; margin-bottom: 20px; }
+  /* 탭이 둘셋일 때를 전제로 만든 자리였는데, 페이지 문구는 아홉 개다.
+     좁은 화면에서 한 줄로 늘어서면 화면 밖으로 494px 넘쳤다 — 줄을 바꾸게 한다. */
+  .subtabs { display: inline-flex; flex-wrap: wrap; gap: 4px; max-width: 100%; background: var(--surface-2); border: 1px solid var(--line-soft); border-radius: 12px; padding: 5px; margin-bottom: 20px; }
   .subtabs button { display: inline-flex; align-items: center; gap: 7px; padding: 10px 18px; border: none; background: none; font: inherit; font-size: 14px; font-weight: 700; color: var(--ink-mute); cursor: pointer; border-radius: 9px; transition: all var(--dur-fast) var(--ease); }
   .subtabs button:hover { color: var(--ink); }
   .subtabs button.on { background: var(--main); color: #fff; box-shadow: var(--sh-sm); }
@@ -316,6 +318,19 @@
      막대와 라운드가 서로 어긋나 보였다. 색은 배경과 글자로만 주고 상자는 온전히 둥글린다. */
   .proc-info { background: var(--info-tint); color: var(--info-ink);
     padding: 11px 15px; font-size: 13.5px; border-radius: 10px; margin-bottom: 14px; }
+
+  /* 페이지 문구 편집 — 한 항목이 '무엇인지(제목/소개문) · 고쳤는지 · 내용' 순으로 읽힌다 */
+  .tx-list { display: grid; gap: 14px; padding: var(--gutter-panel); }
+  .tx-row { border: 1px solid var(--line-soft); border-radius: 12px; padding: 12px 14px; background: var(--surface); }
+  .tx-row.on { background: var(--main-tint); border-color: var(--main); }
+  .tx-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .tx-head .tx-reset { margin-left: auto; font-size: 12px; }
+  .tx-head .tx-reset[disabled] { opacity: .35; cursor: default; }
+  .tx-in { width: 100%; padding: 10px 12px; font: inherit; font-size: 14px; line-height: 1.7;
+    border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); resize: vertical; }
+  .tx-in:focus { outline: none; border-color: var(--main); }
+  .tx-foot { display: flex; gap: 10px; justify-content: flex-end; align-items: center;
+    padding: 0 var(--gutter-panel) var(--gutter-panel); }
 
   /* 상품 이미지 미리보기 / 목록 썸네일 */
   .pthumb { width: 48px; height: 48px; border-radius: 8px; overflow: hidden; background: var(--surface-2); display: grid; place-items: center; color: var(--ink-faint); }

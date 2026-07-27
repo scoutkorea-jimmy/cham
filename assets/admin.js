@@ -1595,6 +1595,97 @@
   }
 
   /* ============================================================
+     페이지 문구 — 홈페이지의 제목·소개문 고치기
+     ============================================================
+     기본값(원문)을 여기에 베껴 두지 않는다. 각 페이지를 실제로 받아 와
+     [data-text] 자리를 읽는다 — 베껴 두면 개발자가 HTML 을 고치는 순간
+     관리자 화면이 옛 문구를 '기본값' 이라고 보여 주게 된다.
+     저장도 **바꾼 것만** 담는다. 손대지 않은 문구는 HTML 을 고치면 그대로 따라온다. */
+  var TEXT_PAGES = [
+    { id: 'index', label: '홈' }, { id: 'about', label: '협동조합 소개' },
+    { id: 'ferments', label: '전통발효식품' }, { id: 'vinegar', label: '식초' },
+    { id: 'instructor', label: '체험지도사' }, { id: 'nuruk', label: '누룩이야기' },
+    { id: 'products', label: '제품' }, { id: 'news', label: '소식마당' },
+    { id: 'contact', label: '문의하기' },
+  ];
+  var textDefs = null;      // [{page,label,items:[{key,kind,html}]}] — 페이지에서 읽은 원문
+  var textPage = 'index';
+  var textLoading = false;
+
+  function loadTextDefs() {
+    if (textLoading) return;
+    textLoading = true;
+    Promise.all(TEXT_PAGES.map(function (p) {
+      return fetch(p.id + '.html', { credentials: 'same-origin' })
+        .then(function (r) { return r.ok ? r.text() : ''; })
+        .then(function (html) {
+          var doc = new DOMParser().parseFromString(html, 'text/html');
+          var items = [].map.call(doc.querySelectorAll('[data-text]'), function (el) {
+            return { key: el.getAttribute('data-text'),
+                     kind: /^H[12]$/.test(el.tagName) ? '제목' : '소개문',
+                     html: el.innerHTML.trim() };
+          });
+          return { page: p.id, label: p.label, items: items };
+        })
+        .catch(function () { return { page: p.id, label: p.label, items: [] }; });
+    })).then(function (all) {
+      textDefs = all; textLoading = false; render();
+    });
+  }
+
+  function viewTexts() {
+    if (!textDefs) { loadTextDefs(); return '<div class="panel"><div class="admin-empty"><i data-lucide="loader"></i><div>페이지에서 문구를 읽는 중…</div></div></div>'; }
+    var saved = S.getTexts();
+    var cur = textDefs.filter(function (p) { return p.page === textPage; })[0] || textDefs[0];
+    var changed = cur.items.filter(function (it) { return saved[it.key] != null; }).length;
+
+    var rows = cur.items.length ? cur.items.map(function (it) {
+      var val = saved[it.key] != null ? saved[it.key] : it.html;
+      var isOn = saved[it.key] != null;
+      return '<div class="tx-row' + (isOn ? ' on' : '') + '">' +
+        '<div class="tx-head"><span class="tag' + (it.kind === '제목' ? ' solid' : '') + '">' + it.kind + '</span>' +
+          (isOn ? '<span class="tag point">고침</span>' : '') +
+          '<button class="btn-text tx-reset" data-act="txreset" data-key="' + esc(it.key) + '"' + (isOn ? '' : ' disabled') + '>원래대로</button></div>' +
+        '<textarea class="tx-in" data-key="' + esc(it.key) + '" rows="' + (it.kind === '제목' ? 2 : 3) + '">' + esc(val) + '</textarea>' +
+      '</div>';
+    }).join('') : '<div class="admin-empty"><div>이 페이지에는 고칠 문구가 없습니다.</div></div>';
+
+    return '<div class="modal-note"><i data-lucide="type"></i><span>홈페이지의 <b>큰 제목과 그 아래 소개문</b>을 고칩니다. ' +
+        '<b>&lt;b&gt;굵게&lt;/b&gt;</b> 와 <b>&lt;br&gt;</b>(줄바꿈)을 쓸 수 있습니다. ' +
+        '고치지 않은 문구는 원문 그대로 나가므로, 필요한 것만 손대시면 됩니다.</span></div>' +
+      subtabs(TEXT_PAGES.map(function (p) {
+        var d = textDefs.filter(function (x) { return x.page === p.id; })[0];
+        var n = d ? d.items.filter(function (it) { return saved[it.key] != null; }).length : 0;
+        return { id: p.id, label: p.label + (n ? ' (' + n + ')' : ''), icon: null };
+      }), textPage) +
+      '<div class="panel" style="max-width:none">' +
+        '<div class="panel-head"><h3>' + esc(cur.label) + ' — 문구 ' + cur.items.length + '개</h3>' +
+          '<span class="ph-sub">' + (changed ? '이 페이지에서 ' + changed + '개를 고쳤습니다' : '아직 고친 문구가 없습니다') + '</span></div>' +
+        '<div class="tx-list">' + rows + '</div>' +
+        '<div class="tx-foot">' +
+          '<a class="btn btn-ghost" href="' + esc(cur.page) + '.html" target="_blank" rel="noopener" style="text-decoration:none"><i data-lucide="external-link"></i>이 페이지 보기</a>' +
+          '<button class="btn btn-point" data-act="txsave"><i data-lucide="check"></i>저장</button>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function saveTexts() {
+    var saved = S.getTexts();
+    var defs = {};
+    textDefs.forEach(function (p) { p.items.forEach(function (it) { defs[it.key] = it.html; }); });
+    var n = 0;
+    [].forEach.call(document.querySelectorAll('.tx-in'), function (el) {
+      var k = el.dataset.key, v = el.value.trim();
+      // 원문과 같으면 저장하지 않는다 — 저장해 두면 나중에 HTML 을 고쳐도 따라오지 않는다
+      if (!v || v === String(defs[k] || '').trim()) { if (saved[k] != null) { delete saved[k]; n++; } return; }
+      if (saved[k] !== v) { saved[k] = v; n++; }
+    });
+    if (!S.setTexts(saved)) { toast('저장하지 못했습니다.'); return; }
+    render();
+    toast(n ? '문구 ' + n + '개를 저장했습니다. 홈페이지에 바로 반영됩니다.' : '바뀐 문구가 없습니다.');
+  }
+
+  /* ============================================================
      KMS — 서브탭 (표준 KMS · 디자인 룰북)
      ============================================================ */
   var kmsTab = 'standard', kmsMode = 'view';
@@ -2831,6 +2922,7 @@
     { id: 'apps', label: '신청자 관리', icon: 'user-plus', view: viewApps, title: '지도사 과정 신청자 관리', countKey: K.apps },
     { id: 'inq', label: '문의 내역', icon: 'message-square', view: viewInq, title: '문의 내역 관리', countKey: K.inq },
     { id: 'posts', label: '게시글 관리', icon: 'file-text', view: viewPosts, title: '게시글 관리', countKey: K.posts },
+    { id: 'texts', label: '페이지 문구', icon: 'type', view: viewTexts, title: '페이지 문구 — 제목 · 소개문 수정' },
     { id: 'images', label: '페이지 이미지', icon: 'image', view: viewImages, title: '페이지 이미지 관리' },
     { id: 'partners', label: '파트너 관리', icon: 'handshake', view: viewPartners, title: '파트너 관리' },
     { id: 'popups', label: '팝업 관리', icon: 'bell', view: viewPopups, title: '팝업 관리', countKey: K.popups },
@@ -2857,7 +2949,7 @@
     { solo: 'dashboard' },
     { group: 'g_sales',    items: ['products', 'orders', 'sales'] },
     { group: 'g_customer', items: ['cohorts', 'apps', 'inq'] },
-    { group: 'g_content',  items: ['posts', 'images', 'popups', 'partners'] },
+    { group: 'g_content',  items: ['posts', 'texts', 'images', 'popups', 'partners'] },
     { group: 'g_site',     items: ['settings', 'seo', 'accounts'] },
     { group: 'g_system',   items: ['backup', 'consents', 'kms'], collapsed: true },
   ];
@@ -3228,6 +3320,7 @@
       if (!confirmLeave()) return;
       if (current === 'kms') kmsTab = st.dataset.subtab;
       else if (current === 'consents') consentTab = st.dataset.subtab;
+      else if (current === 'texts') textPage = st.dataset.subtab;
       else if (current === 'images') { imgPageTab = st.dataset.subtab; imgSel = null; }
       render(); return;
     }
@@ -3281,6 +3374,13 @@
     } else if (act === 'pnew') { prodEditing = 'new'; pImgState.removed = []; render();
     } else if (act === 'pedit') { prodEditing = b.dataset.id; pImgState.removed = []; render();
     } else if (act === 'pback') { if (!confirmLeave()) return; prodEditing = null; pImgState = { main: null, extra: [], detail: [], removed: [] }; render();
+    } else if (act === 'txsave') {
+      saveTexts();
+    } else if (act === 'txreset') {
+      var tsaved = S.getTexts();
+      delete tsaved[b.dataset.key];
+      if (!S.setTexts(tsaved)) { toast('되돌리지 못했습니다.'); return; }
+      render(); toast('원래 문구로 되돌렸습니다.');
     } else if (act === 'cedit') {
       cohortEditing = b.dataset.id; render();
       var first = document.querySelector('.row-editing [data-f=name]');

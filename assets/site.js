@@ -113,11 +113,12 @@
     'kach_settings_v1':  'settings',
     'kach_consents_v1':  'consents',
     'kach_kms_v1':       'kms',
+    'kach_texts_v1':     'texts',
     'kach_orders':       'orders',
     'kach_applications': 'applications',
     'kach_inquiries':    'inquiries',
   };
-  var DOC_KINDS = { settings: 1, consents: 1, kms: 1 };
+  var DOC_KINDS = { settings: 1, consents: 1, kms: 1, texts: 1 };
 
   /* 사진 한 장의 최대 크기. **서버(functions/api/admin/images.js)와 같은 값이어야 한다** —
      화면이 더 크게 허용하면 올린 뒤 서버가 되돌려 보내고, 화면이 더 작게 잡으면
@@ -1064,6 +1065,58 @@
       else elx.textContent = val;
     }
   }
+  /* ---------------- 페이지 문구 (관리자가 고치는 제목·소개문) ----------------
+     HTML 에 적힌 원문이 **기본값**이고, 관리자가 저장한 것만 덮어쓴다.
+     그래서 아직 손대지 않은 문구는 개발자가 HTML 을 고치면 그대로 따라온다 —
+     처음부터 전부를 자료로 옮기면 오탈자 하나 고치는 데도 관리자 화면을 거쳐야 한다.
+
+     굵은 글씨·줄바꿈이 들어 있는 문구가 많아 innerHTML 로 넣는다. 관리자만 쓰는
+     칸이라 <b>·<br> 을 허용하되, 스크립트가 될 수 있는 것은 걸러 낸다(sanitizeText). */
+  var TEXTS_KEY = 'kach_texts_v1';
+  function getTexts(){ return getJSON(TEXTS_KEY, {}) || {}; }
+  function setTexts(o){ return setJSON(TEXTS_KEY, o); }
+  /* 허용: b·strong·br·small·em·i·span. 그 밖의 태그와 on* 속성·javascript: 는 지운다.
+     관리자 화면에서만 값이 들어오지만, 계정을 잠깐 빌린 사람이 스크립트를 심어
+     방문자 화면에서 돌게 만드는 길을 열어 두지 않는다. */
+  function sanitizeText(html) {
+    /* **살아 있는 문서에서 파싱하면 안 된다.** div.innerHTML 로 넣는 순간
+       `<img src=x onerror=…>` 의 이미지 로드가 시작되고, 실패하면서 onerror 가 돈다 —
+       그 뒤에 태그를 지워도 이미 실행된 뒤다(실제로 이 방법을 썼다가 스크립트가 돌았다).
+       DOMParser 가 만든 문서는 화면에 붙어 있지 않아 리소스를 받지도, 스크립트를 돌리지도 않는다. */
+    var doc = new DOMParser().parseFromString(
+      '<body>' + String(html == null ? '' : html) + '</body>', 'text/html');
+    var d = doc.body;
+    var ok = { B:1, STRONG:1, BR:1, SMALL:1, EM:1, I:1, SPAN:1 };
+    var walk = d.querySelectorAll('*');
+    for (var i = walk.length - 1; i >= 0; i--) {
+      var el = walk[i];
+      // 허용하지 않는 태그는 껍데기만 벗기고 안의 글은 살린다
+      if (!ok[el.tagName]) {
+        var kids = [].slice.call(el.childNodes);
+        if (el.parentNode) {
+          for (var m = 0; m < kids.length; m++) el.parentNode.insertBefore(kids[m], el);
+          el.parentNode.removeChild(el);
+        }
+        continue;
+      }
+      for (var j = el.attributes.length - 1; j >= 0; j--) {
+        var a = el.attributes[j].name;
+        if (a.indexOf('on') === 0 || a === 'href' || a === 'src' || a === 'style') el.removeAttribute(a);
+      }
+    }
+    return d.innerHTML;
+  }
+  // [data-text="키"] 자리에 관리자가 저장한 문구를 넣는다. 저장한 적 없으면 원문 그대로.
+  function applyTexts() {
+    var t = getTexts();
+    var nodes = document.querySelectorAll('[data-text]');
+    for (var i = 0; i < nodes.length; i++) {
+      var el = nodes[i], v = t[el.getAttribute('data-text')];
+      if (v == null || String(v).trim() === '') continue;
+      el.innerHTML = sanitizeText(v);
+    }
+  }
+
   /* 회원 진입점.
      로그인 여부는 `member_session` 쿠키(HttpOnly 가 아닌 표식)로만 판단한다 —
      이 값은 **화면을 고르는 데만** 쓰고 권한으로 쓰지 않는다. 실제 자격은 member_token
@@ -1773,6 +1826,7 @@
     // 회원 정보는 주문 폼을 채울 때만 쓴다 — 화면을 그리는 것을 기다리게 하지 않는다
     if (!isPreviewFrame) loadMemberProfile();
     mountChrome();
+    applyTexts();          // 설정보다 먼저 — 문구 안의 data-site 자리가 새로 생길 수 있다
     applySiteSettings();
     enhanceSEO();
     initModalDelegation();
@@ -1816,6 +1870,7 @@
     PRODUCTS_KEY: PRODUCTS_KEY, PRODUCT_CATS: PRODUCT_CATS, getProducts: getProducts, setProducts: setProducts, getProduct: getProduct,
     productDefaults: PRODUCT_DEFAULTS, SHIP_TPL: SHIP_TPL, REFUND_TPL: REFUND_TPL, gosiBase: gosiBase,
     SHIP_FEE: SHIP_FEE, SHIP_FREE_OVER: SHIP_FREE_OVER, SHIP_NOTE: SHIP_NOTE, shipFeeFor: shipFeeFor,
+    getTexts: getTexts, setTexts: setTexts,
     OSTAT: OSTAT, stTag: stTag, ST_COLOR: ST_COLOR,
     VISITS_KEY: VISITS_KEY, SOURCES_KEY: SOURCES_KEY,
     COHORTS_KEY: COHORTS_KEY, getCohorts: getCohorts, setCohorts: setCohorts, cohortDefaults: COHORT_DEFAULTS,
