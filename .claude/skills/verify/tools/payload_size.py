@@ -1,7 +1,7 @@
 """효과 측정 — 시작 적재량과 저장 1회 전송량이 얼마나 줄었나"""
 from playwright.sync_api import sync_playwright
 import datetime
-B="https://cham-3ef.pages.dev"
+B="https://charmjt.org"
 now = datetime.datetime.now(datetime.timezone.utc)
 old_at=(now-datetime.timedelta(days=800)).isoformat()
 new_at=(now-datetime.timedelta(days=30)).isoformat()

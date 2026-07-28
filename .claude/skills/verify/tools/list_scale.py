@@ -1,7 +1,7 @@
 """D1 바인딩 파라미터 100개 상한 — 목록이 몇 건을 넘으면 저장이 실패하는가.
    게시글(현재 0건)로 시험하고 끝나면 빈 목록으로 되돌린다."""
 from playwright.sync_api import sync_playwright
-B="https://cham-3ef.pages.dev"
+B="https://charmjt.org"
 with sync_playwright() as p:
     br=p.chromium.launch(); ctx=br.new_context(); a=ctx.new_page()
     a.goto(B+"/admin.html", wait_until="domcontentloaded"); a.wait_for_timeout(1500)

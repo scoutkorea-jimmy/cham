@@ -18,7 +18,7 @@ def goto(pg, url, tries=3):
         except Exception as e:
             if i == tries-1: print(f"  ! 실패 {url} — {str(e)[:60]}"); return False
             time.sleep(3)
-B="https://cham-3ef.pages.dev"
+B="https://charmjt.org"
 PUB=["/","/about.html","/ferments.html","/vinegar.html","/nuruk.html","/instructor.html",
      "/products.html","/news.html","/contact.html","/terms.html","/privacy.html",
      "/product.html?id=p_vin_omija"]

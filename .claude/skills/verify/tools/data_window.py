@@ -2,7 +2,7 @@
    문의 표에 옛 자료 40건 + 최근 20건을 넣고, 최근 것을 고쳤을 때 옛 것이 남는지 본다."""
 from playwright.sync_api import sync_playwright
 import datetime, json
-B="https://cham-3ef.pages.dev"
+B="https://charmjt.org"
 bad=[]
 now = datetime.datetime.now(datetime.timezone.utc)
 old_at = (now - datetime.timedelta(days=800)).isoformat()

@@ -1,7 +1,7 @@
 """동시 편집 — 두 사람이 같은 목록을 다루면 나중 저장이 앞 사람 것을 덮는가?
    비어 있는 팝업 목록으로 시험하고 끝나면 원래대로(빈 목록) 돌린다."""
 from playwright.sync_api import sync_playwright
-B="https://cham-3ef.pages.dev"
+B="https://charmjt.org"
 def login(ctx):
     pg=ctx.new_page()
     pg.goto(B+"/admin.html", wait_until="domcontentloaded"); pg.wait_for_timeout(1500)

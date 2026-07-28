@@ -2,7 +2,7 @@
    rules/spacing-rhythm.md '회귀 검사': 허용(8·16·24·44·64) 밖 숫자가 나오면 인라인이 돌아온 것."""
 from playwright.sync_api import sync_playwright
 from collections import Counter
-B="https://cham-3ef.pages.dev"
+B="https://charmjt.org"
 SH="/private/tmp/claude-501/-Users-jimmy-macmini-Desktop-VS-Code-cham/a1f12cd2-a589-4ea5-80b7-abf08d8dbb30/scratchpad"
 ADMIN=["dashboard","g_sales","products","orders","sales","g_customer","cohorts","apps","inq",
        "g_content","posts","images","popups","partners","g_site","settings","accounts","members",

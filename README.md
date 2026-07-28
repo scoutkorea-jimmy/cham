@@ -37,7 +37,9 @@ python3 -m http.server 8000
 ├─ news.html           소식마당 (공지 · 교육 게시판 — Tiptap 에디터 · 현장 갤러리)
 ├─ contact.html        문의하기
 ├─ admin.html          관리자 콘솔
-├─ robots.txt / sitemap.xml / llms.txt   SEO · AI 검색 대응 (도메인 확정 시 URL 교체)
+├─ signup.html / mypage.html   회원가입 · 마이페이지(로그인 겸용)
+├─ llms.txt            AI 검색용 요약
+│                     robots.txt · sitemap.xml 은 functions/ 가 만든다(요청 호스트 기준)
 └─ assets/
    ├─ site.css         디자인 시스템 + 전 컴포넌트 스타일
    ├─ site.js          공통 셸(내비/푸터) · 모달 · 스토어 · 비회원 주문 · 동의 게이팅
@@ -149,18 +151,18 @@ python3 -m http.server 8000
 ## SEO · AI 검색 대응
 
 - 전 페이지 `title` · `description` · Open Graph 메타 + JSON-LD(Organization · BreadcrumbList · Product)
-- `robots.txt`(admin 제외) · `sitemap.xml` · `llms.txt` — **도메인 확정 시 내부 URL을 실제 도메인으로 교체**
+- `robots.txt`(admin 제외) · `sitemap.xml` — **함수가 요청 호스트로 만든다**(`functions/robots.txt.js` · `sitemap.xml.js`). 도메인이 바뀌어도 손댈 것이 없다. `llms.txt` 는 정적이며 링크가 상대경로다
 - `canonical` / `og:url` 은 `site.js` 가 런타임에 자동 주입
 
 ---
 
 ## 교체가 필요한 항목 (운영 전 체크리스트)
 
-- [ ] 제품·교육 현장·갤러리 **실제 사진** (현재 색면 플레이스홀더 `.ph`)
-- [ ] 무통장입금 **실제 계좌번호** — **관리자 > 설정**에서 입력 (기본값은 placeholder)
-- [ ] 게시판/주문 **샘플 데이터** (`[샘플]` 표기) → 실제 데이터·API
-- [ ] 관리자 **인증** → 서버 세션/토큰 방식
-- [ ] `robots.txt` / `sitemap.xml` / `llms.txt` 도메인 교체
+- [ ] **관리자 비밀번호 교체** — 관리자 왼쪽 아래 `비밀번호 변경`. 지금은 처음 값 그대로다
+- [ ] 이용약관·개인정보처리방침 **법무 검토** — 회원 수집을 반영해 문구는 고쳤으나 초안이다
+- [ ] 제품·교육 현장·갤러리 **실제 사진** 보강 (남은 자리는 색면 `.ph`)
+- [x] 무통장입금 **실제 계좌번호** — 입력 완료
+- [x] 샘플 데이터 제거 · 관리자 **서버 인증** · **도메인 연결**(charmjt.org) · **회원 기능**
 - [ ] 방문 통계 → 서버 로그 또는 애널리틱스 연동
 
 ---

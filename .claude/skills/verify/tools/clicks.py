@@ -1,7 +1,7 @@
 """클릭이 실제로 먹는가 — 렌더링만 보는 검사로는 못 잡는 종류다.
    data-page 충돌로 모든 클릭이 삼켜졌던 적이 있다."""
 from playwright.sync_api import sync_playwright
-B="https://cham-3ef.pages.dev"
+B="https://charmjt.org"
 bad=[]
 with sync_playwright() as p:
     br=p.chromium.launch(); ctx=br.new_context(viewport={"width":1500,"height":1000}); a=ctx.new_page()

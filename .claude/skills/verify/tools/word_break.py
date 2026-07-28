@@ -10,7 +10,7 @@ keep-all 로 정하고, 다른 선택자에서 다시 선언하지 않는다. �
 import sys
 from playwright.sync_api import sync_playwright
 
-B = (sys.argv[1] if len(sys.argv) > 1 else "https://cham-3ef.pages.dev").rstrip("/")
+B = (sys.argv[1] if len(sys.argv) > 1 else "https://charmjt.org").rstrip("/")
 PUBLIC = ["/", "/about.html", "/ferments.html", "/vinegar.html", "/nuruk.html",
           "/instructor.html", "/products.html", "/news.html", "/contact.html",
           "/terms.html", "/privacy.html", "/signup.html", "/mypage.html",

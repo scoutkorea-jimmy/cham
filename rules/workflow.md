@@ -164,7 +164,8 @@ DB 구조 변경 · 라우트 재구성 · 전체 포맷팅 · 무관한 패키�
 검증을 마친 변경은 **묻지 않고 커밋하고 push 합니다.** 사용자의 상시 지시입니다.
 "커밋할까요?" 라고 되묻지 않습니다.
 
-`main` 에 push 하면 Cloudflare Pages 가 자동 배포합니다 → https://cham-3ef.pages.dev
+`main` 에 push 하면 Cloudflare Pages 가 자동 배포합니다 → **https://charmjt.org**
+(Pages 기본 주소 `cham-3ef.pages.dev` 도 함께 응답합니다 — 커스텀 도메인의 CNAME 대상이 이것입니다)
 (프로젝트가 GitHub `scoutkorea-jimmy/cham` 에 Git 연결돼 있습니다 — [docs/deploy.md](../docs/deploy.md))
 **push 하지 않으면 사용자가 보는 사이트는 그대로입니다.** 로컬 파일만 고쳐 놓고 끝내지 않습니다.
 

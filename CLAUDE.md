@@ -1,8 +1,8 @@
 # CLAUDE.md — 저장소 지도
 
 한국참전통발효식품협동조합 공식 홈페이지. **순수 HTML · CSS · 바닐라 JS**, 빌드 도구 없음.
-Cloudflare Pages(Functions + D1 + R2)로 이전 중이며, 배포 전까지 GitHub Pages 에서도
-그대로 돌아갑니다 — 아래 '저장소 — 지금은 두 모드' 참조.
+**운영 중: https://charmjt.org** (www 포함) — Cloudflare Pages(Functions + D1 + R2),
+`main` push 시 자동 배포. 옛 GitHub Pages 는 닫혔습니다(2026-07-27).
 
 이 문서는 **지도**입니다. 상세 규칙은 [`rules/`](rules/) 에 있습니다.
 
@@ -37,7 +37,11 @@ wrangler.toml       Pages 설정 · D1(DB) · R2(MEDIA) 바인딩
 docs/migration-cloudflare.md   서버 이전 계획 — 단계·스키마
 docs/deploy.md      배포 절차 — Cloudflare 설정 · 확인 · 정리 · 되돌리기
 docs/handoff.md     **요청 추적** — 받은 요청·상태·검증 도구. 작업 시작 전에 여기부터 본다
-terms.html / privacy.html                robots.txt / sitemap.xml / llms.txt
+terms.html / privacy.html                signup.html / mypage.html   회원가입 · 마이페이지
+llms.txt            AI 검색용 요약 (정적)
+                    robots.txt · sitemap.xml 은 **파일이 아니라 함수**가 만듭니다
+                    (functions/robots.txt.js · sitemap.xml.js) — 주소를 요청 호스트에서
+                    가져오므로 도메인이 바뀌어도 손댈 것이 없습니다
 
 assets/
   site.css   디자인 시스템 + 전 컴포넌트 스타일 (모든 색·간격·글꼴 토큰의 원본)
@@ -127,24 +131,30 @@ python3 -m http.server 8777 --bind 127.0.0.1     # 서버
 관리자 비밀번호 교체(**admin/admin** — 공개 저장소에 해시가 있다) ·
 구글·네이버 서치콘솔 등록(**관리자 > 운영 설정 > 검색 노출**) ·
 도메인 연결 · 약관·개인정보처리방침 법무 검토 ·
-GitHub Pages 병행 종료 후 로컬 어댑터 정리([docs/deploy.md](docs/deploy.md) 5절)
+로컬 어댑터 정리 — 검증 절차를 `wrangler pages dev` 로 옮긴 뒤([docs/handoff.md](docs/handoff.md) T2)
 
 완료: 서버 인증(계정별 로그인 · owner/staff 권한 · 실패 시 잠금) ·
-데이터 D1/R2 이전 · Cloudflare Pages 배포(https://cham-3ef.pages.dev · main push 시 자동) ·
-예시 데이터 제거(코드·운영 DB 모두)
+데이터 D1/R2 이전 · Cloudflare Pages 배포 · **도메인 charmjt.org 연결** ·
+**GitHub Pages 종료** · **회원(가입·로그인·마이페이지·주문연결·탈퇴)** ·
+**페이지 문구 편집**(관리자 > 콘텐츠 관리 > 페이지 문구) · 예시 데이터 제거(코드·운영 DB 모두)
 
 > 운영 정보(계좌·연락처·사업자정보·약도 좌표)는 `site.js` 의 `SETTINGS_DEFAULTS` 가 기본값이고,
 > **관리자 > 설정**에서 덮어씁니다. 반영: 전 페이지 푸터·결제 안내·모바일 메뉴·약도.
 
-## 저장소 — 지금은 두 모드
+## 저장소 — 서버 모드와 로컬 모드
 
-Cloudflare Pages 이전 중이라 `site.js` 가 부팅 때 `/api/bootstrap` 을 불러 모드를 정합니다.
+`site.js` 가 부팅 때 `/api/bootstrap` 을 불러 모드를 정합니다.
+**운영은 언제나 서버 모드**입니다. 로컬 모드는 `/api` 가 없을 때(예: `python3 -m http.server`
+로 띄운 검증 화면) 쓰이는 대비책이라, 지금은 **개발·검증 수단**으로 남아 있습니다.
 
-| | 서버 모드 (Cloudflare) | 로컬 모드 (GitHub Pages) |
+| | 서버 모드 (운영) | 로컬 모드 (검증용) |
 |---|---|---|
 | 데이터 | D1 | localStorage `kach_*` |
 | 이미지 | R2 | IndexedDB `kach_db` |
 | 관리자 인증 | 서버 세션 쿠키 + 계정별 권한 | `site.js` 안의 해시 비교 |
+
+> 로컬 모드에서 보는 값은 **코드의 기본값**이지 운영 자료가 아닙니다. 상품·기수·설정을
+> 확인할 일이면 운영 화면이나 `/api/bootstrap` 을 봐야 합니다.
 
 **읽기는 동기 그대로**입니다 — 서버 모드는 부팅 때 받은 값을 메모리에서 읽으므로
 `getProducts()` 같은 기존 호출부가 바뀌지 않습니다. 쓰기는 낙관적(메모리 먼저, 저장은 뒤에서)입니다.
@@ -154,4 +164,5 @@ Cloudflare Pages 이전 중이라 `site.js` 가 부팅 때 `/api/bootstrap` 을 
 > 지워집니다. `S.patchItem` · `S.removeItem` 을 씁니다 → [docs/handoff.md](docs/handoff.md) '구조'
 이미지는 `Site.Media` 로 감싸 화면 코드가 항상 `rec.url` 만 씁니다.
 
-배포가 끝나면 로컬 모드를 **지웁니다** → [docs/deploy.md](docs/deploy.md) 5절.
+로컬 모드를 지우려면 **검증 절차를 `wrangler pages dev` 로 먼저 옮겨야** 합니다 —
+지금은 이것이 고친 것을 눈으로 확인하는 수단이기도 합니다 → [docs/handoff.md](docs/handoff.md) T2.

@@ -1,6 +1,6 @@
 """고정 버튼(챗봇·맨위로)이 눌러야 하는 것을 덮고 있나 — 전 화면"""
 from playwright.sync_api import sync_playwright
-B="https://cham-3ef.pages.dev"
+B="https://charmjt.org"
 NAV=["dashboard","products","orders","sales","cohorts","apps","inq","posts","images",
      "popups","partners","settings","seo","accounts","members","roles","backup","consents","kms"]
 JS="""() => {

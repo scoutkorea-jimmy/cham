@@ -10,7 +10,7 @@
 """
 from playwright.sync_api import sync_playwright
 from collections import Counter
-B="https://cham-3ef.pages.dev"
+B="https://charmjt.org"
 PUB=["/","/about.html","/ferments.html","/vinegar.html","/nuruk.html","/instructor.html",
      "/products.html","/news.html","/contact.html","/terms.html","/privacy.html",
      "/product.html?id=p_vin_omija"]
