@@ -41,3 +41,8 @@ Basic_Infomation/
 # Cloudflare 로컬 개발 비밀값·상태
 .dev.vars
 .wrangler/
+
+# 작업 도구가 만드는 기계별 파일 — 사람마다 다르므로 공유하지 않는다.
+# .claude/skills/ 는 규칙집이라 커밋한다(여기서 제외하지 않는다).
+.claude/settings.local.json
+.playwright-mcp/
