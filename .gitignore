@@ -46,3 +46,4 @@ Basic_Infomation/
 # .claude/skills/ 는 규칙집이라 커밋한다(여기서 제외하지 않는다).
 .claude/settings.local.json
 .playwright-mcp/
+.impeccable/
