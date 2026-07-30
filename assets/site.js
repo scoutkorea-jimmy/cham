@@ -996,6 +996,81 @@
     if (p.priceOnRequest) return false;   // 전화로 안내하는 품목은 재고로 막지 않는다
     return stockTotal(p) <= 0;
   }
+  /** 옵션까지 반영한 한 개 값. 서버(resolveItem)와 같은 규칙이어야 한다. */
+  function unitPriceOf(p, optionLabel) {
+    if (!p || p.priceOnRequest) return 0;
+    var base = (p.salePrice != null && p.salePrice !== '') ? Number(p.salePrice) : Number(p.price);
+    if (optionLabel && p.option && p.option.values) {
+      var label = String(optionLabel).split(':').slice(1).join(':').trim();
+      var hit = p.option.values.filter(function (v) { return String(v.label).trim() === label; })[0];
+      if (hit) base += Number(hit.add) || 0;
+    }
+    return Number(base) || 0;
+  }
+
+  /* ---------------- 장바구니 ----------------
+     브라우저에만 둔다. 로그인하지 않고도 담을 수 있어야 하고, 담아 둔 것이
+     서버에 개인정보로 쌓일 이유도 없다.
+     **금액과 이름은 담을 때가 아니라 그릴 때 상품에서 다시 읽는다** —
+     값을 함께 저장해 두면 관리자가 가격을 고친 뒤에도 옛 금액이 남아 주문된다.
+     담긴 줄은 '무엇을 몇 개'만 기억한다. */
+  var CART_KEY = 'kach_cart_v1';
+  function cartRaw() {
+    var a = getJSON(CART_KEY, []);
+    return Array.isArray(a) ? a.filter(function (x) { return x && x.productId; }) : [];
+  }
+  function cartSave(a) { var ok = setJSON(CART_KEY, a); paintCartBadge(); return ok; }
+  function cartCount() {
+    return cartRaw().reduce(function (n, x) { return n + (Number(x.qty) || 1); }, 0);
+  }
+  function cartAdd(productId, optionLabel, qty) {
+    var a = cartRaw();
+    var opt = optionLabel || null;
+    var n = Math.max(1, Math.floor(Number(qty) || 1));
+    var hit = a.filter(function (x) { return x.productId === productId && (x.optionLabel || null) === opt; })[0];
+    if (hit) hit.qty = Math.min(999, (Number(hit.qty) || 1) + n);
+    else a.push({ productId: productId, optionLabel: opt, qty: n });
+    return cartSave(a);
+  }
+  function cartSetQty(i, qty) {
+    var a = cartRaw(); if (!a[i]) return false;
+    a[i].qty = Math.max(1, Math.min(999, Math.floor(Number(qty) || 1)));
+    return cartSave(a);
+  }
+  function cartRemove(i) { var a = cartRaw(); a.splice(i, 1); return cartSave(a); }
+  function cartClear() { return cartSave([]); }
+
+  /** 담긴 줄에 지금 상품 정보를 붙인다. 없어졌거나 살 수 없는 줄은 ok:false 로 표시한다. */
+  function cartLines() {
+    return cartRaw().map(function (c, i) {
+      var p = getProduct(c.productId);
+      var unit = unitPriceOf(p, c.optionLabel);
+      var left = p ? stockLeft(p, c.optionLabel || '') : 0;
+      var gone = !p || p.status === '숨김';
+      var soldout = !gone && (p.status === '품절' || left <= 0);
+      return {
+        i: i, productId: c.productId, optionLabel: c.optionLabel || null, qty: Number(c.qty) || 1,
+        name: p ? p.name : '(판매 종료된 상품)',
+        unitPrice: unit, left: left,
+        ok: !gone && !soldout && !(p && p.priceOnRequest) && unit > 0,
+        why: gone ? '판매 종료' : (soldout ? '품절' : (p && p.priceOnRequest ? '전화 주문 품목' : null)),
+      };
+    });
+  }
+  function cartTotals(lines) {
+    var items = lines.filter(function (l) { return l.ok; })
+      .reduce(function (s, l) { return s + l.unitPrice * l.qty; }, 0);
+    var ship = shipFeeFor(items);
+    return { items: items, ship: ship, total: items + ship };
+  }
+  // 내비의 장바구니 개수. 화면이 다시 그려질 때마다 부른다.
+  function paintCartBadge() {
+    var n = cartCount();
+    [].forEach.call(document.querySelectorAll('[data-cart-count]'), function (el) {
+      el.textContent = n > 99 ? '99+' : String(n);
+      el.hidden = n === 0;
+    });
+  }
 
   /* ---------------- 주문 상태 ---------------- */
   var OSTAT = ['주문접수', '결제완료', '배송준비중', '배송중', '배송완료'];
@@ -1205,6 +1280,8 @@
             '<span class="bt"><b>' + brandMarkup() + '</b></span>' +
           '</a>' +
           '<div class="nav-cta">' +
+            '<button class="btn btn-ghost nav-cart" data-open-cart aria-label="장바구니">' +
+              '<i data-lucide="shopping-basket"></i><span class="nav-cart-n" data-cart-count hidden>0</span></button>' +
             memberLinkHTML() +
             '<button class="btn btn-point" data-modal="apply"><i data-lucide="sprout"></i>지도사 신청</button>' +
             '<button class="btn btn-ghost nav-toggle" aria-label="메뉴 열기" id="navToggle" style="padding:11px 13px"><i data-lucide="menu"></i></button>' +
@@ -1280,6 +1357,7 @@
     if (toggle) toggle.addEventListener('click', function(){ menu.classList.add('open'); });
     if (close) close.addEventListener('click', function(){ menu.classList.remove('open'); });
     if (menu) menu.addEventListener('click', function(e){ if (e.target === menu) menu.classList.remove('open'); });
+    paintCartBadge();
   }
 
   /* ---------------- SEO 보강 (canonical · og:url · og:image 절대경로) ---------------- */
@@ -1484,6 +1562,17 @@
   function payBoxHTML(mode, data) {
     var qty = Number((data && data.qty) || 1) || 1;
     var unit = Number((data && data.unitPrice) || 0) || 0;
+    // 장바구니 주문은 품목이 여럿이라 한 개 값 × 수량으로 계산할 수 없다
+    if (data && data.cart) {
+      var ct = cartTotals(cartLines());
+      return '<div class="pay-box"><b><i data-lucide="landmark"></i>무통장입금(계좌이체) 안내</b>' +
+        '<div class="pay-row"><span>입금 계좌</span><span>' + esc(payBank()) + '<br>(예금주: ' + esc(payHolder()) + ')</span></div>' +
+        '<div id="payAmount">' + payAmountRows(ct.items) + '</div>' +
+        '<div class="pay-row"><span>입금 기한</span><span>주문 후 3일 이내</span></div>' +
+        '<p>입금자명은 ‘입금자명’ 항목과 동일하게 입금해 주세요. 입금 확인 후 결제완료 처리되며 순차 배송됩니다.</p>' +
+        (payBankIsSample() ? '<p class="pay-demo">※ 표시된 계좌번호는 <b>예시</b>입니다. 입금 전 02-855-8806 으로 확인해 주세요.</p>' : '') +
+      '</div>';
+    }
     /* 손님이 실제로 넣어야 할 금액을 못박는다.
        예전에는 '택배비 별도'라고만 적어, 무료 기준 미만 주문은 얼마를 입금해야 하는지가
        화면 어디에도 없었다. 제주·도서산간 추가분만 여기서 계산하지 않는다 — 전화로 안내한다. */
@@ -1539,17 +1628,31 @@
   function openModal(type, data) {
     var cfg = MODALS[type]; if (!cfg) return;
     data = prefillFromMember(type, data);
-    var fields = cfg.fields.map(function(f){ return fieldHTML(f, data); }).join('');
+    var isCart = !!(data && data.cart);
+    /* 장바구니 주문에는 '상품 한 건' 칸이 맞지 않는다. 담긴 줄을 요약으로 보여 주고,
+       무엇을 몇 개 사는지는 서버가 items 로 다시 확인한다. */
+    var flds = isCart
+      ? [{ name: 'cartSummary', label: '주문 상품', readonly: true, full: true }]
+        .concat(cfg.fields.filter(function (f) {
+          return ['product', 'optionLabel', 'qty', 'unitPrice', 'productId'].indexOf(f.name) < 0;
+        }))
+      : cfg.fields;
+    if (isCart) {
+      var cl = cartLines().filter(function (l) { return l.ok; });
+      data.cartSummary = cl.length === 1
+        ? cl[0].name + (cl[0].optionLabel ? ' · ' + cl[0].optionLabel : '') + ' ' + cl[0].qty + '개'
+        : cl[0].name + ' 외 ' + (cl.length - 1) + '건 (모두 ' + cl.reduce(function (n, l) { return n + l.qty; }, 0) + '개)';
+    }
+    var fields = flds.map(function(f){ return fieldHTML(f, data); }).join('');
     var consents = cfg.consents ? consentHTML(cfg.consents) : '';
     var pay = cfg.pay ? payBoxHTML(cfg.pay === 'note' ? 'note' : 'total', data) : '';
     var disabled = cfg.consents && cfg.consents.length ? ' disabled' : '';
     rawModal(
       '<div class="modal-head"><div><div class="eyebrow">' + cfg.kicker + '</div><h3>' + esc(cfg.title) + '</h3><p>' + esc(cfg.desc) + '</p></div>' +
         '<button class="modal-close" data-modal-close aria-label="닫기"><i data-lucide="x"></i></button></div>' +
-      '<div class="modal-body"><form id="modalForm" data-store="' + cfg.store + '" data-type="' + type + '">' +
+      '<div class="modal-body"><form id="modalForm" data-store="' + cfg.store + '" data-type="' + type + '"' + (isCart ? ' data-cart="1"' : '') + '>' +
         '<div class="form-grid">' + fields + '</div>' +
         pay + consents +
-        '<div class="modal-note"><i data-lucide="info"></i><span>이 양식은 데모 프로토타입으로 접수되어 관리자 페이지에 표시됩니다. 실제 발송·결제는 운영 서버 연동 후 동작합니다.</span></div>' +
         '<div class="modal-foot"><button type="button" class="btn btn-ghost" data-modal-close>취소</button><button type="submit" class="btn btn-point"' + disabled + '>' + cfg.submit + '</button></div>' +
       '</form></div>');
     var root = document.getElementById('modalRoot');
@@ -1570,6 +1673,14 @@
     var type = form.getAttribute('data-type');
     data.kind = type;
     var isOrder = (type === 'order' || type === 'seedjang');
+    var isCart = form.getAttribute('data-cart') === '1';
+    if (isCart) {
+      // 무엇을 몇 개 사는지만 보낸다. 이름·금액·재고는 서버가 상품표에서 다시 만든다.
+      data.items = cartLines().filter(function (l) { return l.ok; })
+        .map(function (l) { return { productId: l.productId, optionLabel: l.optionLabel, qty: l.qty }; });
+      if (!data.items.length) return;
+      delete data.cartSummary;
+    }
     if (isOrder) {
       data.payMethod = '무통장입금';
       data.status = '주문접수';
@@ -1577,7 +1688,13 @@
       // 로컬 모드에서만 여기서 만든다.
       if (!SERVER) {
         data.orderNo = genOrderNo();
-        if (data.unitPrice) {
+        if (isCart) {
+          var ct = cartTotals(cartLines());
+          data.shipFee = ct.ship; data.total = ct.total;
+          data.product = data.cartSummary || '장바구니 주문';
+          data.qty = data.items.reduce(function (n, x) { return n + x.qty; }, 0);
+          data.itemCount = data.items.length;
+        } else if (data.unitPrice) {
           var itemsTotal = Number(data.unitPrice) * (Number(data.qty) || 1);
           data.shipFee = shipFeeFor(itemsTotal);
           data.total = itemsTotal + data.shipFee;
@@ -1588,6 +1705,7 @@
     if (btn) { btn.disabled = true; btn.textContent = '접수 중…'; }
 
     submitRecord(type, data).then(function (rec) {
+      if (isCart) cartClear();          // 접수된 뒤에 비운다 — 실패하면 담긴 것이 남아야 한다
       renderSubmitSuccess(form, type, rec, isOrder);
     }).catch(function (err) {
       if (btn) { btn.disabled = false; btn.textContent = MODALS[type].submit; }
@@ -1626,6 +1744,85 @@
         '<div class="modal-foot"><button type="button" class="btn btn-point" data-modal-close>확인</button></div>' +
       '</div>';
     icons();
+  }
+
+  /* ---------------- 장바구니 화면 ----------------
+     따로 된 페이지를 만들지 않는다 — 담고 바로 주문으로 이어지는 흐름이라
+     페이지를 옮기면 돌아올 곳을 잃는다. */
+  function cartRowsHTML() {
+    var lines = cartLines();
+    if (!lines.length) {
+      return '<div class="cart-empty"><i data-lucide="shopping-basket"></i>' +
+        '<p>장바구니가 비어 있습니다.</p>' +
+        '<a class="btn btn-ghost" href="products.html">제품 보러 가기</a></div>';
+    }
+    var t = cartTotals(lines);
+    var rows = lines.map(function (l) {
+      return '<div class="cart-row' + (l.ok ? '' : ' off') + '">' +
+        '<div class="cart-name"><b>' + esc(l.name) + '</b>' +
+          (l.optionLabel ? '<span class="cart-opt">' + esc(l.optionLabel) + '</span>' : '') +
+          (l.ok ? '' : '<span class="cart-bad">' + esc(l.why || '주문할 수 없음') + '</span>') +
+        '</div>' +
+        '<div class="cart-qty">' +
+          (l.ok
+            ? '<div class="stepper"><button type="button" data-cart-minus="' + l.i + '" aria-label="수량 줄이기">−</button>' +
+              '<input type="number" min="1" value="' + l.qty + '" data-cart-qty="' + l.i + '" inputmode="numeric">' +
+              '<button type="button" data-cart-plus="' + l.i + '" aria-label="수량 늘리기">+</button></div>'
+            : '<span class="muted">' + l.qty + '개</span>') +
+        '</div>' +
+        '<div class="cart-sum">' + (l.ok ? fmtWon(l.unitPrice * l.qty) + '원' : '-') + '</div>' +
+        '<button type="button" class="cart-del" data-cart-del="' + l.i + '" aria-label="빼기"><i data-lucide="x"></i></button>' +
+      '</div>';
+    }).join('');
+    var bad = lines.filter(function (l) { return !l.ok; }).length;
+    return '<div class="cart-list">' + rows + '</div>' +
+      '<div class="pay-box" style="margin-top:var(--gap-tight)"><b><i data-lucide="receipt"></i>결제 예정 금액</b>' +
+        '<div id="payAmount">' + payAmountRows(t.items) + '</div></div>' +
+      (bad ? '<div class="modal-note"><i data-lucide="alert-circle"></i><span>주문할 수 없는 품목 ' + bad +
+        '건은 금액에서 빠졌습니다. 빼고 주문하시거나 ✕ 로 지워 주세요.</span></div>' : '');
+  }
+
+  function paintCart() {
+    var box = document.getElementById('cartBody');
+    if (!box) return;
+    box.innerHTML = cartRowsHTML();
+    var lines = cartLines();
+    var go = document.getElementById('cartGo');
+    if (go) go.disabled = !lines.filter(function (l) { return l.ok; }).length;
+    icons();
+  }
+
+  function openCart() {
+    rawModal(
+      '<div class="modal-head"><div><div class="eyebrow">장바구니</div><h3>담은 상품</h3>' +
+        '<p>여러 품목을 한 번에 주문하시면 <b>택배비도 한 번만</b> 붙습니다.</p></div>' +
+        '<button class="modal-close" data-modal-close aria-label="닫기"><i data-lucide="x"></i></button></div>' +
+      '<div class="modal-body"><div id="cartBody"></div>' +
+        '<div class="modal-foot"><button type="button" class="btn btn-ghost" data-modal-close>계속 둘러보기</button>' +
+          '<button type="button" class="btn btn-point" id="cartGo"><i data-lucide="shopping-basket"></i>주문하기</button></div>' +
+      '</div>', 600);
+    paintCart();
+    var root = document.getElementById('modalRoot');
+    root.addEventListener('click', function (e) {
+      var t = e.target;
+      var del = t.closest('[data-cart-del]');
+      if (del) { cartRemove(Number(del.dataset.cartDel)); paintCart(); return; }
+      var minus = t.closest('[data-cart-minus]');
+      if (minus) {
+        var im = Number(minus.dataset.cartMinus);
+        cartSetQty(im, (cartRaw()[im] || {}).qty - 1); paintCart(); return;
+      }
+      var plus = t.closest('[data-cart-plus]');
+      if (plus) {
+        var ip = Number(plus.dataset.cartPlus);
+        cartSetQty(ip, (Number((cartRaw()[ip] || {}).qty) || 1) + 1); paintCart(); return;
+      }
+      if (t.id === 'cartGo') { closeModal(); openModal('order', { cart: true }); }
+    });
+    root.addEventListener('change', function (e) {
+      var q = e.target.closest('[data-cart-qty]');
+      if (q) { cartSetQty(Number(q.dataset.cartQty), q.value); paintCart(); }
+    });
   }
 
   /* ---------------- 취소 · 반품 · 교환 신청 ----------------
@@ -1813,6 +2010,7 @@
         ct.classList.toggle('open', open);
         return;
       }
+      if (e.target.closest('[data-open-cart]')) { e.preventDefault(); openCart(); return; }
       if (e.target.closest('[data-modal-close]')) { closeModal(); }
     });
     document.addEventListener('change', function (e) {
@@ -2021,6 +2219,7 @@
     requireAdmin: requireAdmin, verifyLogin: verifyLogin, lockMs: lockMs,
     openModal: openModal, closeModal: closeModal, rawModal: rawModal, openOrderLookup: openOrderLookup,
     openOrderRequest: openOrderRequest, orderReqOptions: orderReqOptions, orderReqNote: orderReqNote,
+    openCart: openCart, cartAdd: cartAdd, cartCount: cartCount, unitPriceOf: unitPriceOf,
     getPartners: getPartners, setPartners: setPartners, renderPartnersStrip: renderPartnersStrip, partnerDefaults: PARTNER_DEFAULTS,
     POPUP_KEY: POPUP_KEY, getPopups: getPopups,
     POSTS_KEY: POSTS_KEY, getPosts: getPosts, setPosts: setPosts,

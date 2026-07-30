@@ -50,32 +50,42 @@ function who(data) {
  * 되돌리기로 발송 이전 단계로 내리면 같은 수량을 되돌려 놓는다 —
  * 그러지 않으면 잘못 누른 한 번이 재고를 영영 깎는다.
  *
- * dir: -1 내보냄(줄인다) / +1 되돌림(늘린다). 고칠 것이 없으면 null.
+ * dir: -1 내보냄(줄인다) / +1 되돌림(늘린다). 고칠 것이 없으면 빈 배열.
  */
-async function stockShiftStmt(env, order, dir) {
-  const qty = Number(order.qty) || 0;
-  if (!order.productId || qty <= 0) return null;
-  const row = await env.DB.prepare(
-    `SELECT stock, doc FROM products WHERE id = ?`
-  ).bind(order.productId).first();
-  if (!row) return null;                            // 상품이 지워졌다 — 되돌릴 곳이 없다
+async function stockShiftStmts(env, order, dir) {
+  // 품목 줄의 원본은 order_items 다. 요약 열만 보면 여러 품목 주문에서 첫 줄만 줄어든다.
+  const { results } = await env.DB.prepare(
+    `SELECT product_id, option_label, qty FROM order_items WHERE order_id = ? ORDER BY seq`
+  ).bind(order.id).all();
+  const lines = (results || []).map((r) => ({ productId: r.product_id, optionLabel: r.option_label, qty: r.qty }));
+  if (!lines.length) return [];
 
-  let doc;
-  try { doc = JSON.parse(row.doc || '{}'); } catch (e) { doc = {}; }
-  const opt = doc.option;
-  const move = dir * qty;
+  const out = [];
+  for (const line of lines) {
+    const qty = Number(line.qty) || 0;
+    if (!line.productId || qty <= 0) continue;
+    const row = await env.DB.prepare(`SELECT stock, doc FROM products WHERE id = ?`).bind(line.productId).first();
+    if (!row) continue;                             // 상품이 지워졌다 — 되돌릴 곳이 없다
 
-  if (opt && Array.isArray(opt.values) && opt.values.length) {
-    if (!order.optionLabel) return null;
-    const label = String(order.optionLabel).split(':').slice(1).join(':').trim();
-    const i = opt.values.findIndex((v) => String(v.label).trim() === label);
-    if (i < 0) return null;                         // 옵션이 그 사이 바뀌었다
-    opt.values[i] = { ...opt.values[i], stock: Math.max(0, (Number(opt.values[i].stock) || 0) + move) };
-    return env.DB.prepare(`UPDATE products SET doc = ?, updated_at = datetime('now') WHERE id = ?`)
-      .bind(JSON.stringify(doc), order.productId);
+    let doc;
+    try { doc = JSON.parse(row.doc || '{}'); } catch (e) { doc = {}; }
+    const opt = doc.option;
+    const move = dir * qty;
+
+    if (opt && Array.isArray(opt.values) && opt.values.length) {
+      if (!line.optionLabel) continue;
+      const label = String(line.optionLabel).split(':').slice(1).join(':').trim();
+      const i = opt.values.findIndex((v) => String(v.label).trim() === label);
+      if (i < 0) continue;                          // 옵션이 그 사이 바뀌었다
+      opt.values[i] = { ...opt.values[i], stock: Math.max(0, (Number(opt.values[i].stock) || 0) + move) };
+      out.push(env.DB.prepare(`UPDATE products SET doc = ?, updated_at = datetime('now') WHERE id = ?`)
+        .bind(JSON.stringify(doc), line.productId));
+    } else {
+      out.push(env.DB.prepare(`UPDATE products SET stock = MAX(0, stock + ?), updated_at = datetime('now') WHERE id = ?`)
+        .bind(move, line.productId));
+    }
   }
-  return env.DB.prepare(`UPDATE products SET stock = MAX(0, stock + ?), updated_at = datetime('now') WHERE id = ?`)
-    .bind(move, order.productId);
+  return out;
 }
 
 export async function onRequestPatch({ request, params, env, data }) {
@@ -105,9 +115,9 @@ export async function onRequestPatch({ request, params, env, data }) {
     const was = SHIPPED.includes(before.status);
     const now = SHIPPED.includes(merged.status);
     if (was !== now) {
-      const st = await stockShiftStmt(env, merged, now ? -1 : +1);
-      if (st) {
-        stmts.push(st);
+      const shifts = await stockShiftStmts(env, merged, now ? -1 : +1);
+      if (shifts.length) {
+        stmts.push(...shifts);
         stmts.push(bump(env, 'products', who(data)));
       }
     }
@@ -124,10 +134,11 @@ export async function onRequestDelete({ params, env, data }) {
   if (!spec) return notFound('한 건씩 지울 수 없는 항목입니다.');
   if (!id) return badRequest();
 
-  const res = await env.DB.batch([
-    env.DB.prepare(`DELETE FROM ${spec.table} WHERE id = ?`).bind(id),
-    bump(env, kind, who(data)),
-  ]);
+  const del = [env.DB.prepare(`DELETE FROM ${spec.table} WHERE id = ?`).bind(id)];
+  // 주문을 지우면 품목 줄도 함께 지운다 — 남으면 재고 예약이 영영 잡혀 있다
+  if (kind === 'orders') del.push(env.DB.prepare(`DELETE FROM order_items WHERE order_id = ?`).bind(id));
+  del.push(bump(env, kind, who(data)));
+  const res = await env.DB.batch(del);
   const changed = (res && res[0] && res[0].meta && res[0].meta.changes) || 0;
   // 이미 없어도 오류로 보지 않는다 — 지우려던 결과는 같다(두 번 눌러도 안전하다)
   return json({ ok: true, deleted: changed });

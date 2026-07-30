@@ -9,12 +9,16 @@
  *     그러지 않으면 개발자도구로 총액을 1원으로 바꿔 주문할 수 있다.
  *   · status 는 항상 '주문접수'/'신규'로 시작한다(클라이언트가 정하지 못한다).
  */
-import { ORDER_INSERT, orderObjToBind, APP_INSERT, INQ_INSERT, appBind, inqBind, parseJSON, readDoc } from '../_shared/store.js';
+import {
+  ORDER_INSERT, orderObjToBind, ORDER_ITEM_INSERT, orderItemBind,
+  APP_INSERT, INQ_INSERT, appBind, inqBind, parseJSON, readDoc,
+} from '../_shared/store.js';
 import { reservedFor } from '../_shared/stock.js';
 import { getMemberSession } from '../_shared/auth.js';
 import { json, badRequest, methodNotAllowed, readJson } from '../_shared/http.js';
 
 const MAX_LEN = 2000;
+const MAX_ITEMS = 20;          // 장바구니 한 번에 담을 수 있는 가짓수
 const clean = (v, max = 200) => (v == null ? null : String(v).trim().slice(0, max) || null);
 const KINDS = new Set(['order', 'seedjang', 'apply', 'inquiry']);
 
@@ -136,41 +140,81 @@ export async function onRequestPost({ request, env }) {
     region: clean(d.region, 80),
   };
 
+  const itemStmts = [];
   if (kind === 'order') {
     if (!clean(d.address)) return badRequest('배송지 주소를 입력해 주세요.');
-    const qty = Math.max(1, Math.min(999, Math.floor(Number(d.qty) || 1)));
-    const item = await resolveItem(env, clean(d.productId, 80), d.optionLabel);
-    if (!item) {
-      return json({ error: '주문할 수 없는 상품입니다. 페이지를 새로고침해 주세요.', code: 'unavailable' }, 409);
+
+    /* 장바구니 주문은 items 로 온다. 한 품목만 살 때는 지금까지처럼 productId·qty 로 온다 —
+       두 경로를 한 모양으로 맞춰 놓고 아래는 한 갈래로만 처리한다. */
+    const raw = Array.isArray(d.items) && d.items.length
+      ? d.items
+      : [{ productId: d.productId, optionLabel: d.optionLabel, qty: d.qty }];
+    if (raw.length > MAX_ITEMS) return badRequest(`한 번에 ${MAX_ITEMS}가지까지 주문하실 수 있습니다.`);
+
+    /* 같은 상품·같은 옵션이 두 줄로 오면 합쳐서 본다.
+       합치지 않으면 재고 3개짜리를 2개+2개로 나눠 담아 통과시킬 수 있다. */
+    const merged = new Map();
+    for (const r of raw) {
+      const pid = clean(r.productId, 80);
+      if (!pid) return badRequest('주문할 수 없는 상품입니다.');
+      const opt = r.optionLabel == null ? '' : String(r.optionLabel);
+      const qty = Math.max(1, Math.min(999, Math.floor(Number(r.qty) || 1)));
+      const key = pid + '|' + opt;
+      const hit = merged.get(key);
+      if (hit) hit.qty = Math.min(999, hit.qty + qty);
+      else merged.set(key, { productId: pid, optionLabel: opt || null, qty });
     }
-    /* 남은 수량을 **여기서 다시 센다.** 화면이 받아 간 값은 페이지를 연 시점의 것이라,
-       그 사이에 다 팔렸을 수 있다. 창고 수량에서 아직 발송하지 않은 주문을 뺀 값이
-       실제로 팔 수 있는 수량이다(재고는 발송할 때 줄어든다). */
-    const left = item.onHand - await reservedFor(env, clean(d.productId, 80), item.optionLabel);
-    if (left < qty) {
-      return json({
-        error: left > 0
-          ? `남은 수량이 ${left}개입니다. 수량을 줄여 주세요.`
-          : '방금 품절되었습니다. 다른 상품을 살펴봐 주세요.',
-        code: 'out_of_stock', left: Math.max(0, left),
-      }, 409);
+
+    const items = [];
+    let itemsTotal = 0;
+    for (const m of merged.values()) {
+      const item = await resolveItem(env, m.productId, m.optionLabel);
+      if (!item) {
+        return json({ error: '주문할 수 없는 상품이 있습니다. 페이지를 새로고침해 주세요.', code: 'unavailable' }, 409);
+      }
+      /* 남은 수량을 **여기서 다시 센다.** 화면이 받아 간 값은 페이지를 연 시점의 것이라,
+         그 사이에 다 팔렸을 수 있다. 창고 수량에서 아직 발송하지 않은 주문을 뺀 값이
+         실제로 팔 수 있는 수량이다(재고는 발송할 때 줄어든다). */
+      const left = item.onHand - await reservedFor(env, m.productId, item.optionLabel);
+      if (left < m.qty) {
+        return json({
+          error: left > 0
+            ? `‘${item.name}’ 은(는) ${left}개만 남았습니다. 수량을 줄여 주세요.`
+            : `‘${item.name}’ 이(가) 방금 품절되었습니다. 장바구니에서 빼 주세요.`,
+          code: 'out_of_stock', productId: m.productId, left: Math.max(0, left),
+        }, 409);
+      }
+      items.push({ productId: m.productId, product: item.name, optionLabel: item.optionLabel, qty: m.qty, unitPrice: item.unit });
+      itemsTotal += item.unit * m.qty;
     }
-    rec.productId = clean(d.productId, 80);
-    rec.product = item.name;            // 이름·옵션·금액 모두 상품표에서 만든 값
-    rec.optionLabel = item.optionLabel;
-    rec.qty = qty;
-    rec.unitPrice = item.unit;
-    // total 은 '손님이 입금할 금액' 이다 — 상품값만 담으면 무료 기준 미만 주문에서
-    // 화면이 안내한 금액과 관리자가 대조하는 금액이 서로 달라진다.
-    const itemsTotal = item.unit * qty;
+
+    // 목록·조회 화면이 읽는 요약. 줄 하나하나의 원본은 order_items 다.
+    const head = items[0];
+    rec.productId = head.productId;
+    rec.product = items.length === 1 ? head.product : `${head.product} 외 ${items.length - 1}건`;
+    rec.optionLabel = items.length === 1 ? head.optionLabel : null;
+    rec.qty = items.reduce((n, it) => n + it.qty, 0);
+    rec.unitPrice = items.length === 1 ? head.unitPrice : null;
+    rec.itemCount = items.length;
+    // total 은 '손님이 입금할 금액' 이다 — 택배비는 주문 한 건에 **한 번만** 붙는다
     rec.shipFee = await shipFeeFor(env, itemsTotal);
     rec.total = itemsTotal + rec.shipFee;
+
+    items.forEach((it, i) => {
+      itemStmts.push(env.DB.prepare(ORDER_ITEM_INSERT).bind(...orderItemBind(id, i, it)));
+    });
   } else {
     rec.amount = clean(d.amount, 120);
   }
 
-  await env.DB.prepare(ORDER_INSERT).bind(...orderObjToBind(rec)).run();
-  return json({ ok: true, id, orderNo, total: rec.total ?? null, shipFee: rec.shipFee ?? null }, 201);
+  await env.DB.batch([
+    env.DB.prepare(ORDER_INSERT).bind(...orderObjToBind(rec)),
+    ...itemStmts,
+  ]);
+  return json({
+    ok: true, id, orderNo,
+    total: rec.total ?? null, shipFee: rec.shipFee ?? null, itemCount: rec.itemCount ?? null,
+  }, 201);
 }
 
 export const onRequestGet = methodNotAllowed;

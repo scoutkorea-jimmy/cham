@@ -247,7 +247,8 @@
           '<div class="pd-cta">' +
             (ask
               ? '<a class="btn btn-point btn-lg" href="tel:02-855-8806"><i data-lucide="phone"></i>02-855-8806</a>'
-              : '<button class="btn btn-point btn-lg" id="pdBuy"' + (soldout ? ' disabled' : '') + '><i data-lucide="shopping-basket"></i>' + (soldout ? '품절' : '구매하기') + '</button>') +
+              : '<button class="btn btn-ghost btn-lg" id="pdCart"' + (soldout ? ' disabled' : '') + '><i data-lucide="plus"></i>장바구니</button>' +
+                '<button class="btn btn-point btn-lg" id="pdBuy"' + (soldout ? ' disabled' : '') + '><i data-lucide="shopping-basket"></i>' + (soldout ? '품절' : '바로 구매') + '</button>') +
             '<button class="btn btn-ghost btn-lg" id="pdAsk"><i data-lucide="message-circle"></i>문의하기</button>' +
           '</div>' +
           (ask
@@ -274,7 +275,8 @@
         ? '<div class="buybar"><span class="bb-price">가격 문의</span>' +
             '<a class="btn btn-point" href="tel:02-855-8806">전화 문의</a></div>'
         : '<div class="buybar"><span class="bb-price" id="bbPrice">' + fmtWon(basePrice) + '원</span>' +
-            '<button class="btn btn-point" id="bbBuy"' + (soldout ? ' disabled' : '') + '>' + (soldout ? '품절' : '구매하기') + '</button></div>');
+            '<button class="btn btn-ghost" id="bbCart"' + (soldout ? ' disabled' : '') + ' style="padding:12px 14px" aria-label="장바구니에 담기"><i data-lucide="plus"></i></button>' +
+            '<button class="btn btn-point" id="bbBuy"' + (soldout ? ' disabled' : '') + '>' + (soldout ? '품절' : '바로 구매') + '</button></div>');
     document.body.classList.add('has-buybar');
     icons();
 
@@ -362,10 +364,23 @@
         productId: p.id,
       });
     }
+    /* 장바구니에 담기 — 담은 뒤 화면을 옮기지 않는다. 더 담으러 온 사람을
+       장바구니로 끌고 가면 다시 목록을 찾아 돌아와야 한다. */
+    function addToCart() {
+      if (soldout) return;
+      var o = currentOption();
+      var qty = Math.max(1, Number(document.getElementById('pdQty').value) || 1);
+      S.cartAdd(p.id, o ? p.option.name + ': ' + o.label : null, qty);
+      S.toast('장바구니에 담았습니다. 오른쪽 위 장바구니에서 확인하세요.');
+    }
     var pdBuy = document.getElementById('pdBuy');
     if (pdBuy) pdBuy.addEventListener('click', buy);
     var bbBuy = document.getElementById('bbBuy');
     if (bbBuy) bbBuy.addEventListener('click', buy);
+    var pdCart = document.getElementById('pdCart');
+    if (pdCart) pdCart.addEventListener('click', addToCart);
+    var bbCart = document.getElementById('bbCart');
+    if (bbCart) bbCart.addEventListener('click', addToCart);
     document.getElementById('pdAsk').addEventListener('click', function () {
       S.openModal('inquiry', { type: '제품 문의', memo: '[상품 문의] ' + p.name + '\n' });
     });

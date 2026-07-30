@@ -11,7 +11,7 @@ import {
   createMemberToken, buildMemberCookies, isSecureRequest,
 } from '../../_shared/auth.js';
 import { checkEmail, normPhone, publicMember } from '../../_shared/members.js';
-import { orderRowToObj } from '../../_shared/store.js';
+import { orderRowToObj, attachOrderItems } from '../../_shared/store.js';
 import { json, badRequest, readJson, methodNotAllowed } from '../../_shared/http.js';
 
 const clean = (v, n) => (v == null ? null : String(v).trim().slice(0, n) || null);
@@ -28,7 +28,7 @@ export async function onRequestGet({ request, env }) {
     const { results } = await env.DB.prepare(
       `SELECT * FROM orders WHERE member_id = ? ORDER BY created_at DESC LIMIT 100`
     ).bind(s.mid).all();
-    orders = (results || []).map(orderRowToObj);
+    orders = await attachOrderItems(env, (results || []).map(orderRowToObj));
   } catch { orders = []; }
 
   return json({ member: publicMember(s.member, true), orders });

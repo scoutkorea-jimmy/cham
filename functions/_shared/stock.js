@@ -20,14 +20,15 @@ export function optKey(productId, optionLabel) {
   return String(productId) + '|' + (optionLabel == null ? '' : String(optionLabel));
 }
 
-/** 상품·옵션별로 아직 발송하지 않은 수량 (bootstrap 이 한 번에 읽는다) */
+/** 상품·옵션별로 아직 발송하지 않은 수량 (bootstrap 이 한 번에 읽는다).
+    주문 한 건에 품목이 여러 줄일 수 있어 order_items 에서 센다 — 그 표가 줄의 원본이다. */
 export async function reservedMap(env) {
   const marks = UNSHIPPED.map(() => '?').join(',');
   const r = await env.DB.prepare(
-    `SELECT product_id, IFNULL(option_label, '') AS opt, SUM(qty) AS n
-       FROM orders
-      WHERE product_id IS NOT NULL AND status IN (${marks})
-      GROUP BY product_id, opt`
+    `SELECT i.product_id AS product_id, IFNULL(i.option_label, '') AS opt, SUM(i.qty) AS n
+       FROM order_items i JOIN orders o ON o.id = i.order_id
+      WHERE i.product_id IS NOT NULL AND o.status IN (${marks})
+      GROUP BY i.product_id, opt`
   ).bind(...UNSHIPPED).all();
   const m = new Map();
   for (const row of r.results || []) m.set(optKey(row.product_id, row.opt), Number(row.n) || 0);
@@ -38,8 +39,9 @@ export async function reservedMap(env) {
 export async function reservedFor(env, productId, optionLabel) {
   const marks = UNSHIPPED.map(() => '?').join(',');
   const r = await env.DB.prepare(
-    `SELECT IFNULL(SUM(qty), 0) AS n FROM orders
-      WHERE product_id = ? AND IFNULL(option_label, '') = ? AND status IN (${marks})`
+    `SELECT IFNULL(SUM(i.qty), 0) AS n
+       FROM order_items i JOIN orders o ON o.id = i.order_id
+      WHERE i.product_id = ? AND IFNULL(i.option_label, '') = ? AND o.status IN (${marks})`
   ).bind(productId, optionLabel == null ? '' : String(optionLabel), ...UNSHIPPED).first();
   return Number(r && r.n) || 0;
 }

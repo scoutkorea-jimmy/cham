@@ -22,8 +22,8 @@ export async function onRequestPost({ request, env }) {
   if (!orderNo || !contact) return badRequest('주문번호와 연락처를 입력해 주세요.');
 
   const row = await env.DB.prepare(
-    `SELECT order_no, kind, status, phone, email, product_name, option_label,
-            qty, total, courier, tracking, created_at, payload
+    `SELECT id, order_no, kind, status, phone, email, product_name, option_label,
+            qty, total, ship_fee, item_count, courier, tracking, created_at, payload
        FROM orders WHERE order_no = ?`
   ).bind(orderNo).first();
 
@@ -44,6 +44,17 @@ export async function onRequestPost({ request, env }) {
     custRequest = pl.custRequest || null;   // 손님이 낸 취소·반품 신청(있으면 화면이 알려 준다)
   } catch {}
 
+  // 여러 품목 주문이면 줄 목록도 준다 — '외 2건'만 보이면 무엇을 샀는지 알 수 없다
+  let items = null;
+  if (Number(row.item_count) > 1) {
+    const r = await env.DB.prepare(
+      `SELECT product_name, option_label, qty, unit_price FROM order_items WHERE order_id = ? ORDER BY seq`
+    ).bind(row.id).all();
+    items = (r.results || []).map((x) => ({
+      product: x.product_name, optionLabel: x.option_label, qty: x.qty, unitPrice: x.unit_price,
+    }));
+  }
+
   return json({
     found: true,
     order: {
@@ -53,6 +64,8 @@ export async function onRequestPost({ request, env }) {
       optionLabel: row.option_label || null,
       qty: row.qty || null,
       total: row.total || null,
+      shipFee: row.ship_fee == null ? null : row.ship_fee,
+      items,
       courier: row.courier || null,
       tracking: row.tracking || null,
       at: row.created_at,

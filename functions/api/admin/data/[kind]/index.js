@@ -24,7 +24,7 @@
  *    바꿨으면 409 로 거절하고 **누가 언제 바꿨는지** 알려 준다.
  */
 import {
-  orderRowToObj, ORDER_INSERT, orderObjToBind,
+  orderRowToObj, ORDER_INSERT, orderObjToBind, attachOrderItems,
   recordRowToObj, APP_INSERT, INQ_INSERT, appBind, inqBind,
   productRowToObj, PRODUCT_INSERT, productObjToBind,
   postRowToObj, POST_INSERT, postBind,
@@ -88,23 +88,28 @@ export async function onRequestGet({ request, params, env }) {
   /* 기간창 안의 것만 읽고, 그 밖에 몇 건이 더 있는지 세어 함께 준다.
      화면은 그 수를 보고 '지난 자료 N건 더 보기'를 띄운다 — 있는 줄도 모르면
      운영자는 자료가 사라진 줄 안다. */
-  async function timed(table, toObj) {
+  async function timed(table, toObj, after) {
     if (!since) {
       const { results } = await env.DB.prepare(
         `SELECT * FROM ${table} ORDER BY created_at DESC`).all();
-      return json({ items: (results || []).map(toObj), version: ver.version, since: null, older: 0 });
+      let items = (results || []).map(toObj);
+      if (after) items = await after(items);
+      return json({ items, version: ver.version, since: null, older: 0 });
     }
     const [rows, older] = await Promise.all([
       env.DB.prepare(`SELECT * FROM ${table} WHERE created_at >= ? ORDER BY created_at DESC`).bind(since).all(),
       env.DB.prepare(`SELECT COUNT(*) AS n FROM ${table} WHERE created_at < ?`).bind(since).first(),
     ]);
+    let items = (rows.results || []).map(toObj);
+    if (after) items = await after(items);
     return json({
-      items: (rows.results || []).map(toObj), version: ver.version,
+      items, version: ver.version,
       since: since, older: (older && older.n) || 0,
     });
   }
 
-  if (kind === 'orders')       return timed('orders', orderRowToObj);
+  // 여러 품목 주문은 줄 목록을 함께 붙인다 — 붙이지 않으면 관리자가 '외 2건'만 보고 만다
+  if (kind === 'orders')       return timed('orders', orderRowToObj, (items) => attachOrderItems(env, items));
   if (kind === 'applications') return timed('applications', (r) => recordRowToObj(r, 'apply'));
   if (kind === 'inquiries')    return timed('inquiries', (r) => recordRowToObj(r, 'inquiry'));
   if (kind === 'posts')        return timed('posts', postRowToObj);
