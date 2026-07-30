@@ -743,6 +743,14 @@
     border-radius: var(--r-xs); padding: 2px 6px; font-size: 13px;
     overflow-wrap: anywhere; }
 
+  /* ── 페이지 문구 미리보기 편집 ──
+     실제 화면을 그대로 띄우고 그 자리에서 고친다. 높이를 화면에 맞춰 두면
+     안쪽에서 다시 스크롤해야 하므로, 보이는 만큼 넉넉히 잡고 창을 따라 늘린다. */
+  .tx-frame-wrap { padding: 0 var(--gutter-panel) var(--s5); }
+  .tx-frame { width: 100%; height: min(72vh, 900px); border: 1px solid var(--line);
+    border-radius: var(--r-md); background: var(--surface); display: block; }
+  @media (max-width: 780px) { .tx-frame { height: 62vh; } }
+
   /* ============================================================
      사용 설명서 (assets/manual.html 을 읽어 표시)
      ============================================================ */

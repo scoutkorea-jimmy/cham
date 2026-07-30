@@ -1630,81 +1630,158 @@
     { id: 'products', label: '제품' }, { id: 'news', label: '소식마당' },
     { id: 'contact', label: '문의하기' },
   ];
-  var textDefs = null;      // [{page,label,items:[{key,kind,html}]}] — 페이지에서 읽은 원문
   var textPage = 'index';
-  var textLoading = false;
+  var textEdits = {};        // {key: 고친 글} — 저장 누르기 전까지 여기 모인다
+  var textFrameKey = '';     // 지금 iframe 에 띄운 페이지(다시 그려도 새로고침하지 않게)
 
-  function loadTextDefs() {
-    if (textLoading) return;
-    textLoading = true;
-    Promise.all(TEXT_PAGES.map(function (p) {
-      return fetch(p.id + '.html', { credentials: 'same-origin' })
-        .then(function (r) { return r.ok ? r.text() : ''; })
-        .then(function (html) {
-          var doc = new DOMParser().parseFromString(html, 'text/html');
-          var items = [].map.call(doc.querySelectorAll('[data-text]'), function (el) {
-            return { key: el.getAttribute('data-text'),
-                     kind: /^H[12]$/.test(el.tagName) ? '제목' : '소개문',
-                     html: el.innerHTML.trim() };
-          });
-          return { page: p.id, label: p.label, items: items };
-        })
-        .catch(function () { return { page: p.id, label: p.label, items: [] }; });
-    })).then(function (all) {
-      textDefs = all; textLoading = false; render();
-    });
-  }
+  /* 미리보기 편집기.
+     예전에는 페이지의 문구를 목록으로 뽑아 텍스트칸에 늘어놓았다. 어느 글이 화면
+     어디에 있는 글인지 알 수 없어, 고치고 나서 페이지를 열어 확인해야 했다.
+     이제 **실제 화면을 그대로 띄우고 그 자리에서** 고친다.
 
+     iframe 은 같은 주소(오리진)라 부모가 안쪽 문서를 만질 수 있다.
+     고칠 수 있는 자리를 찾는 규칙은 site.js 의 scanTexts 한 곳뿐이다 —
+     여기서 따로 만들면 편집기가 보여 준 자리와 실제로 바뀌는 자리가 어긋난다. */
   function viewTexts() {
-    if (!textDefs) { loadTextDefs(); return '<div class="panel"><div class="admin-empty"><i data-lucide="loader"></i><div>페이지에서 문구를 읽는 중…</div></div></div>'; }
     var saved = S.getTexts();
-    var cur = textDefs.filter(function (p) { return p.page === textPage; })[0] || textDefs[0];
-    var changed = cur.items.filter(function (it) { return saved[it.key] != null; }).length;
-
-    var rows = cur.items.length ? cur.items.map(function (it) {
-      var val = saved[it.key] != null ? saved[it.key] : it.html;
-      var isOn = saved[it.key] != null;
-      return '<div class="tx-row' + (isOn ? ' on' : '') + '">' +
-        '<div class="tx-head"><span class="tag' + (it.kind === '제목' ? ' solid' : '') + '">' + it.kind + '</span>' +
-          (isOn ? '<span class="tag point">고침</span>' : '') +
-          '<button class="btn-text tx-reset" data-act="txreset" data-key="' + esc(it.key) + '"' + (isOn ? '' : ' disabled') + '>원래대로</button></div>' +
-        '<textarea class="tx-in" data-key="' + esc(it.key) + '" rows="' + (it.kind === '제목' ? 2 : 3) + '">' + esc(val) + '</textarea>' +
-      '</div>';
-    }).join('') : '<div class="admin-empty"><div>이 페이지에는 고칠 문구가 없습니다.</div></div>';
-
-    return '<div class="modal-note"><i data-lucide="type"></i><span>홈페이지의 <b>큰 제목과 그 아래 소개문</b>을 고칩니다. ' +
-        '<b>&lt;b&gt;굵게&lt;/b&gt;</b> 와 <b>&lt;br&gt;</b>(줄바꿈)을 쓸 수 있습니다. ' +
-        '고치지 않은 문구는 원문 그대로 나가므로, 필요한 것만 손대시면 됩니다.</span></div>' +
-      subtabs(TEXT_PAGES.map(function (p) {
-        var d = textDefs.filter(function (x) { return x.page === p.id; })[0];
-        var n = d ? d.items.filter(function (it) { return saved[it.key] != null; }).length : 0;
-        return { id: p.id, label: p.label + (n ? ' (' + n + ')' : ''), icon: null };
-      }), textPage) +
+    var changed = Object.keys(saved).length;
+    var dirtyN = Object.keys(textEdits).length;
+    return '<div class="modal-note"><i data-lucide="mouse-pointer-click"></i><span>' +
+        '아래 화면에서 <b>노란 점선으로 표시된 글을 눌러</b> 그 자리에서 고치세요. ' +
+        '<b>&lt;b&gt;굵게&lt;/b&gt;</b> 는 <b>Ctrl+B</b> 로 됩니다. 고친 뒤 <b>저장</b>을 누르면 홈페이지에 바로 반영됩니다.</span></div>' +
+      subtabs(TEXT_PAGES.map(function (p) { return { id: p.id, label: p.label, icon: null }; }), textPage) +
       '<div class="panel" style="max-width:none">' +
-        '<div class="panel-head"><h3>' + esc(cur.label) + ' — 문구 ' + cur.items.length + '개</h3>' +
-          '<span class="ph-sub">' + (changed ? '이 페이지에서 ' + changed + '개를 고쳤습니다' : '아직 고친 문구가 없습니다') + '</span></div>' +
-        '<div class="tx-list">' + rows + '</div>' +
-        '<div class="tx-foot">' +
-          '<a class="btn btn-ghost" href="' + esc(cur.page) + '.html" target="_blank" rel="noopener" style="text-decoration:none"><i data-lucide="external-link"></i>이 페이지 보기</a>' +
-          '<button class="btn btn-point" data-act="txsave"><i data-lucide="check"></i>저장</button>' +
-        '</div>' +
+        '<div class="panel-head"><h3>' + esc(pageLabel(textPage)) + ' — 미리보기 편집</h3>' +
+          '<span class="ph-sub">' + (dirtyN ? '<b style="color:var(--danger)">고친 글 ' + dirtyN + '개 — 아직 저장하지 않았습니다</b>'
+                                             : '저장된 문구 ' + changed + '개') + '</span>' +
+          '<div class="panel-tools">' +
+            '<button class="btn btn-ghost" data-act="txreload" style="padding:8px 14px"><i data-lucide="rotate-cw"></i>새로 읽기</button>' +
+            '<button class="btn btn-ghost" data-act="txresetall" style="padding:8px 14px"><i data-lucide="rotate-ccw"></i>이 페이지 원래대로</button>' +
+            '<button class="btn btn-point" data-act="txsave" style="padding:8px 16px"><i data-lucide="check"></i>저장</button>' +
+          '</div></div>' +
+        '<div class="tx-frame-wrap"><iframe class="tx-frame" id="txFrame" title="문구 미리보기"></iframe></div>' +
       '</div>';
   }
+  function pageLabel(id) {
+    var p = TEXT_PAGES.filter(function (x) { return x.id === id; })[0];
+    return p ? p.label : id;
+  }
 
+  /* iframe 을 붙이고 안쪽 문서를 편집 가능하게 만든다.
+     render() 는 화면을 통째로 다시 그리므로 여기서 매번 다시 건다. */
+  function initTextFrame() {
+    var fr = document.getElementById('txFrame');
+    if (!fr) return;
+    var want = textPage + '.html';
+    fr.onload = function () { markEditable(fr); };
+    if (textFrameKey !== want) { textFrameKey = want; fr.src = want; }
+    else if (fr.contentDocument && fr.contentDocument.readyState === 'complete') markEditable(fr);
+  }
+
+  function markEditable(fr) {
+    var doc;
+    try { doc = fr.contentDocument; } catch (e) { doc = null; }
+    var win = fr.contentWindow;
+    if (!doc || !win || !win.Site || !win.Site.textList) {
+      // site.js 가 아직 준비되지 않았다 — 준비되면 다시 부른다
+      if (win) win.addEventListener('site:ready', function () { markEditable(fr); }, { once: true });
+      return;
+    }
+    var list = win.Site.textList();
+    // 편집 표시용 스타일은 미리보기 안에만 넣는다(공개 화면에는 없어야 한다)
+    if (!doc.getElementById('txEditStyle')) {
+      var st = doc.createElement('style');
+      st.id = 'txEditStyle';
+      st.textContent =
+        '[data-tx-edit]{outline:1.5px dashed rgba(255,188,0,.85);outline-offset:2px;cursor:text;border-radius:3px}' +
+        '[data-tx-edit]:hover{background:rgba(255,188,0,.13)}' +
+        '[data-tx-edit][data-tx-on]{outline:2px solid var(--main,#60584C);background:rgba(255,188,0,.2)}' +
+        '[data-tx-edit][data-tx-dirty]{outline-color:#3E7D4F;background:rgba(62,125,79,.10)}' +
+        // 편집 중에 링크로 빠져나가거나 미리보기 안에서 주문창이 열리지 않게 잠근다
+        'a[href],button,select,input{pointer-events:none}' +
+        '[data-tx-edit]{pointer-events:auto}';
+      doc.head.appendChild(st);
+    }
+    list.forEach(function (r) {
+      r.el.setAttribute('data-tx-edit', r.key);
+      r.el.setAttribute('contenteditable', 'true');
+      r.el.setAttribute('spellcheck', 'false');
+      if (textEdits[r.key] != null) {
+        r.el.innerHTML = win.Site.sanitizeText(textEdits[r.key]);
+        r.el.setAttribute('data-tx-dirty', '1');
+      }
+      r.el.addEventListener('focus', function () { r.el.setAttribute('data-tx-on', '1'); });
+      r.el.addEventListener('blur', function () {
+        r.el.removeAttribute('data-tx-on');
+        var v = r.el.innerHTML.trim();
+        var base = r.applied && S.getTexts()[r.key] ? String(win.Site.textRec(S.getTexts()[r.key]).v).trim() : String(r.orig).trim();
+        if (win.Site.textSquash(v) === win.Site.textSquash(base)) {
+          delete textEdits[r.key];
+          r.el.removeAttribute('data-tx-dirty');
+        } else {
+          textEdits[r.key] = v;
+          r.el.setAttribute('data-tx-dirty', '1');
+        }
+        paintTextCount();
+      });
+    });
+    // 원문이 바뀌어 붙지 못한 자리는 알려 준다 — 모르면 '왜 안 바뀌지'가 된다
+    var stale = list.filter(function (r) { return r.stale; });
+    if (stale.length) toast('문구 ' + stale.length + '개는 페이지가 바뀌어 적용되지 않았습니다. 다시 고쳐 주세요.');
+  }
+  function paintTextCount() {
+    var n = Object.keys(textEdits).length;
+    var el = document.querySelector('#adminView .panel-head .ph-sub');
+    if (el) {
+      el.innerHTML = n ? '<b style="color:var(--danger)">고친 글 ' + n + '개 — 아직 저장하지 않았습니다</b>'
+                       : '저장된 문구 ' + Object.keys(S.getTexts()).length + '개';
+    }
+    dirty = n > 0;
+  }
+
+  /** 저장 — 고친 것만 담는다. 손대지 않은 문구는 HTML 을 고치면 그대로 따라온다.
+      **그때의 원문도 함께 저장한다** — 나중에 페이지 구조가 바뀌면 site.js 가
+      원문을 대조해 보고 엉뚱한 자리에 옛 글을 붙이지 않는다. */
   function saveTexts() {
+    var fr = document.getElementById('txFrame');
+    var win = fr && fr.contentWindow;
+    if (!win || !win.Site) { toast('미리보기가 아직 준비되지 않았습니다.'); return; }
+    var byKey = {};
+    win.Site.textList().forEach(function (r) { byKey[r.key] = r; });
+
     var saved = S.getTexts();
-    var defs = {};
-    textDefs.forEach(function (p) { p.items.forEach(function (it) { defs[it.key] = it.html; }); });
     var n = 0;
-    [].forEach.call(document.querySelectorAll('.tx-in'), function (el) {
-      var k = el.dataset.key, v = el.value.trim();
-      // 원문과 같으면 저장하지 않는다 — 저장해 두면 나중에 HTML 을 고쳐도 따라오지 않는다
-      if (!v || v === String(defs[k] || '').trim()) { if (saved[k] != null) { delete saved[k]; n++; } return; }
-      if (saved[k] !== v) { saved[k] = v; n++; }
+    Object.keys(textEdits).forEach(function (k) {
+      var r = byKey[k];
+      if (!r) return;
+      var v = String(textEdits[k]).trim();
+      if (!v || win.Site.textSquash(v) === win.Site.textSquash(r.orig)) {
+        if (saved[k] != null) { delete saved[k]; n++; }      // 원문으로 되돌렸다
+        return;
+      }
+      saved[k] = { v: v, o: r.orig };
+      n++;
     });
     if (!S.setTexts(saved)) { toast('저장하지 못했습니다.'); return; }
+    textEdits = {}; textFrameKey = ''; dirty = false;
     render();
     toast(n ? '문구 ' + n + '개를 저장했습니다. 홈페이지에 바로 반영됩니다.' : '바뀐 문구가 없습니다.');
+  }
+
+  /** 이 페이지에서 고친 문구를 모두 원래대로 */
+  function resetTextsOfPage() {
+    var fr = document.getElementById('txFrame');
+    var win = fr && fr.contentWindow;
+    if (!win || !win.Site) return;
+    var saved = S.getTexts(), n = 0;
+    win.Site.textList().forEach(function (r) {
+      if (saved[r.key] != null) { delete saved[r.key]; n++; }
+    });
+    if (!n) { toast('이 페이지에는 고친 문구가 없습니다.'); return; }
+    if (!S.setTexts(saved)) { toast('되돌리지 못했습니다.'); return; }
+    textEdits = {}; textFrameKey = ''; dirty = false;
+    render();
+    toast('문구 ' + n + '개를 원래대로 되돌렸습니다.');
   }
 
   /* ============================================================
@@ -2988,7 +3065,8 @@
     return prodEditing !== null || kmsMode === 'edit' || consentMode === 'edit'
       || !!document.getElementById('partnerForm') || !!document.getElementById('popupForm')
       || !!document.getElementById('settingsForm')
-      || !!document.getElementById('seoForm');
+      || !!document.getElementById('seoForm')
+      || Object.keys(textEdits).length > 0;
   }
   // 이동/취소 전 호출 — 변경이 있으면 확인, 사용자가 취소하면 false 반환(이동 중단)
   function confirmLeave() {
@@ -3078,6 +3156,7 @@
     icons();
     bindForms();
     bindCohortDrag();
+    if (current === 'texts') initTextFrame();
     if (current === 'manual') bindManualTabs();
     else if (manTabIO) { try { manTabIO.disconnect(); } catch (e) {} manTabIO = null; }
   }
@@ -3362,7 +3441,7 @@
       if (!confirmLeave()) return;
       if (current === 'kms') kmsTab = st.dataset.subtab;
       else if (current === 'consents') consentTab = st.dataset.subtab;
-      else if (current === 'texts') textPage = st.dataset.subtab;
+      else if (current === 'texts') { textPage = st.dataset.subtab; textEdits = {}; textFrameKey = ''; }
       else if (current === 'images') { imgPageTab = st.dataset.subtab; imgSel = null; }
       render(); return;
     }
@@ -3418,11 +3497,11 @@
     } else if (act === 'pback') { if (!confirmLeave()) return; prodEditing = null; pImgState = { main: null, extra: [], detail: [], removed: [] }; render();
     } else if (act === 'txsave') {
       saveTexts();
-    } else if (act === 'txreset') {
-      var tsaved = S.getTexts();
-      delete tsaved[b.dataset.key];
-      if (!S.setTexts(tsaved)) { toast('되돌리지 못했습니다.'); return; }
-      render(); toast('원래 문구로 되돌렸습니다.');
+    } else if (act === 'txresetall') {
+      if (!confirm('이 페이지에서 고친 문구를 모두 원래대로 되돌립니다. 계속할까요?')) return;
+      resetTextsOfPage();
+    } else if (act === 'txreload') {
+      textEdits = {}; textFrameKey = ''; dirty = false; render();
     } else if (act === 'cedit') {
       cohortEditing = b.dataset.id; render();
       var first = document.querySelector('.row-editing [data-f=name]');

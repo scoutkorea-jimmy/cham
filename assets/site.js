@@ -1223,15 +1223,79 @@
     return d.innerHTML;
   }
   // [data-text="키"] 자리에 관리자가 저장한 문구를 넣는다. 저장한 적 없으면 원문 그대로.
+  /* ---------------- 페이지 문구 ----------------
+     관리자가 홈페이지의 글을 고친다. 고칠 수 있는 자리를 찾는 규칙은 **여기 한 곳**뿐이고,
+     관리자 편집기도 이 함수를 그대로 부른다 — 두 곳에 두면 편집기가 보여 준 자리와
+     실제로 바뀌는 자리가 어긋난다.
+
+     자리 이름(key)은 사람이 붙인 `data-text` 가 있으면 그것을, 없으면 문서 안의 위치로
+     만든다. 위치로 만든 이름은 HTML 구조가 바뀌면 어긋날 수 있으므로,
+     **고친 글과 함께 그때의 원문도 저장해 두고, 원문이 달라졌으면 붙이지 않는다.**
+     그러지 않으면 페이지를 손본 뒤 엉뚱한 자리에 옛 문구가 나타난다. */
+  var TEXT_SEL = 'h1,h2,h3,h4,h5,h6,p,li,dt,dd,figcaption,blockquote,summary,caption,th,td,.eyebrow,.lede';
+  // 화면 코드가 만들어 넣는 자리는 고칠 수 없다 — 고쳐도 다음 그리기에 지워진다
+  var TEXT_SKIP = '#site-nav,#site-footer,#mobileMenu,.modal-root,.jump,.popup-wrap,[data-noedit],.rich';
+  var textIndex = null;
+
+  function textPathOf(el) {
+    var parts = [];
+    while (el && el.nodeType === 1 && el.tagName !== 'BODY') {
+      if (el.id) { parts.unshift('#' + el.id); break; }
+      var i = 0, sib = el;
+      while ((sib = sib.previousElementSibling)) if (sib.tagName === el.tagName) i++;
+      parts.unshift(el.tagName.toLowerCase() + (i ? '[' + i + ']' : ''));
+      el = el.parentElement;
+    }
+    return parts.join('>');
+  }
+  // 공백·줄바꿈 차이로 '원문이 바뀌었다'고 보지 않게 눌러서 비교한다
+  function textSquash(h) { return String(h == null ? '' : h).replace(/\s+/g, ' ').trim(); }
+
+  /** 이 페이지에서 고칠 수 있는 자리 목록. 화면을 그리기 전에 한 번만 훑는다. */
+  function scanTexts(doc) {
+    var d = doc || document;
+    var page = (d.body && d.body.getAttribute('data-page')) || 'page';
+    var all = [].slice.call(d.querySelectorAll(TEXT_SEL));
+    var out = [];
+    all.forEach(function (el) {
+      if (el.closest(TEXT_SKIP)) return;
+      // 안에 또 다른 편집 대상이 있으면 바깥은 건드리지 않는다 —
+      // 바깥을 고치면 안쪽 자리 이름이 통째로 사라진다
+      if (el.querySelector(TEXT_SEL)) return;
+      var html = el.innerHTML;
+      if (!textSquash(html)) return;                 // 비어 있는 자리는 보여 줄 것이 없다
+      var manual = el.getAttribute('data-text');
+      out.push({
+        key: manual || (page + '|' + textPathOf(el)),
+        named: !!manual,
+        el: el, orig: html,
+        kind: /^H[1-6]$/.test(el.tagName) ? '제목' : (el.classList.contains('eyebrow') ? '라벨' : '본문'),
+      });
+    });
+    return out;
+  }
+
+  // 저장 모양: 예전에는 문자열 하나였고, 지금은 {v: 고친 글, o: 그때의 원문} 이다.
+  function textRec(v) {
+    if (v == null) return null;
+    if (typeof v === 'string') return { v: v, o: null };
+    return (typeof v === 'object' && v.v != null) ? v : null;
+  }
+
   function applyTexts() {
     var t = getTexts();
-    var nodes = document.querySelectorAll('[data-text]');
-    for (var i = 0; i < nodes.length; i++) {
-      var el = nodes[i], v = t[el.getAttribute('data-text')];
-      if (v == null || String(v).trim() === '') continue;
-      el.innerHTML = sanitizeText(v);
-    }
+    textIndex = scanTexts(document);
+    textIndex.forEach(function (r) {
+      var rec = textRec(t[r.key]);
+      if (!rec || !String(rec.v).trim()) return;
+      // 원문이 그 사이 바뀌었으면 붙이지 않는다. 옛 글을 새 자리에 붙이는 것이 더 나쁘다.
+      if (rec.o != null && textSquash(rec.o) !== textSquash(r.orig)) { r.stale = true; return; }
+      r.el.innerHTML = sanitizeText(rec.v);
+      r.applied = true;
+    });
   }
+  /** 관리자 편집기가 쓴다 — 지금 페이지의 자리 목록(원문 포함) */
+  function textList() { return textIndex || (textIndex = scanTexts(document)); }
 
   /* 회원 진입점.
      로그인 여부는 `member_session` 쿠키(HttpOnly 가 아닌 표식)로만 판단한다 —
@@ -2226,6 +2290,7 @@
     CONSENT_KEY: CONSENT_KEY, getConsents: getConsents, consentDefaults: CONSENT_DEFAULTS,
     PRODUCTS_KEY: PRODUCTS_KEY, PRODUCT_CATS: PRODUCT_CATS, getProducts: getProducts, setProducts: setProducts, getProduct: getProduct,
     stockLeft: stockLeft, stockTotal: stockTotal, isSoldOut: isSoldOut,
+    textList: textList, scanTexts: scanTexts, textRec: textRec, textSquash: textSquash, sanitizeText: sanitizeText,
     productDefaults: PRODUCT_DEFAULTS, SHIP_TPL: SHIP_TPL, REFUND_TPL: REFUND_TPL, gosiBase: gosiBase,
     shipFee: shipFee, shipFreeOver: shipFreeOver, shipFeeFor: shipFeeFor,
     shipFreeTxt: shipFreeTxt, shipNote: shipNote, shipFeeLine: shipFeeLine,
