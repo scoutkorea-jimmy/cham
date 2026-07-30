@@ -2277,7 +2277,7 @@
     MAX_IMAGE_BYTES: MAX_IMAGE_BYTES, tooBigMsg: tooBigMsg,
     patchItem: patchItem, patchItems: patchItems, removeItem: removeItem, kindOf: function (k) { return KEY_MAP[k] || null; },
     loadOlder: loadOlder, windowInfo: windowInfo,
-    isServer: function(){ return SERVER; }, ready: function(fn){ booted.then(function(){ ready(fn); }); },
+    isServer: function(){ return SERVER; }, memberLoggedIn: memberLoggedIn, ready: function(fn){ booted.then(function(){ ready(fn); }); },
     toast: toast, revealScan: revealScan,
     IMG_SLOTS: IMG_SLOTS, renderSlotImages: renderSlotImages, slotPos: slotPos, applySlot: applySlot,
     requireAdmin: requireAdmin, verifyLogin: verifyLogin, lockMs: lockMs,

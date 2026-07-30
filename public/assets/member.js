@@ -211,15 +211,21 @@
     var gate = document.getElementById('mpGate');       // 로그인 화면
     var body = document.getElementById('mpBody');       // 내 정보 화면
 
+    /* 로그인 표식 쿠키가 없으면 서버에 묻지 않는다.
+       손님 대부분은 로그인하지 않은 채로 이 페이지를 여는데, 그때마다 401 이
+       한 번씩 오간다(브라우저 콘솔에도 오류로 찍힌다). 표식은 토큰과 함께
+       내려가고 함께 지워지므로 어긋나지 않는다 — 표식만 거짓이어도
+       마이페이지를 열면 서버가 로그인 화면을 돌려줄 뿐이다. */
+    function showGate() {
+      if (gate) gate.hidden = false;
+      if (body) body.hidden = true;
+      initLogin(); initFindId();
+      icons();
+    }
+    if (S.memberLoggedIn && !S.memberLoggedIn()) { showGate(); return; }
+
     api('/api/members/me').then(function (r) {
-      if (!r.ok) {
-        // 로그인 전 — 로그인 폼만 보여 준다
-        if (gate) gate.hidden = false;
-        if (body) body.hidden = true;
-        initLogin(); initFindId();
-        icons();
-        return;
-      }
+      if (!r.ok) { showGate(); return; }        // 표식은 있었는데 서버가 아니라고 한다
       if (gate) gate.hidden = true;
       if (body) body.hidden = false;
 
