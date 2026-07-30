@@ -11,13 +11,14 @@
 ## 저장소 구조
 
 ```
-index.html          홈
-about.html          협동조합 소개        ferments.html   전통발효식품
+public/             **배포되는 것은 이 안뿐이다.** 밖의 파일은 주소가 없다
+  index.html        홈
+  about.html          협동조합 소개        ferments.html   전통발효식품
 vinegar.html        식초(서연 瑞蓮)      nuruk.html      누룩이야기
-instructor.html     체험지도사 과정      products.html   제품 목록
-product.html        상품 상세(?id=)      news.html       소식마당
-contact.html        문의                admin.html      관리자 콘솔
-login.html          관리자 로그인 — 서버 세션(functions/api/admin/login)
+  instructor.html     체험지도사 과정      products.html   제품 목록
+  product.html        상품 상세(?id=)      news.html       소식마당
+  contact.html        문의                admin.html      관리자 콘솔
+  login.html          관리자 로그인 — 서버 세션(functions/api/admin/login)
 
 functions/          Cloudflare Pages Functions. 정적 호스팅에서는 동작하지 않는다
   _shared/auth.js     세션 토큰(HMAC) · PBKDF2 비밀번호 · 쿠키
@@ -30,7 +31,7 @@ functions/          Cloudflare Pages Functions. 정적 호스팅에서는 동작
   api/images/…        R2 이미지 서빙·목록
   api/admin/…         login · logout · session · password · users · roles · members ·
                       data/[kind]/ (목록 · 한 건 PATCH/DELETE) · images · import · export · versions · assist
-db/0001_auth.sql    admin_users · admin_login_attempts
+db/000*.sql         스키마 — 인증 · 데이터 · 회원 · 권한 · 목록버전 · 주문↔회원 · 택배비 · 주문품목
 db/0002_data.sql    orders · applications · inquiries · products · posts · collections ·
                     documents · images · visits
 wrangler.toml       Pages 설정 · D1(DB) · R2(MEDIA) 바인딩
@@ -43,12 +44,13 @@ llms.txt            AI 검색용 요약 (정적)
                     (functions/robots.txt.js · sitemap.xml.js) — 주소를 요청 호스트에서
                     가져오므로 도메인이 바뀌어도 손댈 것이 없습니다
 
-assets/
+  assets/
   site.css   디자인 시스템 + 전 컴포넌트 스타일 (모든 색·간격·글꼴 토큰의 원본)
   site.js    공통 셸(내비/푸터 주입) · 모달 · 스토어 · 비회원 주문 · 동의 게이팅 · reveal
   shop.js    제품 목록 · 상품 상세     board.js  게시판(Tiptap) · 첨부 · 갤러리
   admin.js   관리자 콘솔 로직          jump.js   긴 페이지 목차 바
   manual.html 사용 설명서 본문 — 관리자 콘솔 '사용 설명서' 메뉴가 읽어 표시(단일 원본)
+  member.js  회원(가입·로그인·마이페이지)  editor.js 공용 에디터
   *.jpg      실사 사진                 logo.png
 
 rules/       규칙집 (아래 참조)
@@ -116,7 +118,7 @@ Basic_Infomation/   고객사 원본 자료(pptx·jpg) — 콘텐츠 근거. 편
 정적 사이트라 실제 브라우저 구동이 주 검증 수단입니다.
 
 ```bash
-python3 -m http.server 8777 --bind 127.0.0.1     # 서버
+(cd public && python3 -m http.server 8777 --bind 127.0.0.1)   # 서버 — public/ 안에서
 ./venv/bin/python <script>.py                     # Playwright (venv에 설치돼 있음)
 ```
 

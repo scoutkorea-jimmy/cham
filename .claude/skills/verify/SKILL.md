@@ -15,7 +15,7 @@ description: cham(한국참전통발효식품협동조합) 변경을 실제 브�
 ```bash
 cd /Users/jimmy_macmini/Desktop/VS_Code/cham
 python3 -m venv venv && ./venv/bin/pip install playwright && ./venv/bin/python -m playwright install chromium
-python3 -m http.server 8777 --bind 127.0.0.1      # 로컬로 볼 때만
+(cd public && python3 -m http.server 8777 --bind 127.0.0.1)   # 로컬로 볼 때만 (public/ 안에서)
 ```
 
 ## 관리자 진입 (서버 세션)

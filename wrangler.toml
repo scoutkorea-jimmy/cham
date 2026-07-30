@@ -5,10 +5,17 @@
 name = "cham"
 compatibility_date = "2026-07-26"
 
-# [1단계] 배포 대상 = 저장소 루트. HTML 이 전부 루트에 있고, 아직 GitHub Pages 와
-# 병행하는 중이라 파일을 옮기지 않는다. 3단계(배포 전환)에서 public/ 으로 분리하면서
-# rules/ · docs/ · CLAUDE.md 가 배포에 섞이는 것도 함께 정리한다.
-pages_build_output_dir = "."
+# 배포 대상 = public/ 안에 있는 것뿐이다.
+#
+# 예전에는 저장소 루트였다. 그래서 저장소에 있는 **모든 파일이 주소를 가졌고**,
+# docs/handoff.md · wrangler.toml · db/*.sql 이 실제로 공개돼 있었다.
+# 미들웨어로 404 를 돌려주는 덮개를 씌웠지만 그건 새 파일이 늘 때마다 패턴을
+# 챙겨야 하는 방식이다 — 여기서는 애초에 주소가 생기지 않는다.
+#
+# functions/ 는 루트에 그대로 둔다(Pages 가 프로젝트 루트에서 찾는다).
+# 로컬로 화면을 볼 때는 public/ 안에서 서버를 띄운다:
+#   (cd public && python3 -m http.server 8777 --bind 127.0.0.1)
+pages_build_output_dir = "public"
 
 # ── D1 (주문 · 신청 · 문의 · 상품 · 계정) ──────────────────────
 # 최초 1회:  npx wrangler d1 create cham-db
