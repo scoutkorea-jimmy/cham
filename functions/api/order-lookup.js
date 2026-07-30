@@ -37,8 +37,12 @@ export async function onRequestPost({ request, env }) {
   const mailOk = contact.includes('@') && String(row.email || '').toLowerCase() === contact.toLowerCase();
   if (!phoneOk && !mailOk) return miss();
 
-  let amount = null;
-  try { amount = JSON.parse(row.payload || '{}').amount || null; } catch {}
+  let amount = null, custRequest = null;
+  try {
+    const pl = JSON.parse(row.payload || '{}') || {};
+    amount = pl.amount || null;
+    custRequest = pl.custRequest || null;   // 손님이 낸 취소·반품 신청(있으면 화면이 알려 준다)
+  } catch {}
 
   return json({
     found: true,
@@ -52,6 +56,7 @@ export async function onRequestPost({ request, env }) {
       courier: row.courier || null,
       tracking: row.tracking || null,
       at: row.created_at,
+      custRequest,
     },
   });
 }

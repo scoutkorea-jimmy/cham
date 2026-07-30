@@ -14,48 +14,12 @@ import {
   verifyPassword, createMemberToken, buildMemberCookies, isSecureRequest,
 } from '../../_shared/auth.js';
 import { publicMember } from '../../_shared/members.js';
+import { makeThrottle } from '../../_shared/throttle.js';
 import { json, badRequest, methodNotAllowed, readJson } from '../../_shared/http.js';
 
-const FAIL_FREE_ATTEMPTS = 5;              // 손님이라 오타를 조금 더 봐준다
-const BASE_DELAY_SECONDS = 30;
-const MAX_DELAY_SECONDS = 60 * 60;
-const IDLE_RESET_SECONDS = 24 * 60 * 60;
+// 손님이라 오타를 조금 더 봐준다(관리자보다 느슨한 5회)
+const throttle = makeThrottle({ prefix: 'm:', freeAttempts: 5 });
 
-function requiredDelay(count) {
-  if (count < FAIL_FREE_ATTEMPTS) return 0;
-  const power = Math.min(count - FAIL_FREE_ATTEMPTS, 12);
-  return Math.min(BASE_DELAY_SECONDS * 2 ** power, MAX_DELAY_SECONDS);
-}
-async function getAttempts(env, key) {
-  try {
-    const row = await env.DB.prepare(
-      `SELECT attempt_count, first_attempt_at, last_attempt_at FROM admin_login_attempts WHERE ip = ?`
-    ).bind(key).first();
-    if (!row) return { count: 0, first: 0, last: 0 };
-    return {
-      count: Number(row.attempt_count) || 0,
-      first: Number(row.first_attempt_at) || 0,
-      last: Number(row.last_attempt_at) || 0,
-    };
-  } catch { return { count: 0, first: 0, last: 0 }; }
-}
-async function recordFailure(env, key) {
-  const now = Math.floor(Date.now() / 1000);
-  try {
-    const prev = await getAttempts(env, key);
-    await env.DB.prepare(
-      `INSERT INTO admin_login_attempts (ip, attempt_count, first_attempt_at, last_attempt_at)
-       VALUES (?, ?, ?, ?)
-       ON CONFLICT(ip) DO UPDATE SET
-         attempt_count    = excluded.attempt_count,
-         first_attempt_at = excluded.first_attempt_at,
-         last_attempt_at  = excluded.last_attempt_at`
-    ).bind(key, prev.count + 1, prev.count > 0 && prev.first ? prev.first : now, now).run();
-  } catch { /* 카운터를 못 적었다고 로그인 자체를 막지는 않는다 */ }
-}
-async function clearAttempts(env, key) {
-  try { await env.DB.prepare(`DELETE FROM admin_login_attempts WHERE ip = ?`).bind(key).run(); } catch {}
-}
 /** 어떤 검사에서 걸렸든 같은 응답. 타이밍 차이도 무작위 지연으로 흐린다. */
 async function rejected() {
   await new Promise((r) => setTimeout(r, 300 + Math.floor(Math.random() * 200)));
@@ -72,23 +36,12 @@ export async function onRequestPost({ request, env }) {
   const password = body.password;
   if (!username || typeof password !== 'string' || !password) return badRequest();
 
-  const key = 'm:' + (request.headers.get('CF-Connecting-IP') || 'unknown');
-  const now = Math.floor(Date.now() / 1000);
-
-  let att = await getAttempts(env, key);
-  if (att.count > 0 && att.last && now - att.last >= IDLE_RESET_SECONDS) {
-    await clearAttempts(env, key);
-    att = { count: 0, first: 0, last: 0 };
-  }
-  if (att.count >= FAIL_FREE_ATTEMPTS && att.last) {
-    const earliest = att.last + requiredDelay(att.count);
-    if (now < earliest) {
-      const retryAfter = earliest - now;
-      return json({
-        error: '로그인을 여러 번 실패해 잠시 제한되었습니다. 잠시 후 다시 시도해 주세요.',
-        code: 'throttled', retryAfter,
-      }, 429, { 'Retry-After': String(retryAfter) });
-    }
+  const blocked = await throttle.check(request, env);
+  if (blocked) {
+    return json({
+      error: '로그인을 여러 번 실패해 잠시 제한되었습니다. 잠시 후 다시 시도해 주세요.',
+      code: 'throttled', retryAfter: blocked.retryAfter,
+    }, 429, { 'Retry-After': String(blocked.retryAfter) });
   }
 
   let row = null;
@@ -103,11 +56,11 @@ export async function onRequestPost({ request, env }) {
     if (stored && await verifyPassword(password, stored)) ok = true;
   }
   if (!ok) {
-    await recordFailure(env, key);
+    await throttle.fail(request, env);
     return rejected();
   }
 
-  await clearAttempts(env, key);
+  await throttle.clear(request, env);
   try {
     await env.DB.prepare(`UPDATE members SET last_login_at = datetime('now') WHERE id = ?`).bind(row.id).run();
   } catch { /* 마지막 로그인 시각은 기록에 실패해도 로그인을 막을 이유가 없다 */ }

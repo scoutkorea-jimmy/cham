@@ -1628,7 +1628,82 @@
     icons();
   }
 
+  /* ---------------- 취소 · 반품 · 교환 신청 ----------------
+     손님은 **신청만** 한다. 승인도 거절도 관리자가 판단하고, 주문 상태는 여기서 바뀌지 않는다.
+     아래 규칙은 서버(functions/api/order-request.js)와 **같아야 한다** —
+     화면이 미리 거르는 것은 친절이고, 실제 방어선은 서버다. */
+  var ORDER_REQ = [
+    { type: 'cancel',   label: '주문 취소', from: ['주문접수', '결제완료', '배송준비중'] },
+    { type: 'return',   label: '반품',     from: ['배송중', '배송완료'] },
+    { type: 'exchange', label: '교환',     from: ['배송중', '배송완료'] },
+  ];
+  function orderReqOptions(status) {
+    return ORDER_REQ.filter(function (r) { return r.from.indexOf(status) > -1; });
+  }
+  /** 이미 낸 신청을 한 줄로 — 두 번 신청하려다 전화하는 일을 줄인다 */
+  function orderReqNote(req) {
+    if (!req) return '';
+    return '접수됨: ' + (req.label || req.type) + ' 신청 (' + fmtYMD(req.at) + ')';
+  }
+
+  /**
+   * 신청 창. contact 는 비회원일 때만 필요하다(회원은 쿠키로 본인을 확인한다).
+   * onDone(req) 로 신청 내용을 돌려주어 부른 쪽이 화면을 고칠 수 있게 한다.
+   */
+  function openOrderRequest(opts) {
+    var o = opts || {};
+    var choices = orderReqOptions(o.status);
+    if (!choices.length) return;
+    rawModal(
+      '<div class="modal-head"><div><div class="eyebrow">주문 ' + esc(o.orderNo || '') + '</div><h3>취소 · 반품 · 교환 신청</h3>' +
+        '<p>신청을 접수하면 담당자가 확인 후 연락드립니다. <b>이 자리에서 바로 처리되지는 않습니다.</b></p></div>' +
+        '<button class="modal-close" data-modal-close aria-label="닫기"><i data-lucide="x"></i></button></div>' +
+      '<div class="modal-body"><form id="oreqForm">' +
+        '<div class="form-grid">' +
+          '<div class="field full"><label>무엇을 신청하시나요?<span class="req">*</span></label>' +
+            '<select name="type">' + choices.map(function (c) {
+              return '<option value="' + c.type + '">' + esc(c.label) + '</option>';
+            }).join('') + '</select></div>' +
+          '<div class="field full"><label>사유<span class="req">*</span></label>' +
+            '<textarea name="reason" rows="3" required placeholder="예) 주문을 잘못 넣었습니다 / 받은 상품이 파손되었습니다"></textarea></div>' +
+          '<div class="field full"><p id="oreqMsg" class="form-msg" hidden></p></div>' +
+        '</div>' +
+        '<div class="modal-foot"><button type="button" class="btn btn-ghost" data-modal-close>닫기</button>' +
+          '<button type="submit" class="btn btn-point"><i data-lucide="send"></i>신청하기</button></div>' +
+      '</form></div>', 520);
+
+    var f = document.getElementById('oreqForm');
+    var msg = document.getElementById('oreqMsg');
+    f.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var fd = new FormData(f);
+      var reason = String(fd.get('reason') || '').trim();
+      var show = function (t, kind) {
+        msg.className = 'form-msg' + (kind ? ' ' + kind : '');
+        msg.textContent = t; msg.hidden = !t;
+      };
+      if (!reason) { show('사유를 적어 주세요. 처리에 필요합니다.', 'bad'); return; }
+      var btn = f.querySelector('button[type=submit]');
+      btn.disabled = true; btn.textContent = '접수 중…';
+      api('/api/order-request', { method: 'POST', body: {
+        orderNo: o.orderNo, contact: o.contact || '', type: String(fd.get('type') || ''), reason: reason,
+      } }).then(function (r) {
+        btn.disabled = false; btn.innerHTML = '<i data-lucide="send"></i>신청하기'; icons();
+        if (!r.ok) { show((r.data && r.data.error) || '접수하지 못했습니다.', 'bad'); return; }
+        closeModal();
+        toast('신청을 접수했습니다. 확인 후 연락드리겠습니다.');
+        if (typeof o.onDone === 'function') o.onDone(r.data.request);
+      }).catch(function () {
+        btn.disabled = false; btn.innerHTML = '<i data-lucide="send"></i>신청하기'; icons();
+        show('연결하지 못했습니다.', 'bad');
+      });
+    });
+  }
+
   /* ---------------- 비회원 주문 조회 ---------------- */
+  // 방금 조회에 쓴 연락처. 신청할 때 본인 확인에 다시 필요한데,
+  // 결과 화면에는 개인정보를 그리지 않으므로 여기에 들고 있는다.
+  var lookupContact = '';
   function openOrderLookup() {
     rawModal(
       '<div class="modal-head"><div><div class="eyebrow">비회원 주문</div><h3>주문 조회</h3><p>주문번호와 연락처(또는 이메일)를 입력하시면 진행 상태를 확인할 수 있습니다.</p></div>' +
@@ -1647,6 +1722,7 @@
       var fd = new FormData(f);
       var ono = String(fd.get('ono') || '').trim();
       var contact = String(fd.get('contact') || '').trim();
+      lookupContact = contact;
       var box = document.getElementById('lookupResult');
 
       if (SERVER) {
@@ -1694,8 +1770,28 @@
             ? '<div class="modal-note" style="margin-top:var(--gap-tight)"><i data-lucide="info"></i><span>이 주문은 ‘' + found.status + '’ 상태입니다. 자세한 사항은 고객센터(02-855-8806)로 문의해 주세요.</span></div>'
             : '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:var(--gap-related)">' + steps + '</div>') +
           (found.tracking ? '<div class="muted" style="font-size:13px;margin-top:var(--gap-tight)">운송장: ' + esc(found.courier || '') + ' ' + esc(found.tracking) + '</div>' : '') +
+          orderReqBlock(found) +
         '</div>';
       icons();
+      var rq = document.getElementById('lookupReqBtn');
+      if (rq) rq.addEventListener('click', function () {
+        openOrderRequest({
+          orderNo: found.orderNo, status: found.status, contact: rq.dataset.contact,
+          onDone: function (req) { found.custRequest = req; showLookup(box, found); },
+        });
+      });
+  }
+
+  /* 조회 결과 아래의 신청 자리 — 이미 낸 신청이 있으면 버튼 대신 그 사실을 보여 준다 */
+  function orderReqBlock(found, contact) {
+    if (found.custRequest) {
+      return '<div class="modal-note" style="margin-top:var(--gap-tight)"><i data-lucide="clock"></i><span>' +
+        esc(orderReqNote(found.custRequest)) + ' — 확인 후 연락드리겠습니다.</span></div>';
+    }
+    if (!orderReqOptions(found.status).length) return '';
+    return '<div style="margin-top:var(--gap-tight)"><button type="button" class="btn btn-ghost" id="lookupReqBtn"' +
+      ' data-contact="' + esc(contact || lookupContact || '') + '" style="padding:9px 16px">' +
+      '<i data-lucide="undo-2"></i>취소 · 반품 신청</button></div>';
   }
 
   /* ---------------- 이벤트 위임 ---------------- */
@@ -1924,6 +2020,7 @@
     IMG_SLOTS: IMG_SLOTS, renderSlotImages: renderSlotImages, slotPos: slotPos, applySlot: applySlot,
     requireAdmin: requireAdmin, verifyLogin: verifyLogin, lockMs: lockMs,
     openModal: openModal, closeModal: closeModal, rawModal: rawModal, openOrderLookup: openOrderLookup,
+    openOrderRequest: openOrderRequest, orderReqOptions: orderReqOptions, orderReqNote: orderReqNote,
     getPartners: getPartners, setPartners: setPartners, renderPartnersStrip: renderPartnersStrip, partnerDefaults: PARTNER_DEFAULTS,
     POPUP_KEY: POPUP_KEY, getPopups: getPopups,
     POSTS_KEY: POSTS_KEY, getPosts: getPosts, setPosts: setPosts,

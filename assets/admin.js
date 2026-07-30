@@ -387,12 +387,15 @@
     var needPay = orders.filter(function (o) { return o.status === '주문접수'; }).length;
     var needShip = orders.filter(function (o) { return o.status === '결제완료' || o.status === '배송준비중'; }).length;
     var needRma = orders.filter(function (o) { return o.status === '반품요청' || o.status === '교환요청'; }).length;
+    // 손님이 낸 취소·반품 신청 — 상태를 바꾸지 않으므로 목록만 봐서는 묻힌다
+    var needCust = orders.filter(function (o) { return o.custRequest && o.status !== '취소' && o.status !== '반품완료' && o.status !== '교환완료'; }).length;
     var needApp = apps.filter(function (r) { return r.status === '신규'; }).length;
     var needInq = inq.filter(function (r) { return r.status === '신규'; }).length;
     var todos = [
       { n: needPay, label: '결제(입금) 확인', i: 'banknote', nav: 'orders', otab: '주문접수' },
       { n: needShip, label: '발송 처리', i: 'truck', nav: 'orders', otab: '결제완료' },
       { n: needRma, label: '취소·반품·교환', i: 'undo-2', nav: 'orders', otab: 'crx' },
+      { n: needCust, label: '손님 취소·반품 신청', i: 'hand', nav: 'orders' },
       { n: needApp, label: '지도사 신청', i: 'user-plus', nav: 'apps' },
       { n: needInq, label: '문의 답변', i: 'message-square', nav: 'inq' },
     ];
@@ -890,6 +893,12 @@
       var shipInfo = o.tracking ? '<div class="pc-sub">' + esc(o.courier || '') + ' ' + esc(o.tracking) + '</div>'
         : (o.shipMethod ? '<div class="pc-sub">' + esc(o.shipMethod) + '</div>' : '');
       var reason = o.cancelReason || o.rmaReason ? '<div class="pc-sub">사유: ' + esc(o.cancelReason || o.rmaReason) + '</div>' : '';
+      /* 손님이 낸 취소·반품 신청. **상태를 바꾸지 않고 표시만 한다** — 처리는 운영자가
+         위의 단계 버튼으로 판단한다. 눈에 띄지 않으면 신청이 며칠씩 묻힌다. */
+      var cr = o.custRequest
+        ? '<div class="pc-sub" style="color:var(--danger);font-weight:700">손님 ' + esc(o.custRequest.label || o.custRequest.type) + ' 신청</div>' +
+          '<div class="pc-sub">' + esc(o.custRequest.reason || '') + '</div>'
+        : '';
       return '<tr><td><input type="checkbox" class="osel" data-id="' + o.id + '" style="width:16px;height:16px;accent-color:var(--main)"></td>' +
         '<td><b style="font-variant-numeric:tabular-nums">' + esc(o.orderNo || '-') + '</b><div class="dt">' + fmtDate(o.at) + '</div></td>' +
         '<td>' + (o.kind === 'seedjang' ? '<span class="tag point">씨장분양</span>' : '<span class="tag">제품</span>') + '</td>' +
@@ -899,7 +908,7 @@
         '<td>' + esc(o.name || '-') + '<div class="pc-sub">' + esc(o.phone || '') + '</div></td>' +
         '<td>' + esc(o.depositor || '-') + '<div class="pc-sub">' + esc(o.payMethod || '') + '</div></td>' +
         '<td style="max-width:170px">' + esc(o.address || o.region || '-') + '</td>' +
-        '<td>' + stTag(o.status) + shipInfo + reason + '</td>' +
+        '<td>' + stTag(o.status) + cr + shipInfo + reason + '</td>' +
         '<td>' + delBtn(K.orders, o.id) + '</td></tr>';
     }).join('') : emptyRow(11, '해당 상태의 주문이 없습니다.');
 

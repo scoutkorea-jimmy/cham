@@ -69,8 +69,29 @@
         </div>
       </form>
       <p class="muted" style="margin:var(--gap-related) 0 0;font-size:var(--fs-sm);text-align:center">
+        <button type="button" class="btn-text" id="findIdOpen">아이디 찾기</button>
+        <span aria-hidden="true"> · </span>
         아직 회원이 아니신가요? <a href="signup.html" style="text-decoration:underline">회원가입</a>
       </p>
+
+      <!-- 아이디 찾기 — 이름과 휴대전화번호가 둘 다 맞아야 열린다 -->
+      <form id="findIdForm" class="find-id" hidden novalidate>
+        <p class="mp-sub" style="margin:0 0 var(--gap-tight)">가입하실 때 적으신 <b>이름과 휴대전화번호</b>를 넣어 주세요.</p>
+        <div class="form-grid">
+          <div class="field full">
+            <label for="fi-name">이름</label>
+            <input id="fi-name" name="name" required autocomplete="name">
+          </div>
+          <div class="field full">
+            <label for="fi-phone">휴대전화번호</label>
+            <input id="fi-phone" name="phone" type="tel" required autocomplete="tel" placeholder="010-0000-0000">
+          </div>
+          <div class="field full"><p id="findIdMsg" class="form-msg" hidden></p></div>
+          <div class="field full">
+            <button class="btn btn-ghost" type="submit" style="width:100%">아이디 찾기</button>
+          </div>
+        </div>
+      </form>
     </div>
     <p class="muted reveal" style="font-size:var(--fs-caption);margin-top:var(--gap-related)">
       ※ 비밀번호를 잊으셨다면 <b>02-855-8806</b>으로 연락 주세요. 본인 확인 후 다시 설정해 드립니다.

@@ -117,6 +117,39 @@
     });
   }
 
+  /* 아이디 찾기 — 비밀번호는 여기서 다루지 않는다(메일 발송 수단을 아직 정하지 않았다).
+     서버가 아이디를 가려서 돌려준다. 없을 때와 안 맞을 때를 구분해 알려주지 않는다 —
+     구분해 주면 번호를 훑어 '이 번호는 회원이다'를 알아낼 수 있다. */
+  function initFindId() {
+    var open = document.getElementById('findIdOpen');
+    var form = document.getElementById('findIdForm');
+    if (!open || !form) return;
+    var msg = document.getElementById('findIdMsg');
+    open.addEventListener('click', function () {
+      form.hidden = !form.hidden;
+      if (!form.hidden) { var f = form.querySelector('[name=name]'); if (f) f.focus(); }
+    });
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var v = vals(form);
+      var btn = form.querySelector('button[type=submit]');
+      say(msg, '');
+      lock(btn, true, '찾는 중…');
+      api('/api/members/find-id', { method: 'POST', body: { name: v.name, phone: v.phone } })
+        .then(function (r) {
+          lock(btn, false);
+          if (!r.ok) { say(msg, (r.data && r.data.error) || '조회하지 못했습니다.', 'bad'); return; }
+          if (!r.data.found) {
+            say(msg, '입력하신 이름과 번호로 가입된 아이디가 없습니다. 02-855-8806 으로 문의해 주세요.', 'bad');
+            return;
+          }
+          var list = (r.data.ids || []).map(function (x) { return x.masked; }).join(', ');
+          say(msg, '가입된 아이디: ' + list + ' — 가운데를 가려 보여 드립니다. 기억나지 않으시면 02-855-8806 으로 연락 주세요.', 'good');
+        })
+        .catch(function () { lock(btn, false); say(msg, '연결하지 못했습니다.', 'bad'); });
+    });
+  }
+
   /* ================= 마이페이지 ================= */
   function orderRows(orders) {
     if (!orders || !orders.length) {
@@ -124,6 +157,14 @@
         '아직 주문 내역이 없습니다. 로그인한 채로 주문하시면 여기에 모입니다.</td></tr>';
     }
     return orders.map(function (o) {
+      /* 취소·반품은 **신청만** 한다 — 승인은 관리자가 판단한다.
+         이미 낸 신청이 있으면 버튼 대신 그 사실을 보여 준다(두 번 신청하지 않게). */
+      var can = S.orderReqOptions ? S.orderReqOptions(o.status) : [];
+      var reqCell = o.custRequest
+        ? '<div class="mp-sub">' + esc(S.orderReqNote(o.custRequest)) + '</div>'
+        : (can.length
+          ? '<button type="button" class="btn-text" data-oreq="' + esc(o.orderNo || '') + '">취소 · 반품 신청</button>'
+          : '');
       return '<tr><td><b style="font-variant-numeric:tabular-nums">' + esc(o.orderNo || '-') + '</b>' +
         '<div class="mp-sub">' + fmtDate(o.at) + '</div></td>' +
         '<td>' + esc(o.product || o.amount || '-') +
@@ -132,8 +173,27 @@
           (o.qty ? '<div class="mp-sub">' + esc(o.qty) + '개</div>' : '') + '</td>' +
         '<td><span class="tag">' + esc(o.status || '-') + '</span>' +
           (o.tracking ? '<div class="mp-sub">' + esc(o.courier || '') + ' ' + esc(o.tracking) + '</div>' : '') +
+          reqCell +
         '</td></tr>';
     }).join('');
+  }
+
+  /* 신청 버튼 — 표를 다시 그릴 때마다 다시 걸지 않도록 위임으로 한 번만 건다.
+     회원은 쿠키로 본인이 확인되므로 연락처를 다시 묻지 않는다. */
+  function bindOrderRequests(tbody, orders) {
+    if (!tbody || tbody._oreqBound) return;
+    tbody._oreqBound = true;
+    tbody.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-oreq]');
+      if (!b || !S.openOrderRequest) return;
+      var no = b.dataset.oreq;
+      var o = orders.filter(function (x) { return String(x.orderNo) === no; })[0];
+      if (!o) return;
+      S.openOrderRequest({
+        orderNo: no, status: o.status,
+        onDone: function (req) { o.custRequest = req; tbody.innerHTML = orderRows(orders); },
+      });
+    });
   }
 
   function fillProfile(m) {
@@ -156,7 +216,7 @@
         // 로그인 전 — 로그인 폼만 보여 준다
         if (gate) gate.hidden = false;
         if (body) body.hidden = true;
-        initLogin();
+        initLogin(); initFindId();
         icons();
         return;
       }
@@ -171,11 +231,15 @@
       }
       fillProfile(m);
       var tb = document.getElementById('mpOrders');
-      if (tb) tb.innerHTML = orderRows(r.data.orders);
+      if (tb) {
+        var list = r.data.orders || [];
+        tb.innerHTML = orderRows(list);
+        bindOrderRequests(tb, list);
+      }
       icons();
     }).catch(function () {
       if (gate) gate.hidden = false;
-      initLogin(); icons();
+      initLogin(); initFindId(); icons();
     });
 
     // 내 정보 저장
