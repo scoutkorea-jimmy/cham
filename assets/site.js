@@ -966,6 +966,37 @@
   function setProducts(a){ return setJSON(PRODUCTS_KEY, a); }
   function getProduct(id){ var a = getProducts(); for (var i = 0; i < a.length; i++) if (a[i].id === id) return a[i]; return null; }
 
+  /* 남은 수량 · 품절 — 목록 카드 · 상세 · 구매 버튼 · 옵션 칸이 **한 규칙**을 써야 한다.
+     서버 모드에서는 bootstrap 이 '창고 수량 − 아직 발송하지 않은 주문'을 따로 내려준다
+     (__stockLeft). 상품의 stock 은 창고 수량 그대로다 — 관리자 화면도 같은 값을 읽으므로,
+     줄어든 값을 상품에 심어 두면 상품을 저장할 때 창고 수량이 깎이고 발송할 때 또 깎인다. */
+  function stockLeft(p, optionLabel) {
+    if (!p) return 0;
+    var key = p.id + '|' + (optionLabel || '');
+    var m = cache.__stockLeft;
+    if (m && m[key] != null) return Number(m[key]) || 0;
+    // 로컬 모드 — 서버 집계가 없으니 창고 수량을 그대로 본다
+    if (optionLabel && p.option && p.option.values) {
+      var label = String(optionLabel).split(':').slice(1).join(':').trim();
+      var hit = p.option.values.filter(function (v) { return String(v.label).trim() === label; })[0];
+      return hit ? (Number(hit.stock) || 0) : 0;
+    }
+    return Number(p.stock) || 0;
+  }
+  function stockTotal(p) {
+    var opt = p && p.option;
+    if (opt && opt.values && opt.values.length) {
+      return opt.values.reduce(function (s, v) { return s + stockLeft(p, opt.name + ': ' + v.label); }, 0);
+    }
+    return stockLeft(p, '');
+  }
+  function isSoldOut(p) {
+    if (!p) return true;
+    if (p.status === '품절') return true;
+    if (p.priceOnRequest) return false;   // 전화로 안내하는 품목은 재고로 막지 않는다
+    return stockTotal(p) <= 0;
+  }
+
   /* ---------------- 주문 상태 ---------------- */
   var OSTAT = ['주문접수', '결제완료', '배송준비중', '배송중', '배송완료'];
   var ST_COLOR = { '주문접수': '#C9912F', '결제완료': '#4A6E86', '배송준비중': '#6E8252', '배송중': '#B0473A', '배송완료': '#3E7D4F', '취소': '#8C8576', '반품요청': '#C0492E', '반품완료': '#8C8576', '교환요청': '#C9912F', '교환완료': '#8C8576' };
@@ -1838,6 +1869,7 @@
         cache['kach_consents_v1']  = d.consents || {};
         cache['kach_texts_v1']     = d.texts || {};
         cache.__pageImages = d.pageImages || [];
+        cache.__stockLeft = d.stockLeft || null;   // 팔 수 있는 수량 (창고 수량은 상품의 stock)
         // 상품 대표 이미지: ref → 레코드. 목록 카드가 상품마다 요청하지 않도록 미리 담아 둔다
         cache.__mainImages = {};
         (d.productImages || []).forEach(function (im) { if (im.ref) cache.__mainImages[im.ref] = im; });
@@ -1897,6 +1929,7 @@
     POSTS_KEY: POSTS_KEY, getPosts: getPosts, setPosts: setPosts,
     CONSENT_KEY: CONSENT_KEY, getConsents: getConsents, consentDefaults: CONSENT_DEFAULTS,
     PRODUCTS_KEY: PRODUCTS_KEY, PRODUCT_CATS: PRODUCT_CATS, getProducts: getProducts, setProducts: setProducts, getProduct: getProduct,
+    stockLeft: stockLeft, stockTotal: stockTotal, isSoldOut: isSoldOut,
     productDefaults: PRODUCT_DEFAULTS, SHIP_TPL: SHIP_TPL, REFUND_TPL: REFUND_TPL, gosiBase: gosiBase,
     shipFee: shipFee, shipFreeOver: shipFreeOver, shipFeeFor: shipFeeFor,
     shipFreeTxt: shipFreeTxt, shipNote: shipNote, shipFeeLine: shipFeeLine,

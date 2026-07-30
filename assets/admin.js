@@ -501,7 +501,12 @@
     var a = S.getProducts();
     var pg = paged('products', a); a = pg.rows;
     var rows = a.length ? a.map(function (p) {
+      /* 창고 수량과 '지금 팔 수 있는 수량'은 다르다 — 아직 발송하지 않은 주문이 잡고 있다.
+         둘이 다를 때만 함께 보여 준다(늘 두 숫자를 보이면 어느 쪽이 창고인지 헷갈린다). */
       var stock = p.option && p.option.values ? p.option.values.reduce(function (s, v) { return s + (Number(v.stock) || 0); }, 0) : (Number(p.stock) || 0);
+      var left = S.stockTotal ? S.stockTotal(p) : stock;
+      var stockTxt = left === stock ? String(stock)
+        : stock + '<div class="pc-sub">주문 잡힘 ' + (stock - left) + ' · 남은 ' + left + '</div>';
       var priceTxt = p.salePrice != null && p.salePrice !== ''
         ? '<span style="text-decoration:line-through;color:var(--ink-faint);font-size:12px">' + fmtWon(p.price) + '</span> <b>' + fmtWon(p.salePrice) + '원</b>'
         : '<b>' + fmtWon(p.price) + '원</b>';
@@ -509,7 +514,7 @@
       var thumb = p.photo ? '<img src="' + esc(p.photo) + '" alt="">' : '<i data-lucide="image"></i>';
       return '<tr><td style="width:64px"><div class="pthumb" data-pthumb="' + p.id + '">' + thumb + '</div></td>' +
         '<td><b>' + esc(p.name) + '</b><div class="pc-sub">' + esc(p.unit || '') + (p.option ? ' · 옵션 ' + p.option.values.length + '종' : '') + '</div></td>' +
-        '<td><span class="tag">' + esc(p.cat) + '</span></td><td>' + priceTxt + '</td><td>' + stock + '</td>' +
+        '<td><span class="tag">' + esc(p.cat) + '</span></td><td>' + priceTxt + '</td><td>' + stockTxt + '</td>' +
         '<td><select class="st-sel" data-act="pstatus" data-id="' + p.id + '">' + ['판매중', '품절', '숨김'].map(function (s) { return '<option' + (p.status === s ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select></td>' +
         '<td style="white-space:nowrap"><div style="display:inline-flex;gap:6px;align-items:center">' +
         '<button class="btn btn-point" data-act="pedit" data-id="' + p.id + '" style="padding:8px 15px"><i data-lucide="pen-line"></i>수정</button>' +

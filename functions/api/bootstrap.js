@@ -8,12 +8,13 @@
  * 주문·신청·문의는 **절대 넣지 않는다.** 고객 개인정보이고 공개 응답이다.
  */
 import { productRowToObj, postRowToObj, readCollection, readDoc, imageRowToObj } from '../_shared/store.js';
+import { reservedMap, stockLeftMap } from '../_shared/stock.js';
 import { json } from '../_shared/http.js';
 
 export async function onRequestGet({ env }) {
   if (!env || !env.DB) return json({ error: '데이터베이스가 연결되지 않았습니다.', code: 'server_unavailable' }, 503);
 
-  const [products, posts, cohorts, partners, popups, settings, consents, texts, pageImages, productImages] = await Promise.all([
+  const [products, posts, cohorts, partners, popups, settings, consents, texts, pageImages, productImages, reserved] = await Promise.all([
     env.DB.prepare(
       `SELECT id, name, cat, price, sale_price, unit, status, stock, summary, price_on_request, doc
          FROM products WHERE status != '숨김' ORDER BY sort_order, id`
@@ -44,10 +45,18 @@ export async function onRequestGet({ env }) {
       `SELECT id, scope, ref, role, ord, mime, name, size, pcx, pcy, mbx, mby, created_at
          FROM images WHERE scope = 'product' AND role = 'main'`
     ).all().then((r) => (r.results || []).map(imageRowToObj)),
+
+    reservedMap(env),
   ]);
+
+  /* 팔 수 있는 수량은 상품 객체가 아니라 **따로 된 표**로 내보낸다.
+     창고 수량만 보면 아직 발송하지 않은 주문이 쌓여 있어도 '재고 있음'으로 보여
+     같은 물건이 여러 번 팔린다. 그렇다고 상품의 stock 을 줄여 내보내면, 같은 응답을
+     읽는 관리자 화면이 그 값을 창고 수량으로 다시 저장해 재고가 두 번 깎인다. */
+  const stockLeft = stockLeftMap(products, reserved);
 
   // 캐시하지 않는다. 30초만 캐시해도 "설정을 고쳤는데 홈페이지가 그대로"가 되어
   // 운영자가 저장이 안 된 줄 안다. 조합 규모의 방문량에서 D1 조회 몇 번이 더 싸다.
   // (이미지 본문은 /api/images/:id 에서 immutable 로 길게 캐시한다.)
-  return json({ products, posts, cohorts, partners, popups, settings, consents, texts, pageImages, productImages });
+  return json({ products, posts, cohorts, partners, popups, settings, consents, texts, pageImages, productImages, stockLeft });
 }

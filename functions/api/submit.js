@@ -10,6 +10,7 @@
  *   · status 는 항상 '주문접수'/'신규'로 시작한다(클라이언트가 정하지 못한다).
  */
 import { ORDER_INSERT, orderObjToBind, APP_INSERT, INQ_INSERT, appBind, inqBind, parseJSON, readDoc } from '../_shared/store.js';
+import { reservedFor } from '../_shared/stock.js';
 import { getMemberSession } from '../_shared/auth.js';
 import { json, badRequest, methodNotAllowed, readJson } from '../_shared/http.js';
 
@@ -61,13 +62,14 @@ async function shipFeeFor(env, itemsTotal) {
 async function resolveItem(env, productId, optionLabel) {
   if (!productId) return null;
   const row = await env.DB.prepare(
-    `SELECT name, unit, price, sale_price, status, price_on_request, doc FROM products WHERE id = ?`
+    `SELECT name, unit, price, sale_price, status, stock, price_on_request, doc FROM products WHERE id = ?`
   ).bind(productId).first();
   if (!row || row.status !== '판매중' || row.price_on_request) return null;
 
   let unit = row.sale_price != null ? Number(row.sale_price) : Number(row.price);
   const opt = parseJSON(row.doc, {}).option;
   let optLabel = null;
+  let onHand = Number(row.stock) || 0;             // 옵션이 있으면 아래에서 옵션 재고로 바뀐다
 
   if (opt && Array.isArray(opt.values) && opt.values.length) {
     if (!optionLabel) return null;                 // 옵션 상품인데 안 골랐다 → 거절
@@ -77,11 +79,13 @@ async function resolveItem(env, productId, optionLabel) {
     if (!hit) return null;                         // 없는 옵션을 보냈다 → 거절
     unit += Number(hit.add) || 0;
     optLabel = `${opt.name}: ${hit.label}`;        // 표기도 서버가 만든다
+    onHand = Number(hit.stock) || 0;
   }
   if (!Number.isFinite(unit)) return null;
 
   return {
     unit,
+    onHand,
     optionLabel: optLabel,
     name: optLabel ? row.name : row.name + (row.unit ? ` (${row.unit})` : ''),
   };
@@ -138,6 +142,18 @@ export async function onRequestPost({ request, env }) {
     const item = await resolveItem(env, clean(d.productId, 80), d.optionLabel);
     if (!item) {
       return json({ error: '주문할 수 없는 상품입니다. 페이지를 새로고침해 주세요.', code: 'unavailable' }, 409);
+    }
+    /* 남은 수량을 **여기서 다시 센다.** 화면이 받아 간 값은 페이지를 연 시점의 것이라,
+       그 사이에 다 팔렸을 수 있다. 창고 수량에서 아직 발송하지 않은 주문을 뺀 값이
+       실제로 팔 수 있는 수량이다(재고는 발송할 때 줄어든다). */
+    const left = item.onHand - await reservedFor(env, clean(d.productId, 80), item.optionLabel);
+    if (left < qty) {
+      return json({
+        error: left > 0
+          ? `남은 수량이 ${left}개입니다. 수량을 줄여 주세요.`
+          : '방금 품절되었습니다. 다른 상품을 살펴봐 주세요.',
+        code: 'out_of_stock', left: Math.max(0, left),
+      }, 409);
     }
     rec.productId = clean(d.productId, 80);
     rec.product = item.name;            // 이름·옵션·금액 모두 상품표에서 만든 값

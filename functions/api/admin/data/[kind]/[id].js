@@ -19,6 +19,7 @@ import {
   productRowToObj, PRODUCT_INSERT, productObjToBind,
   postRowToObj, POST_INSERT, postBind,
 } from '../../../../_shared/store.js';
+import { SHIPPED } from '../../../../_shared/stock.js';
 import { json, badRequest, notFound, methodNotAllowed, readJson } from '../../../../_shared/http.js';
 
 /* 한 건씩 다룰 수 있는 항목. 교육과정·파트너·팝업은 한 덩어리 문서라 여기 없다
@@ -44,6 +45,39 @@ function who(data) {
   return (s && (s.displayName || s.username)) || null;
 }
 
+/**
+ * 창고 수량은 **발송할 때** 줄어든다(주문을 받을 때가 아니라).
+ * 되돌리기로 발송 이전 단계로 내리면 같은 수량을 되돌려 놓는다 —
+ * 그러지 않으면 잘못 누른 한 번이 재고를 영영 깎는다.
+ *
+ * dir: -1 내보냄(줄인다) / +1 되돌림(늘린다). 고칠 것이 없으면 null.
+ */
+async function stockShiftStmt(env, order, dir) {
+  const qty = Number(order.qty) || 0;
+  if (!order.productId || qty <= 0) return null;
+  const row = await env.DB.prepare(
+    `SELECT stock, doc FROM products WHERE id = ?`
+  ).bind(order.productId).first();
+  if (!row) return null;                            // 상품이 지워졌다 — 되돌릴 곳이 없다
+
+  let doc;
+  try { doc = JSON.parse(row.doc || '{}'); } catch (e) { doc = {}; }
+  const opt = doc.option;
+  const move = dir * qty;
+
+  if (opt && Array.isArray(opt.values) && opt.values.length) {
+    if (!order.optionLabel) return null;
+    const label = String(order.optionLabel).split(':').slice(1).join(':').trim();
+    const i = opt.values.findIndex((v) => String(v.label).trim() === label);
+    if (i < 0) return null;                         // 옵션이 그 사이 바뀌었다
+    opt.values[i] = { ...opt.values[i], stock: Math.max(0, (Number(opt.values[i].stock) || 0) + move) };
+    return env.DB.prepare(`UPDATE products SET doc = ?, updated_at = datetime('now') WHERE id = ?`)
+      .bind(JSON.stringify(doc), order.productId);
+  }
+  return env.DB.prepare(`UPDATE products SET stock = MAX(0, stock + ?), updated_at = datetime('now') WHERE id = ?`)
+    .bind(move, order.productId);
+}
+
 export async function onRequestPatch({ request, params, env, data }) {
   const kind = String(params.kind || '');
   const id = String(params.id || '');
@@ -58,12 +92,28 @@ export async function onRequestPatch({ request, params, env, data }) {
   if (!row) return notFound('이미 지워졌거나 없는 항목입니다.');
 
   // 읽어서 합친다. id 는 주소가 정하므로 본문이 바꾸지 못한다.
-  const merged = { ...spec.toObj(row), ...body.patch, id };
+  const before = spec.toObj(row);
+  const merged = { ...before, ...body.patch, id };
 
-  await env.DB.batch([
+  const stmts = [
     env.DB.prepare(spec.insert).bind(...spec.bind(merged)),
     bump(env, kind, who(data)),
-  ]);
+  ];
+  // 발송선을 넘나들 때만 창고 수량을 건드린다. 같은 쪽 안에서의 상태 변경
+  // (주문접수 → 결제완료, 배송중 → 배송완료)은 재고와 무관하다.
+  if (kind === 'orders') {
+    const was = SHIPPED.includes(before.status);
+    const now = SHIPPED.includes(merged.status);
+    if (was !== now) {
+      const st = await stockShiftStmt(env, merged, now ? -1 : +1);
+      if (st) {
+        stmts.push(st);
+        stmts.push(bump(env, 'products', who(data)));
+      }
+    }
+  }
+
+  await env.DB.batch(stmts);
   return json({ ok: true, item: merged });
 }
 

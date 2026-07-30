@@ -51,7 +51,7 @@
   }
 
   function cardHTML(p) {
-    var soldout = p.status === '품절';
+    var soldout = S.isSoldOut(p);
     return '<a class="card card-hover prod-link reveal" href="product.html?id=' + p.id + '" aria-label="' + esc(p.name) + ' 상세보기">' +
       '<div class="prod-img" data-pimg="' + p.id + '">' +
         fallbackVisual(p) +
@@ -158,7 +158,7 @@
       setM('meta[property="og:title"]', p.name + ' · 한국참전통발효식품협동조합');
       setM('meta[property="og:description"]', p.summary);
     } catch (e) {}
-    var soldout = p.status === '품절';
+    var soldout = S.isSoldOut(p);
     // 확정가가 없는 품목은 수량·합계·주문 UI를 띄우지 않고 전화/문의로만 받는다
     var ask = !!p.priceOnRequest;
     var basePrice = p.salePrice != null && p.salePrice !== '' ? Number(p.salePrice) : Number(p.price);
@@ -180,7 +180,8 @@
     if (p.option && p.option.values && p.option.values.length) {
       optHtml = '<div class="pd-row"><label for="pdOpt">' + esc(p.option.name) + '</label>' +
         '<select id="pdOpt">' + p.option.values.map(function (v, i) {
-          var out = Number(v.stock) <= 0;
+          // 남은 수량은 창고 수량이 아니다 — 아직 발송하지 않은 주문이 이미 잡고 있다
+          var out = S.stockLeft(p, p.option.name + ': ' + v.label) <= 0;
           return '<option value="' + i + '"' + (out ? ' disabled' : '') + '>' + esc(v.label) +
             (Number(v.add) ? ' (+' + fmtWon(v.add) + '원)' : '') + (out ? ' — 품절' : '') + '</option>';
         }).join('') + '</select></div>';
