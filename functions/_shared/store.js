@@ -26,7 +26,7 @@ export function orderRowToObj(r) {
     id: r.id, orderNo: r.order_no, kind: r.kind, status: r.status,
     name: r.name, phone: r.phone, email: r.email, address: r.address,
     productId: r.product_id, product: r.product_name, optionLabel: r.option_label,
-    qty: r.qty, unitPrice: r.unit_price, total: r.total,
+    qty: r.qty, unitPrice: r.unit_price, shipFee: r.ship_fee, total: r.total,
     depositor: r.depositor, payMethod: r.pay_method,
     shipMethod: r.ship_method, courier: r.courier, tracking: r.tracking,
     cancelReason: r.cancel_reason, rmaReason: r.rma_reason, pickupAddr: r.pickup_addr,
@@ -40,7 +40,7 @@ export function orderRowToObj(r) {
 
 const ORDER_COLS = new Set([
   'id', 'orderNo', 'kind', 'status', 'name', 'phone', 'email', 'address',
-  'productId', 'product', 'optionLabel', 'qty', 'unitPrice', 'total',
+  'productId', 'product', 'optionLabel', 'qty', 'unitPrice', 'shipFee', 'total',
   'depositor', 'payMethod', 'shipMethod', 'courier', 'tracking',
   'cancelReason', 'rmaReason', 'pickupAddr', 'at', 'memberId',
 ]);
@@ -52,7 +52,8 @@ export function orderObjToBind(o) {
     String(o.id), String(o.orderNo || ''), o.kind || 'order', o.status || '주문접수',
     o.name ?? null, o.phone ?? null, o.email ?? null, o.address ?? null,
     o.productId ?? null, o.product ?? null, o.optionLabel ?? null,
-    num(o.qty), num(o.unitPrice), num(o.total),
+    // 택배비만 num() 을 쓰지 않는다 — 0(무료)과 '이 열이 생기기 전 주문'(NULL)은 다른 뜻이다
+    num(o.qty), num(o.unitPrice), o.shipFee == null ? null : Number(o.shipFee), num(o.total),
     o.depositor ?? null, o.payMethod ?? null,
     o.shipMethod ?? null, o.courier ?? null, o.tracking ?? null,
     o.cancelReason ?? null, o.rmaReason ?? null, o.pickupAddr ?? null,
@@ -63,16 +64,17 @@ export function orderObjToBind(o) {
 
 export const ORDER_INSERT = `
   INSERT INTO orders (id, order_no, kind, status, name, phone, email, address,
-    product_id, product_name, option_label, qty, unit_price, total,
+    product_id, product_name, option_label, qty, unit_price, ship_fee, total,
     depositor, pay_method, ship_method, courier, tracking,
     cancel_reason, rma_reason, pickup_addr, payload, created_at, member_id)
-  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
   ON CONFLICT(id) DO UPDATE SET
     order_no=excluded.order_no, kind=excluded.kind, status=excluded.status,
     name=excluded.name, phone=excluded.phone, email=excluded.email, address=excluded.address,
     product_id=excluded.product_id, product_name=excluded.product_name,
     option_label=excluded.option_label, qty=excluded.qty, unit_price=excluded.unit_price,
-    total=excluded.total, depositor=excluded.depositor, pay_method=excluded.pay_method,
+    ship_fee=excluded.ship_fee, total=excluded.total,
+    depositor=excluded.depositor, pay_method=excluded.pay_method,
     ship_method=excluded.ship_method, courier=excluded.courier, tracking=excluded.tracking,
     cancel_reason=excluded.cancel_reason, rma_reason=excluded.rma_reason,
     pickup_addr=excluded.pickup_addr, payload=excluded.payload,

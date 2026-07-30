@@ -221,7 +221,7 @@
               '</div></div>' +
             '</div>' +
             '<div class="pd-total"><span>총 상품 금액</span><b id="pdTotal">' + fmtWon(basePrice) + '원</b></div>' +
-            '<p class="pd-ship-note"><i data-lucide="truck"></i>' + esc(S.SHIP_NOTE) + '</p>') +
+            '<p class="pd-ship-note"><i data-lucide="truck"></i>' + esc(S.shipNote()) + '</p>') +
           '<div class="pd-cta">' +
             (ask
               ? '<a class="btn btn-point btn-lg" href="tel:02-855-8806"><i data-lucide="phone"></i>02-855-8806</a>'
@@ -237,7 +237,10 @@
         '<div class="pd-acc">' +
           '<details open><summary>상세 설명 <i data-lucide="chevron-down"></i></summary><div class="pd-acc-body"><div class="rich" style="white-space:normal">' + (p.descHtml || '<p>상세 설명이 준비 중입니다.</p>') + '</div>' + cautionHTML(p) + '<div id="pdDetailImgs"></div></div></details>' +
           '<details><summary>상품정보고시 <i data-lucide="chevron-down"></i></summary><div class="pd-acc-body" style="white-space:normal"><table class="gosi-table"><tbody>' + gosiRows(p.gosi || {}) + '</tbody></table></div></details>' +
-          '<details><summary>배송안내 <i data-lucide="chevron-down"></i></summary><div class="pd-acc-body">' + esc(p.ship || S.SHIP_TPL) + '</div></details>' +
+          // 배송비 줄은 상품에 저장된 글이 아니라 설정에서 만든다 — 저장해 두면 설정을
+          // 고쳐도 상품마다 옛 금액이 남아, 같은 화면에 서로 다른 두 금액이 보인다.
+          '<details><summary>배송안내 <i data-lucide="chevron-down"></i></summary><div class="pd-acc-body">' +
+            esc(S.shipFeeLine() + '\n' + (p.ship || S.SHIP_TPL)) + '</div></details>' +
           '<details><summary>교환 · 반품 · 환불 안내 <i data-lucide="chevron-down"></i></summary><div class="pd-acc-body">' + esc(p.refund || S.REFUND_TPL) + '\n\n· 소비자 상담: ' + esc((p.gosi && p.gosi.phone) || '02-855-8806') + ' (평일 09:00–18:00)</div></details>' +
         '</div>' +
         '<div id="pdRelatedWrap" style="display:none;margin-top:var(--gap-sub)">' +

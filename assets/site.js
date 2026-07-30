@@ -339,7 +339,9 @@
         if (!r.ok) throw new Error(r.data.error || '접수하지 못했습니다.');
         var rec = {}; for (var k in data) rec[k] = data[k];
         rec.id = r.data.id; rec.orderNo = r.data.orderNo; rec.at = new Date().toISOString();
+        // 금액은 서버가 정한 값으로 덮는다 — 화면이 계산한 값과 다르면 서버가 맞다
         if (r.data.total != null) rec.total = r.data.total;
+        if (r.data.shipFee != null) rec.shipFee = r.data.shipFee;
         return rec;
       });
     }
@@ -822,17 +824,21 @@
   /* ---------------- 상품 (목록 · 상세 · 관리자 등록) ---------------- */
   /* v3: 서연 식초·와인 라인업 도입으로 기본 카탈로그가 전면 교체됨 (v2 데이터는 갱신 대상) */
   var PRODUCTS_KEY = 'kach_products_v3';
-  /* 택배비 — 상품 상세의 안내문, 주문 모달의 입금액, 배송안내 템플릿이 모두 이 값을 쓴다.
-     예전에는 배송안내 문구에만 '3,500원'이 글자로 박혀 있어, 화면 어디에도 계산된 금액이
-     나오지 않았다(손님은 상품값만 보고 입금했다). 숫자와 문구를 한곳에서 만든다. */
-  var SHIP_FEE = 3500;
-  var SHIP_FREE_OVER = 50000;
-  function shipFeeFor(subtotal) { return Number(subtotal) >= SHIP_FREE_OVER ? 0 : SHIP_FEE; }
-  // 무료 기준은 '50,000원'보다 '5만원'이 읽기 쉽다 — 값 하나에서 두 표기를 다 만든다
-  var SHIP_FREE_TXT = (SHIP_FREE_OVER / 10000) + '만원';
-  var SHIP_NOTE = '택배비 ' + fmtWon(SHIP_FEE) + '원 별도 · ' + SHIP_FREE_TXT + ' 이상 구매 시 무료';
-  var SHIP_NOTE_SHORT = '별도 (' + SHIP_FREE_TXT + ' 이상 무료)';
-  var SHIP_TPL = '· 배송비: ' + fmtWon(SHIP_FEE) + '원 (' + SHIP_FREE_TXT + ' 이상 구매 시 무료)\n· 배송 방법: 택배 (CJ대한통운)\n· 출고: 결제(입금) 확인 후 2~3 영업일 이내\n· 제주 및 도서산간 지역은 추가 배송비가 발생할 수 있습니다.\n· 발효식품 특성상 기온이 높은 시기에는 아이스팩 포장으로 출고됩니다.';
+  /* 택배비 — 값의 원본은 **관리자 > 설정**(shipFee · shipFreeOver)이다.
+     상수로 두면 설정을 고쳐도 화면이 따라오지 않는다(설정은 부팅이 끝난 뒤에 들어온다)
+     → 그릴 때마다 함수로 읽는다.
+     상품별 '배송안내' 글에는 금액을 넣지 않는다. 넣으면 설정을 고쳐도 이미 저장된
+     상품들의 글에 옛 금액이 남아, 같은 화면에 두 금액이 동시에 보인다.
+     **금액은 언제나 이 함수들이 만들고, 최종 입금액은 서버가 다시 계산한다.** */
+  function shipFee() { var v = Number(getSettings().shipFee); return isFinite(v) && v >= 0 ? v : 5000; }
+  function shipFreeOver() { var v = Number(getSettings().shipFreeOver); return isFinite(v) && v > 0 ? v : 50000; }
+  function shipFeeFor(itemsTotal) { return Number(itemsTotal) >= shipFreeOver() ? 0 : shipFee(); }
+  // 무료 기준은 '50,000원'보다 '5만원'이 읽기 쉽다 — 만원으로 떨어질 때만 그렇게 쓴다
+  function shipFreeTxt() { var o = shipFreeOver(); return o % 10000 === 0 ? (o / 10000) + '만원' : fmtWon(o) + '원'; }
+  function shipNote() { return '택배비 ' + fmtWon(shipFee()) + '원 별도 · ' + shipFreeTxt() + ' 이상 구매 시 무료'; }
+  // 상품 상세 '배송안내' 첫 줄 — 나머지 안내(배송 방법·출고·주의)는 상품마다 따로 쓴다
+  function shipFeeLine() { return '· 배송비: ' + fmtWon(shipFee()) + '원 (' + shipFreeTxt() + ' 이상 구매 시 무료)'; }
+  var SHIP_TPL = '· 배송 방법: 택배 (CJ대한통운)\n· 출고: 결제(입금) 확인 후 2~3 영업일 이내\n· 제주 및 도서산간 지역은 추가 배송비가 발생할 수 있습니다.\n· 발효식품 특성상 기온이 높은 시기에는 아이스팩 포장으로 출고됩니다.';
   var REFUND_TPL = '· 단순 변심에 의한 교환·반품: 상품 수령 후 7일 이내 신청 가능 (왕복 배송비 구매자 부담)\n· 식품 특성상 개봉했거나 포장이 훼손된 경우 교환·반품이 불가합니다.\n· 상품 하자·오배송: 수령 후 30일 이내 무상 교환 또는 환불해 드립니다.\n· 환불은 반품 상품 확인 후 3영업일 이내 입금 계좌로 처리됩니다.\n· 기타 사항은 소비자분쟁해결기준(공정거래위원회 고시)에 따릅니다.';
   function gosiBase(over) {
     var g = {
@@ -1022,6 +1028,10 @@
   var SETTINGS_DEFAULTS = {
     bank: '농협 000-0000-0000-00',        // 무통장입금 계좌
     holder: '한국참전통발효식품협동조합',    // 예금주
+    // 택배비 — 주문 모달의 입금액과 서버의 주문 금액이 같은 값을 쓴다.
+    // 0 을 넣으면 전 상품 무료배송, shipFreeOver 를 아주 크게 잡으면 무료 기준이 없어진다.
+    shipFee: 5000,                         // 편도 택배비(원)
+    shipFreeOver: 50000,                   // 이 금액 이상이면 무료
     phone: '02-855-8806',
     phone2: '010-8768-9551',               // 보조 전화(휴대폰)
     email: 'kach5501@hanmail.net',
@@ -1430,17 +1440,26 @@
     }).join('');
   }
 
+  /* 상품 금액 · 택배비 · 총 입금 금액 세 줄. 수량을 바꿀 때도 **이 함수로 다시 그린다**
+     — 처음 그릴 때와 고쳐 그릴 때를 따로 만들면 한쪽만 고쳐져 금액이 어긋난다. */
+  function payAmountRows(items) {
+    var ship = shipFeeFor(items);
+    return '<div class="pay-row"><span>상품 금액</span><span>' + fmtWon(items) + '원</span></div>' +
+      '<div class="pay-row"><span>택배비</span><span>' +
+        (ship ? fmtWon(ship) + '원' : '0원 <em class="pay-free">' + esc(shipFreeTxt()) + ' 이상 무료</em>') + '</span></div>' +
+      '<div class="pay-row pay-sum"><span>총 입금 금액</span><b class="pay-total">' + fmtWon(items + ship) + '원</b></div>';
+  }
+
   function payBoxHTML(mode, data) {
     var qty = Number((data && data.qty) || 1) || 1;
     var unit = Number((data && data.unitPrice) || 0) || 0;
-    /* 택배비는 '별도'라는 사실만 알린다 — 지역·묶음배송에 따라 실제 금액이 달라져
-       화면이 계산한 숫자를 입금액으로 못박으면 도리어 어긋난다. */
+    /* 손님이 실제로 넣어야 할 금액을 못박는다.
+       예전에는 '택배비 별도'라고만 적어, 무료 기준 미만 주문은 얼마를 입금해야 하는지가
+       화면 어디에도 없었다. 제주·도서산간 추가분만 여기서 계산하지 않는다 — 전화로 안내한다. */
+    var items = unit * qty;
     var totalRow = mode === 'note'
       ? '<div class="pay-row"><span>분양 금액</span><span>1kg당 15만원 · 30kg 분양 가능 (상담 후 확정)</span></div>'
-      : (unit
-        ? '<div class="pay-row"><span>총 상품 금액</span><b class="pay-total" id="payTotal">' + fmtWon(unit * qty) + '원</b></div>' +
-          '<div class="pay-row"><span>택배비</span><span>' + esc(SHIP_NOTE_SHORT) + '</span></div>'
-        : '');
+      : (unit ? '<div id="payAmount">' + payAmountRows(items) + '</div>' : '');
     return '<div class="pay-box"><b><i data-lucide="landmark"></i>무통장입금(계좌이체) 안내</b>' +
       '<div class="pay-row"><span>입금 계좌</span><span>' + esc(payBank()) + '<br>(예금주: ' + esc(payHolder()) + ')</span></div>' +
       totalRow +
@@ -1527,7 +1546,11 @@
       // 로컬 모드에서만 여기서 만든다.
       if (!SERVER) {
         data.orderNo = genOrderNo();
-        if (data.unitPrice) data.total = Number(data.unitPrice) * (Number(data.qty) || 1);
+        if (data.unitPrice) {
+          var itemsTotal = Number(data.unitPrice) * (Number(data.qty) || 1);
+          data.shipFee = shipFeeFor(itemsTotal);
+          data.total = itemsTotal + data.shipFee;
+        }
       }
     }
     var btn = form.querySelector('button[type=submit]');
@@ -1555,7 +1578,11 @@
     if (isOrder && data.orderNo) {
       orderInfo = '<div class="pay-box" style="text-align:left;margin-top:var(--gap-related)"><b><i data-lucide="receipt"></i>주문번호</b>' +
         '<div class="pay-row"><span>주문번호</span><b class="pay-total" style="font-size:20px;letter-spacing:.04em">' + data.orderNo + '</b></div>' +
-        (data.total ? '<div class="pay-row"><span>결제금액</span><b>' + fmtWon(data.total) + '원</b></div>' : '') +
+        // 택배비가 얼마 붙었는지 보여 준다 — 금액만 적으면 '왜 상품값과 다르지?' 로 전화가 온다
+        (data.total ? '<div class="pay-row"><span>입금 금액</span><b>' + fmtWon(data.total) + '원</b>' +
+          (data.shipFee != null
+            ? '<span class="pay-note-inline">' + (data.shipFee ? '택배비 ' + fmtWon(data.shipFee) + '원 포함' : '택배비 무료') + '</span>'
+            : '') + '</div>' : '') +
         '<div class="pay-row"><span>입금 계좌</span><span>' + esc(payBank()) + ' (예금주: ' + esc(payHolder()) + ')</span></div>' +
         '<p>주문번호를 꼭 보관해 주세요. 제품 페이지의 <b>비회원 주문 조회</b>에서 주문번호와 연락처(또는 이메일)로 진행 상태를 확인할 수 있습니다.</p></div>';
     }
@@ -1675,8 +1702,9 @@
       if (e.target.name === 'qty' && e.target.closest('#modalForm')) {
         var form = e.target.closest('#modalForm');
         var unit = Number((form.querySelector('[name=unitPrice]') || {}).value || 0);
-        var totalEl = document.getElementById('payTotal');
-        if (unit && totalEl) totalEl.textContent = fmtWon(unit * Math.max(1, Number(e.target.value) || 1)) + '원';
+        var box = document.getElementById('payAmount');
+        // 수량이 무료 기준을 넘나들면 택배비 줄까지 바뀐다 → 세 줄을 함께 다시 그린다
+        if (unit && box) box.innerHTML = payAmountRows(unit * Math.max(1, Number(e.target.value) || 1));
       }
     });
     document.addEventListener('submit', function(e){
@@ -1870,7 +1898,8 @@
     CONSENT_KEY: CONSENT_KEY, getConsents: getConsents, consentDefaults: CONSENT_DEFAULTS,
     PRODUCTS_KEY: PRODUCTS_KEY, PRODUCT_CATS: PRODUCT_CATS, getProducts: getProducts, setProducts: setProducts, getProduct: getProduct,
     productDefaults: PRODUCT_DEFAULTS, SHIP_TPL: SHIP_TPL, REFUND_TPL: REFUND_TPL, gosiBase: gosiBase,
-    SHIP_FEE: SHIP_FEE, SHIP_FREE_OVER: SHIP_FREE_OVER, SHIP_NOTE: SHIP_NOTE, shipFeeFor: shipFeeFor,
+    shipFee: shipFee, shipFreeOver: shipFreeOver, shipFeeFor: shipFeeFor,
+    shipFreeTxt: shipFreeTxt, shipNote: shipNote, shipFeeLine: shipFeeLine,
     getTexts: getTexts, setTexts: setTexts,
     OSTAT: OSTAT, stTag: stTag, ST_COLOR: ST_COLOR,
     VISITS_KEY: VISITS_KEY, SOURCES_KEY: SOURCES_KEY,

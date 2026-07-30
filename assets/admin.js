@@ -16,6 +16,13 @@
   function icons(){ if (window.lucide) window.lucide.createIcons(); }
   function fmtDate(iso){ if(!iso) return '-'; var d = new Date(iso); if(isNaN(d)) return esc(iso); return d.getFullYear()+'.'+('0'+(d.getMonth()+1)).slice(-2)+'.'+('0'+d.getDate()).slice(-2)+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2); }
   function toast(msg){ if (S.toast) S.toast(msg); }
+  /* 금액 아래에 붙는 택배비 한 줄. 입금액을 대조할 때 상품값과 왜 다른지가 바로 보여야 한다.
+     null 은 이 열이 생기기 전의 주문(택배비 별도)이고, 0 은 무료다 — 둘을 구분한다. */
+  function shipFeeSub(o) {
+    if (o.kind === 'seedjang' || !o.total) return '';
+    if (o.shipFee == null) return '<div class="pc-sub">택배비 별도</div>';
+    return '<div class="pc-sub">' + (o.shipFee ? '택배비 ' + fmtWon(o.shipFee) + '원 포함' : '택배비 무료') + '</div>';
+  }
 
   // ObjectURL 수명 관리 — 재렌더 시 이전 URL 회수(메모리 누수 방지)
   var objUrls = [];
@@ -883,7 +890,7 @@
         '<td>' + (o.kind === 'seedjang' ? '<span class="tag point">씨장분양</span>' : '<span class="tag">제품</span>') + '</td>' +
         '<td><b>' + esc(item) + '</b>' + (o.optionLabel ? '<div class="pc-sub">' + esc(o.optionLabel) + '</div>' : '') + '</td>' +
         '<td>' + esc(o.qty || '-') + '</td>' +
-        '<td style="white-space:nowrap">' + (o.total ? fmtWon(o.total) + '원' : '-') + '</td>' +
+        '<td style="white-space:nowrap">' + (o.total ? fmtWon(o.total) + '원' : '-') + shipFeeSub(o) + '</td>' +
         '<td>' + esc(o.name || '-') + '<div class="pc-sub">' + esc(o.phone || '') + '</div></td>' +
         '<td>' + esc(o.depositor || '-') + '<div class="pc-sub">' + esc(o.payMethod || '') + '</div></td>' +
         '<td style="max-width:170px">' + esc(o.address || o.region || '-') + '</td>' +
@@ -1933,6 +1940,10 @@
         '<div class="set-sec full"><i data-lucide="banknote"></i><b>무통장입금 계좌</b> <span class="pc-sub">— 주문 시 안내되는 입금 계좌입니다. 실제 계좌로 반드시 교체하세요.</span></div>' +
         field('bank', '입금 계좌', '(은행 + 계좌번호)', '농협 123-4567-8901-23') +
         field('holder', '예금주', '', '한국참전통발효식품협동조합') +
+        '<div class="set-sec full"><i data-lucide="truck"></i><b>택배비</b> <span class="pc-sub">— 주문 화면의 <b>총 입금 금액</b>과 상품 상세의 배송안내가 이 값으로 계산됩니다. 손님이 넣을 금액은 서버가 이 값으로 다시 계산하므로, 저장하면 곧바로 반영됩니다.</span></div>' +
+        field('shipFee', '택배비 (원)', '(편도. 0 을 넣으면 전 상품 무료배송)', '5000') +
+        field('shipFreeOver', '무료 배송 기준 (원)', '(이 금액 이상이면 택배비 0원)', '50000') +
+        '<div class="full"><p class="pc-sub" style="margin:0">제주·도서산간 추가 배송비는 자동으로 계산하지 않습니다 — 주문을 받은 뒤 전화로 안내합니다.</p></div>' +
         '<div class="set-sec full"><i data-lucide="phone"></i><b>연락처 · 주소</b></div>' +
         field('phone', '대표 전화', '', '02-855-8806') +
         field('phone2', '보조 전화', '(휴대폰 등)', '010-0000-0000') +
@@ -3171,6 +3182,22 @@
         fd.forEach(function (v, k) { obj[k] = String(v).trim(); });
         // 좌표는 숫자 검증(빈 값이면 기본값으로 되돌아감)
         ['lat', 'lng'].forEach(function (k) { if (obj[k] && isNaN(Number(obj[k]))) obj[k] = ''; });
+        /* 택배비는 숫자로 저장한다. '5,000원' 처럼 적으면 값이 NaN 이 되어 조용히 기본값으로
+           돌아가는데, 운영자는 저장된 줄 안다 — 그래서 되돌리지 않고 막고 알린다.
+           손님이 넣을 금액을 서버가 이 값으로 계산하므로 틀린 값이 남으면 안 된다. */
+        var badFee = null;
+        [['shipFee', 0], ['shipFreeOver', 1]].forEach(function (p) {
+          var k = p[0];
+          if (obj[k] === '') return;                 // 빈 값 = 기본값을 쓴다
+          var n = Number(String(obj[k]).replace(/[,\s원]/g, ''));
+          if (!isFinite(n) || n < p[1]) { badFee = k; return; }
+          obj[k] = n;
+        });
+        if (badFee) {
+          toast(badFee === 'shipFee' ? '택배비는 0 이상의 숫자로 입력해 주세요 (예: 5000).'
+                                     : '무료 배송 기준은 1 이상의 숫자로 입력해 주세요 (예: 50000).');
+          return;
+        }
         if (S.setSettings && !S.setSettings(obj)) { toast('저장 공간이 부족합니다.'); return; }
         dirty = false; render();
         toast('설정을 저장했습니다. 공개 페이지 새로고침 시 반영됩니다.');

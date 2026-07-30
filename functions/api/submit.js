@@ -9,7 +9,7 @@
  *     그러지 않으면 개발자도구로 총액을 1원으로 바꿔 주문할 수 있다.
  *   · status 는 항상 '주문접수'/'신규'로 시작한다(클라이언트가 정하지 못한다).
  */
-import { ORDER_INSERT, orderObjToBind, APP_INSERT, INQ_INSERT, appBind, inqBind, parseJSON } from '../_shared/store.js';
+import { ORDER_INSERT, orderObjToBind, APP_INSERT, INQ_INSERT, appBind, inqBind, parseJSON, readDoc } from '../_shared/store.js';
 import { getMemberSession } from '../_shared/auth.js';
 import { json, badRequest, methodNotAllowed, readJson } from '../_shared/http.js';
 
@@ -32,6 +32,21 @@ async function issueOrderNo(env) {
     if (!hit) return no;
   }
   return ymd + Date.now().toString().slice(-5);
+}
+
+/* 택배비 — 원본은 **관리자 > 설정**(shipFee · shipFreeOver)이다.
+   브라우저가 보낸 값은 쓰지 않는다. 총액을 조작하지 못하게 하는 것과 같은 이유로,
+   손님이 입금할 금액은 서버가 처음부터 끝까지 다시 만든다.
+   기본값은 site.js 의 SETTINGS_DEFAULTS 와 같아야 한다(설정을 한 번도 저장하지 않은 상태). */
+const SHIP_FEE_DEFAULT = 5000;
+const SHIP_FREE_OVER_DEFAULT = 50000;
+async function shipFeeFor(env, itemsTotal) {
+  const st = (await readDoc(env, 'settings')) || {};
+  const fee = Number(st.shipFee);
+  const over = Number(st.shipFreeOver);
+  const f = Number.isFinite(fee) && fee >= 0 ? fee : SHIP_FEE_DEFAULT;
+  const o = Number.isFinite(over) && over > 0 ? over : SHIP_FREE_OVER_DEFAULT;
+  return itemsTotal >= o ? 0 : f;
 }
 
 /**
@@ -129,13 +144,17 @@ export async function onRequestPost({ request, env }) {
     rec.optionLabel = item.optionLabel;
     rec.qty = qty;
     rec.unitPrice = item.unit;
-    rec.total = item.unit * qty;
+    // total 은 '손님이 입금할 금액' 이다 — 상품값만 담으면 무료 기준 미만 주문에서
+    // 화면이 안내한 금액과 관리자가 대조하는 금액이 서로 달라진다.
+    const itemsTotal = item.unit * qty;
+    rec.shipFee = await shipFeeFor(env, itemsTotal);
+    rec.total = itemsTotal + rec.shipFee;
   } else {
     rec.amount = clean(d.amount, 120);
   }
 
   await env.DB.prepare(ORDER_INSERT).bind(...orderObjToBind(rec)).run();
-  return json({ ok: true, id, orderNo, total: rec.total ?? null }, 201);
+  return json({ ok: true, id, orderNo, total: rec.total ?? null, shipFee: rec.shipFee ?? null }, 201);
 }
 
 export const onRequestGet = methodNotAllowed;

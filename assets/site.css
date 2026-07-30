@@ -1022,7 +1022,13 @@ button[type=submit]:disabled, .btn:disabled { opacity: 0.45; cursor: not-allowed
 .pay-row:last-of-type { border-bottom: none; }
 .pay-row > span:first-child { flex-shrink: 0; width: 84px; color: var(--ink-mute); font-size: var(--fs-caption); padding-top: 1px; }
 .pay-row > span:last-child, .pay-row > b { flex: 1; color: var(--ink); }
+/* 금액 옆의 짧은 곁말('택배비 5,000원 포함') — 값 칸의 flex:1 을 물려받으면 금액을 밀어낸다 */
+.pay-row > span.pay-note-inline { flex: 0 1 auto; align-self: center; width: auto;
+  font-size: var(--fs-micro); color: var(--ink-mute); padding-top: 0; }
+/* 총 입금 금액 — 위 두 줄(상품 금액·택배비)의 합이라는 것이 보이도록 실선으로 끊는다 */
+.pay-sum { border-bottom: none; border-top: 1.5px solid var(--sub-deep); margin-top: 3px; padding-top: 9px; }
 .pay-total { font-family: var(--font-head); font-weight: 800; font-size: 18px; color: var(--ink); }
+.pay-free { font-style: normal; font-size: var(--fs-micro); font-weight: 700; color: var(--olive-deep); margin-left: 5px; }
 .pay-box p { margin: 10px 0 0; font-size: var(--fs-caption); color: var(--ink-soft); line-height: 1.65; }
 .pay-box .pay-demo { color: var(--ink-faint); }
 
