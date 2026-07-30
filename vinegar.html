@@ -286,15 +286,12 @@
 
     <div class="card reveal table-scroll" style="padding:8px 8px 0">
       <table class="ptable">
-        <caption>부가세 포함가 · 배송비 별도(5만원 이상 무료)</caption>
+        <caption id="priceCaption">부가세 포함가</caption>
         <colgroup><col class="c-item"><col class="c-vol"><col class="c-price"></colgroup>
         <thead><tr><th>품목</th><th>용량</th><th style="text-align:right">판매가</th></tr></thead>
-        <tbody>
-          <tr><td>수제 발효식초 (소)</td><td>300ml</td><td class="num">25,000원</td></tr>
-          <tr><td>수제 발효식초 (대)</td><td>500ml</td><td class="num">35,000원</td></tr>
-          <tr><td>수제식초 선물상자 (2본)</td><td>500ml + 300ml</td><td class="num">45,000원</td></tr>
-          <tr><td>수제 와인</td><td>370ml</td><td class="num">35,000원</td></tr>
-        </tbody>
+        <!-- 표 내용은 shop.js 가 상품 데이터에서 만든다 — 값을 여기에 또 적으면 반드시 어긋난다
+             (손으로 적었을 때 선물상자가 표 45,000 / 실제 상품 50,000 이었다) -->
+        <tbody id="vin-price-rows"></tbody>
       </table>
     </div>
 
@@ -325,5 +322,7 @@
 <script defer src="https://unpkg.com/lucide@1.17.0"></script>
 <script defer src="assets/site.js"></script>
 <script defer src="assets/jump.js"></script>
+<!-- 가격표를 상품 데이터에서 만든다 (shop.js). 이 페이지엔 상품 목록·상세가 없어 나머지는 아무 일도 하지 않는다 -->
+<script defer src="assets/shop.js"></script>
 </body>
 </html>

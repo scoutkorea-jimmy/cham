@@ -107,16 +107,37 @@
     return vals.map(function (v) { return String(v.label || '').replace(/\s*\([^)]*\)\s*$/, ''); }).join(' · ');
   }
   function renderPriceTable() {
-    var tb = document.getElementById('price-rows');
-    if (!tb) return;
+    /* 표 머리말의 배송 안내도 설정에서 만든다 — HTML 에 '5만원 이상 무료'를 적어 두면
+       관리자 > 설정에서 기준을 바꿔도 이 줄만 옛말로 남는다. */
+    var cap = document.getElementById('priceCaption');
+    if (cap) cap.textContent = '부가세 포함가 · ' + S.shipNote();
+
     var products = S.getProducts().filter(function (p) { return p.status !== '숨김'; });
-    var rows = products.map(function (p) {
-      return '<tr><td>' + esc(p.cat || '-') + '</td><td>' + esc(p.name) + '</td>' +
-        '<td>' + esc(volCell(p)) + '</td><td class="num">' + esc(priceCell(p)) + '</td></tr>';
-    }).join('');
-    // 씨장 분양은 상품표에 없는 별도 안내다(상담 후 확정) — 표 끝에 붙인다
-    rows += '<tr><td>씨장</td><td>씨장 분양</td><td>-</td><td class="num">가격 문의</td></tr>';
-    tb.innerHTML = rows;
+
+    var tb = document.getElementById('price-rows');
+    if (tb) {
+      var rows = products.map(function (p) {
+        return '<tr><td>' + esc(p.cat || '-') + '</td><td>' + esc(p.name) + '</td>' +
+          '<td>' + esc(volCell(p)) + '</td><td class="num">' + esc(priceCell(p)) + '</td></tr>';
+      }).join('');
+      // 씨장 분양은 상품표에 없는 별도 안내다(상담 후 확정) — 표 끝에 붙인다
+      rows += '<tr><td>씨장</td><td>씨장 분양</td><td>-</td><td class="num">가격 문의</td></tr>';
+      tb.innerHTML = rows;
+    }
+
+    /* 식초 페이지의 표(구분 열 없이 3칸). 여기도 상품 데이터에서 만든다 —
+       손으로 적어 두었더니 선물상자가 표에서는 45,000원, 실제 상품은 50,000원이었다.
+       제품 페이지에서 한 번 겪은 것과 같은 일이다. 값이 두 군데 있으면 반드시 어긋난다. */
+    var vt = document.getElementById('vin-price-rows');
+    if (vt) {
+      var vin = products.filter(function (p) { return p.cat === '식초 · 와인' || isVinegar(p); });
+      vt.innerHTML = vin.length
+        ? vin.map(function (p) {
+            return '<tr><td>' + esc(p.name) + '</td><td>' + esc(volCell(p)) + '</td>' +
+              '<td class="num">' + esc(priceCell(p)) + '</td></tr>';
+          }).join('')
+        : '<tr><td colspan="3">등록된 상품이 없습니다.</td></tr>';
+    }
   }
 
   /* ================= 상품 상세 페이지 ================= */
