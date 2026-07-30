@@ -1632,7 +1632,6 @@
   ];
   var textPage = 'index';
   var textEdits = {};        // {key: 고친 글} — 저장 누르기 전까지 여기 모인다
-  var textFrameKey = '';     // 지금 iframe 에 띄운 페이지(다시 그려도 새로고침하지 않게)
 
   /* 미리보기 편집기.
      예전에는 페이지의 문구를 목록으로 뽑아 텍스트칸에 늘어놓았다. 어느 글이 화면
@@ -1673,10 +1672,13 @@
     var fr = document.getElementById('txFrame');
     if (!fr) return;
     if (fr._txWait) { clearInterval(fr._txWait); fr._txWait = null; }
+    /* 화면을 다시 그릴 때마다 이 iframe **요소 자체가 새로 만들어진다** —
+       '이미 그 페이지를 띄웠다'를 바깥 변수로 기억하면, 새로 생긴 빈 iframe 에
+       주소를 넣지 않고 넘어가 영영 about:blank 로 남는다. 요소에 직접 물어본다. */
     var want = textPage + '.html';
     fr.onload = function () { markEditable(fr); };
-    if (textFrameKey !== want) { textFrameKey = want; fr.src = want; }
-    else if (fr.contentDocument && fr.contentDocument.readyState === 'complete') markEditable(fr);
+    if (fr.getAttribute('src') !== want) fr.setAttribute('src', want);
+    else markEditable(fr);
   }
 
   /* 미리보기가 다 그려졌는가. site.js 는 데이터를 받은 뒤에야 화면을 그리므로
@@ -1778,7 +1780,7 @@
       n++;
     });
     if (!S.setTexts(saved)) { toast('저장하지 못했습니다.'); return; }
-    textEdits = {}; textFrameKey = ''; dirty = false;
+    textEdits = {}; dirty = false;
     render();
     toast(n ? '문구 ' + n + '개를 저장했습니다. 홈페이지에 바로 반영됩니다.' : '바뀐 문구가 없습니다.');
   }
@@ -1794,7 +1796,7 @@
     });
     if (!n) { toast('이 페이지에는 고친 문구가 없습니다.'); return; }
     if (!S.setTexts(saved)) { toast('되돌리지 못했습니다.'); return; }
-    textEdits = {}; textFrameKey = ''; dirty = false;
+    textEdits = {}; dirty = false;
     render();
     toast('문구 ' + n + '개를 원래대로 되돌렸습니다.');
   }
@@ -3040,7 +3042,7 @@
     { id: 'apps', label: '신청자 관리', icon: 'user-plus', view: viewApps, title: '지도사 과정 신청자 관리', countKey: K.apps },
     { id: 'inq', label: '문의 내역', icon: 'message-square', view: viewInq, title: '문의 내역 관리', countKey: K.inq },
     { id: 'posts', label: '게시글 관리', icon: 'file-text', view: viewPosts, title: '게시글 관리', countKey: K.posts },
-    { id: 'texts', label: '페이지 문구', icon: 'type', view: viewTexts, title: '페이지 문구 — 제목 · 소개문 수정' },
+    { id: 'texts', label: '페이지 문구', icon: 'type', view: viewTexts, title: '페이지 문구 — 화면에서 바로 고치기' },
     { id: 'images', label: '페이지 이미지', icon: 'image', view: viewImages, title: '페이지 이미지 관리' },
     { id: 'partners', label: '파트너 관리', icon: 'handshake', view: viewPartners, title: '파트너 관리' },
     { id: 'popups', label: '팝업 관리', icon: 'bell', view: viewPopups, title: '팝업 관리', countKey: K.popups },
@@ -3456,7 +3458,7 @@
       if (!confirmLeave()) return;
       if (current === 'kms') kmsTab = st.dataset.subtab;
       else if (current === 'consents') consentTab = st.dataset.subtab;
-      else if (current === 'texts') { textPage = st.dataset.subtab; textEdits = {}; textFrameKey = ''; }
+      else if (current === 'texts') { textPage = st.dataset.subtab; textEdits = {}; }
       else if (current === 'images') { imgPageTab = st.dataset.subtab; imgSel = null; }
       render(); return;
     }
@@ -3516,7 +3518,7 @@
       if (!confirm('이 페이지에서 고친 문구를 모두 원래대로 되돌립니다. 계속할까요?')) return;
       resetTextsOfPage();
     } else if (act === 'txreload') {
-      textEdits = {}; textFrameKey = ''; dirty = false; render();
+      textEdits = {}; dirty = false; render();
     } else if (act === 'cedit') {
       cohortEditing = b.dataset.id; render();
       var first = document.querySelector('.row-editing [data-f=name]');
