@@ -1672,21 +1672,36 @@
   function initTextFrame() {
     var fr = document.getElementById('txFrame');
     if (!fr) return;
+    if (fr._txWait) { clearInterval(fr._txWait); fr._txWait = null; }
     var want = textPage + '.html';
     fr.onload = function () { markEditable(fr); };
     if (textFrameKey !== want) { textFrameKey = want; fr.src = want; }
     else if (fr.contentDocument && fr.contentDocument.readyState === 'complete') markEditable(fr);
   }
 
+  /* 미리보기가 다 그려졌는가. site.js 는 데이터를 받은 뒤에야 화면을 그리므로
+     iframe 의 load 만 보고 시작하면 아직 아무것도 없는 문서를 훑게 된다.
+     `site:ready` 는 iframe 안 document 에서 나고 bubbles 가 아니라 부모 window 로
+     올라오지 않는다 — 그래서 다 그려졌다는 표시(html.site-ready)를 직접 본다. */
+  function frameReady(fr) {
+    var doc = null, win = null;
+    try { doc = fr.contentDocument; win = fr.contentWindow; } catch (e) { return null; }
+    if (!doc || !win || !win.Site || !win.Site.textList) return null;
+    if (!doc.documentElement.classList.contains('site-ready')) return null;
+    return { doc: doc, win: win };
+  }
+
   function markEditable(fr) {
-    var doc;
-    try { doc = fr.contentDocument; } catch (e) { doc = null; }
-    var win = fr.contentWindow;
-    if (!doc || !win || !win.Site || !win.Site.textList) {
-      // site.js 가 아직 준비되지 않았다 — 준비되면 다시 부른다
-      if (win) win.addEventListener('site:ready', function () { markEditable(fr); }, { once: true });
+    var ctx = frameReady(fr);
+    if (!ctx) {
+      if (fr._txWait) return;
+      fr._txWait = setInterval(function () {
+        if (!document.getElementById('txFrame')) { clearInterval(fr._txWait); fr._txWait = null; return; }
+        if (frameReady(fr)) { clearInterval(fr._txWait); fr._txWait = null; markEditable(fr); }
+      }, 150);
       return;
     }
+    var doc = ctx.doc, win = ctx.win;
     var list = win.Site.textList();
     // 편집 표시용 스타일은 미리보기 안에만 넣는다(공개 화면에는 없어야 한다)
     if (!doc.getElementById('txEditStyle')) {
