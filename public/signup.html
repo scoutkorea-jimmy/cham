@@ -57,7 +57,9 @@
           <div class="field">
             <label for="su-pw">비밀번호</label>
             <input id="su-pw" name="password" type="password" required autocomplete="new-password" placeholder="10자 이상">
-            <span class="hint">10자 이상, 영문·숫자·기호 중 두 가지 이상</span>
+            <!-- 반 칸(245px) 에 들어가는 길이로 적는다. '… 중 두 / 가지 이상' 처럼
+                 어절이 갈라지면 읽다가 걸린다 -->
+            <span class="hint">10자 이상, 영문·숫자·기호 2가지 이상</span>
           </div>
           <div class="field">
             <label for="su-pw2">비밀번호 확인</label>
