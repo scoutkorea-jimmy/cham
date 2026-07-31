@@ -12,6 +12,51 @@
   var S = window.Site;
   var esc = S.esc, icons = S.icons, uid = S.uid;
 
+  /* 글쓰기 자격. 서버(GET /api/posts)가 판정한 결과를 그대로 담는다.
+       kind  'admin' | 'member' | 'local'(검증용 화면) | null(자격 없음)
+       boards 글을 쓸 수 있는 게시판 이름들
+       mine   권한 회원이 쓴 자기 글의 id — 공개 목록에 회원 id 를 싣지 않으므로
+              '내 글인가'는 이 목록으로 판정한다(이름으로 맞추면 동명이인에서 샌다)
+     화면이 버튼을 감추는 것은 편의이지 잠금이 아니다. 통과는 언제나 서버가 다시 본다. */
+  var writer = { kind: null, boards: [], mine: [] };
+
+  function canWrite(cat) {
+    if (writer.kind === 'admin' || writer.kind === 'local') return true;
+    return writer.boards.indexOf(cat) >= 0;
+  }
+  function canEdit(p) {
+    if (writer.kind === 'admin' || writer.kind === 'local') return true;
+    if (writer.kind !== 'member' || !p) return false;
+    return (writer.mine || []).indexOf(p.id) >= 0;
+  }
+  /* 검증용 로컬 화면에는 세션이 없다 — 거기서만 옛 관리자 인증 모달을 그대로 쓴다.
+     운영에서는 이미 로그인한 사람이므로 한 번 더 묻지 않는다. */
+  function gate(fn) {
+    if (writer.kind === 'local') { S.requireAdmin(fn); return; }
+    fn();
+  }
+  /* 목록과 자격을 함께 다시 받는다 — 글을 쓰거나 지운 뒤 '내 글' 목록도 달라진다. */
+  function refresh() {
+    return S.reloadPosts().then(syncWriter).then(function () { renderBoards(); });
+  }
+  /* 자격을 받아 글쓰기 버튼을 켠다. 권한이 없으면 버튼은 숨은 채로 남는다. */
+  function isAdmin() { return writer.kind === 'admin' || writer.kind === 'local'; }
+
+  function syncWriter() {
+    return S.postWriter().then(function (w) {
+      writer = { kind: w.kind || null, boards: w.boards || [], mine: w.mine || [] };
+      [].forEach.call(document.querySelectorAll('[data-write]'), function (b) {
+        b.hidden = !canWrite(b.getAttribute('data-write'));
+      });
+      // 갤러리는 관리자만 — 글쓰기 권한만 받은 회원에게도 보이지 않는다
+      [].forEach.call(document.querySelectorAll('[data-gallery-upload]'), function (b) {
+        b.hidden = !isAdmin();
+      });
+      renderGallery();     // 사진마다 붙는 삭제 버튼도 자격을 따른다
+      return writer;
+    });
+  }
+
   var MAX_FILES = 10;
   // 한도는 site.js 한 곳에서 정한다 — 여기서 따로 적으면 서버와 어긋난다
   var MAX_SIZE = (S && S.MAX_IMAGE_BYTES) || 5 * 1024 * 1024;
@@ -71,16 +116,20 @@
             : '') +
         '</div>';
       }
-      // 관리자 수정/삭제 버튼은 항상 노출하되, 클릭 시 새로 인증
-      var adminBtns =
-        '<button type="button" class="btn btn-ghost" id="postEdit"><i data-lucide="pen-line"></i>수정</button>' +
-        '<button type="button" class="btn btn-ghost" id="postDel" style="color:var(--danger)"><i data-lucide="trash-2"></i>삭제</button>';
+      /* 수정·삭제는 이 글을 다룰 수 있는 사람에게만 보인다.
+         자격은 열 때 이미 받아 둔 값(writer)으로 판정하고, 실제 통과는 서버가 다시 본다 —
+         화면이 버튼을 감추는 것은 편의이지 잠금이 아니다. */
+      var adminBtns = canEdit(p)
+        ? '<button type="button" class="btn btn-ghost" id="postEdit"><i data-lucide="pen-line"></i>수정</button>' +
+          '<button type="button" class="btn btn-ghost" id="postDel" style="color:var(--danger)"><i data-lucide="trash-2"></i>삭제</button>'
+        : '';
 
       S.rawModal(
         '<div class="modal-head"><div>' +
           '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">' +
               '<span class="tag' + (p.important ? ' point' : '') + '">' + esc(p.badge || (p.important ? '중요' : p.cat)) + '</span>' +
-            '<span class="muted" style="font-size:13px">' + S.fmtYMD(p.at) + '</span></div>' +
+            '<span class="muted" style="font-size:13px">' + S.fmtYMD(p.at) +
+              (p.authorName ? ' · ' + esc(p.authorName) : '') + '</span></div>' +
           '<h3 style="margin-top:var(--gap-tight)">' + esc(p.title) + '</h3></div>' +
           '<button class="modal-close" data-modal-close aria-label="닫기"><i data-lucide="x"></i></button></div>' +
         '<div class="modal-body">' +
@@ -120,16 +169,31 @@
           link.href = f.url; link.download = f.name; link.click();
         });
       });
-      // 관리자 수정/삭제 — 클릭할 때마다 인증
-      document.getElementById('postEdit').addEventListener('click', function () {
-        S.requireAdmin(function () { openEditor(p, files); });
+      // 수정/삭제 — 자격이 있는 사람에게만 버튼이 있다(위 canEdit)
+      var editBtn = document.getElementById('postEdit');
+      var delBtn = document.getElementById('postDel');
+      if (editBtn) editBtn.addEventListener('click', function () {
+        gate(function () { openEditor(p, files); });
       });
-      document.getElementById('postDel').addEventListener('click', function () {
-        S.requireAdmin(function () {
+      if (delBtn) delBtn.addEventListener('click', function () {
+        gate(function () {
           if (!confirm('이 게시글을 삭제할까요? 첨부파일도 함께 삭제됩니다.')) return;
-          S.setPosts(S.getPosts().filter(function (x) { return x.id !== p.id; }));
-          S.Media.delFor('post', p.id);
-          S.closeModal(); renderBoards(); S.toast('게시글이 삭제되었습니다.');
+          delBtn.disabled = true;
+          S.api('/api/posts/' + encodeURIComponent(p.id), { method: 'DELETE' }).then(function (r) {
+            if (!r.ok) {
+              delBtn.disabled = false;
+              S.toast((r.data && r.data.error) || '삭제하지 못했습니다.');
+              return;
+            }
+            S.Media.delFor('post', p.id);
+            S.forgetPostWriter();
+            return refresh().then(function () {
+              S.closeModal(); S.toast('게시글이 삭제되었습니다.');
+            });
+          }).catch(function () {
+            delBtn.disabled = false;
+            S.toast('삭제하지 못했습니다. 인터넷 연결을 확인해 주세요.');
+          });
         });
       });
     });
@@ -212,34 +276,44 @@
         var title = document.getElementById('edTitle').value.trim();
         if (!title) { alert('제목을 입력해 주세요.'); return; }
         save.disabled = true;
-        var posts = S.getPosts();
-        var rec;
-        if (isEdit) {
-          rec = posts.filter(function (x) { return x.id === post.id; })[0];
-          if (!rec) { rec = { id: post.id, at: post.at }; posts.unshift(rec); }
-        } else {
-          rec = { id: uid(), at: new Date().toISOString() };
-          posts.unshift(rec);
-        }
-        rec.title = title;
-        rec.cat = document.getElementById('edCat').value;
-        rec.important = document.getElementById('edImp').checked;
-        rec.html = editor.getHTML();
-        rec.updatedAt = new Date().toISOString();
-        S.setPosts(posts);
+        var body = {
+          title: title,
+          cat: document.getElementById('edCat').value,
+          important: document.getElementById('edImp').checked,
+          html: editor.getHTML(),
+        };
+        /* 목록을 통째로 보내지 않는다. 그 방식은 관리자 전용 창구였고, 무엇보다
+           한 사람이 보낸 목록이 그 사이 남이 올린 글을 덮어 지울 수 있다.
+           한 건만 보내면 그 사고가 없다 → functions/api/posts */
+        var req = isEdit
+          ? S.api('/api/posts/' + encodeURIComponent(post.id), { method: 'PATCH', body: body })
+          : S.api('/api/posts', { method: 'POST', body: body });
 
-        var jobs = [];
-        removedIds.forEach(function (fid) { jobs.push(S.Media.del('post', fid)); });
-        atts.forEach(function (a, i) {
-          if (a.file) jobs.push(S.Media.put('post', rec.id, a.file, { ord: i, name: a.name, size: a.size }));
-        });
-        Promise.all(jobs).then(function (results) {
-          editor.destroy();
-          S.closeModal();
-          renderBoards();
-          var fail = results.filter(function (r) { return r === null; }).length;
-          S.toast((isEdit ? '게시글이 수정되었습니다.' : '게시글이 등록되었습니다.') +
-                  (fail ? ' (첨부 ' + fail + '개는 올리지 못했습니다)' : ''));
+        req.then(function (r) {
+          if (!r.ok) {
+            save.disabled = false;
+            S.toast((r.data && r.data.error) || '저장하지 못했습니다.');
+            return null;
+          }
+          var pid = (r.data && r.data.id) || post.id;
+          var jobs = [];
+          removedIds.forEach(function (fid) { jobs.push(S.Media.del('post', fid)); });
+          atts.forEach(function (a, i) {
+            if (a.file) jobs.push(S.Media.put('post', pid, a.file, { ord: i, name: a.name, size: a.size }));
+          });
+          return Promise.all(jobs).then(function (results) {
+            S.forgetPostWriter();
+            return refresh().then(function () {
+              editor.destroy();
+              S.closeModal();
+              var fail = results.filter(function (x) { return x === null; }).length;
+              S.toast((isEdit ? '게시글이 수정되었습니다.' : '게시글이 등록되었습니다.') +
+                      (fail ? ' (첨부 ' + fail + '개는 올리지 못했습니다)' : ''));
+            });
+          });
+        }).catch(function () {
+          save.disabled = false;
+          S.toast('저장하지 못했습니다. 인터넷 연결을 확인해 주세요.');
         });
       });
     }).catch(function () {
@@ -269,7 +343,7 @@
       var slice = items.slice((galPage - 1) * GAL_PER_PAGE, galPage * GAL_PER_PAGE);
       grid.innerHTML = slice.map(function (g) {
         return '<figure class="gal-item"><img src="' + g.url + '" alt="' + esc(g.name) + '" loading="lazy">' +
-          '<button class="gal-del" data-gdel="' + g.id + '" title="삭제 (관리자)"><i data-lucide="x"></i></button>' +
+          (isAdmin() ? '<button class="gal-del" data-gdel="' + g.id + '" title="삭제 (관리자)"><i data-lucide="x"></i></button>' : '') +
           '<figcaption>' + esc(g.name) + '</figcaption></figure>';
       }).join('');
       pager.innerHTML = pages > 1
@@ -340,9 +414,19 @@
     renderBoards();
     renderGallery();
     bindGallery();
+    /* 자격을 물어 글쓰기 버튼을 켠다. 답이 오기 전까지 버튼은 숨은 채다(news.html 이 hidden) —
+       잠깐 보였다 사라지면 비회원에게 '있었는데 막혔다'로 읽힌다. */
+    syncWriter();
     document.addEventListener('click', function (e) {
       var w = e.target.closest('[data-write]');
-      if (w) { var cat = w.getAttribute('data-write'); S.requireAdmin(function () { openEditor(null, null, cat); }); return; }
+      if (w) {
+        var cat = w.getAttribute('data-write');
+        /* 버튼이 숨겨져 있어도 눌릴 수 있는 경로(개발자도구 등)가 있으므로 여기서 한 번 더 본다.
+           서버가 최종 판정하지만, 쓸 수 없는 글을 다 적고 나서 거절당하는 것보다 낫다. */
+        if (!canWrite(cat)) { S.toast('이 게시판에 글을 쓸 권한이 없습니다.'); return; }
+        gate(function () { openEditor(null, null, cat); });
+        return;
+      }
       var row = e.target.closest('[data-post]');
       if (row) openPost(row.dataset.post);
     });

@@ -6,6 +6,7 @@
  * 지우지 않고 중지하는 이유는 관리자 계정과 같다 — 주문·신청 기록의 '누구'를 잃지 않기 위해서.
  */
 import { getSession, hashPassword, checkPasswordStrength } from '../../../_shared/auth.js';
+import { boardsToColumn } from '../../../_shared/boards.js';
 import { can } from '../../../_shared/perm.js';
 import { checkEmail, normPhone, publicMember } from '../../../_shared/members.js';
 import { json, badRequest, forbidden, notFound, readJson } from '../../../_shared/http.js';
@@ -56,6 +57,9 @@ export async function onRequestPatch({ request, env, params, data }) {
     put('status', b.status);
     if (b.status === 'disabled') put('token_min_iat', Date.now());
   }
+  /* 소식마당 글쓰기 권한 — 게시판 이름의 목록. 목록에 없는 이름은 boardsToColumn 이
+     버리므로, 화면이 무엇을 보내든 저장되는 값은 언제나 규격 안이다. */
+  if (b.postBoards !== undefined) put('post_boards', boardsToColumn(b.postBoards));
   if (typeof b.password === 'string' && b.password) {
     const weak = checkPasswordStrength(b.password);
     if (weak) return json({ error: weak, code: 'weak_password' }, 400);

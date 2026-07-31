@@ -160,6 +160,9 @@ export function postRowToObj(r) {
   const o = {
     id: r.id, cat: r.cat, title: r.title, html: r.html,
     badge: r.badge, at: r.created_at,
+    /* 작성자는 이름만 내보낸다. id 는 '자기 글인가'를 서버가 판정할 때만 쓰는 값이라
+       공개 목록에 실을 이유가 없다 — 실으면 누가 어느 회원인지가 밖으로 나간다. */
+    authorName: r.author_name,
   };
   if (r.important) o.important = true;
   if (r.sample) o.sample = true;
@@ -168,17 +171,37 @@ export function postRowToObj(r) {
 }
 
 export const POST_INSERT = `
-  INSERT INTO posts (id, cat, title, html, badge, important, sample, created_at)
-  VALUES (?,?,?,?,?,?,?,?)
+  INSERT INTO posts (id, cat, title, html, badge, important, sample, created_at,
+                     author_kind, author_id, author_name)
+  VALUES (?,?,?,?,?,?,?,?,?,?,?)
   ON CONFLICT(id) DO UPDATE SET cat=excluded.cat, title=excluded.title, html=excluded.html,
     badge=excluded.badge, important=excluded.important, sample=excluded.sample,
-    created_at=excluded.created_at, updated_at=datetime('now')`;
+    created_at=excluded.created_at, updated_at=datetime('now'),
+    /* 작성자는 처음 쓴 사람으로 남긴다. 관리자가 남의 글을 고쳐도 글쓴이가
+       관리자로 바뀌지 않아야 '누가 쓴 글인가'가 흔들리지 않는다. */
+    author_kind=COALESCE(posts.author_kind, excluded.author_kind),
+    author_id  =COALESCE(posts.author_id,   excluded.author_id),
+    author_name=COALESCE(posts.author_name, excluded.author_name)`;
 
 export const postBind = (p) => [
   String(p.id), p.cat || '공지', String(p.title || ''), p.html ?? null,
   p.badge ?? null, p.important ? 1 : 0, p.sample ? 1 : 0,
   p.at || new Date().toISOString(),
+  p.authorKind ?? null, p.authorId == null ? null : String(p.authorId), p.authorName ?? null,
 ];
+
+/**
+ * 목록이 바뀌었음을 알린다 — 다른 사람 화면이 옛 버전으로 저장하지 못하게.
+ * 관리자 창구 둘(전체 교체·한 건)과 회원 글쓰기가 함께 쓴다. 세 곳에 같은 SQL 을
+ * 두면 한 곳만 고쳐질 자리라 여기 한 번만 적는다.
+ * @returns 준비된 statement — 부르는 쪽이 batch 에 넣거나 그대로 run() 한다.
+ */
+export function bumpVersion(env, kind, who) {
+  return env.DB.prepare(
+    `INSERT INTO list_versions (kind, version, updated_at, updated_by) VALUES (?, 1, datetime('now'), ?)
+     ON CONFLICT(kind) DO UPDATE SET version = version + 1, updated_at = datetime('now'), updated_by = excluded.updated_by`
+  ).bind(kind, who || null);
+}
 
 /* ── 목록(기수·파트너·팝업) · 단일 문서(설정·동의문·KMS) ──── */
 export async function readCollection(env, kind) {

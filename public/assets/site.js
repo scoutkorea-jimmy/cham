@@ -660,6 +660,26 @@
      서버 모드 — 세션이 있으면 그대로 통과, 없으면 로그인 페이지로 보낸다.
        (여기서 아이디·비밀번호를 받지 않는 이유: 인증 판단은 서버 한 곳에서만 해야 한다.)
      로컬 모드 — 지금까지처럼 호출 시마다 확인 모달을 띄운다. */
+  /* 소식마당 글쓰기 자격 — 관리자이거나, 글쓰기 권한을 받은 회원.
+     서버(`GET /api/posts`)가 판정하고 화면은 결과만 받는다. 화면에서 다시 따지면
+     서버 규칙과 어긋날 자리가 생긴다.
+     한 번 물어 기억한다 — 버튼 하나 그리려고 페이지마다 여러 번 물을 이유가 없다. */
+  var writerAsked = null;
+  function postWriter() {
+    if (writerAsked) return writerAsked;
+    if (!SERVER) {
+      // 로컬 검증 화면에는 세션이 없다 — 관리자 인증 모달이 그 자리를 대신한다
+      writerAsked = Promise.resolve({ kind: 'local', boards: [] });
+      return writerAsked;
+    }
+    writerAsked = api('/api/posts')
+      .then(function (r) { return (r.ok && r.data) ? r.data : { kind: null, boards: [] }; })
+      .catch(function () { return { kind: null, boards: [] }; });
+    return writerAsked;
+  }
+  /* 글을 쓰거나 지운 뒤 자격을 다시 묻게 한다(권한이 도중에 바뀌었을 수 있다) */
+  function forgetPostWriter() { writerAsked = null; }
+
   function requireAdmin(cb) {
     if (SERVER) {
       api('/api/admin/session').then(function (r) {
@@ -807,6 +827,17 @@
 
   function getPosts(){ return getJSON(POSTS_KEY, []); }
   function setPosts(a){ return setJSON(POSTS_KEY, a); }
+  /* 소식 목록만 다시 받는다.
+     `reload('posts')` 는 관리자 창구(/api/admin/data)라 글쓰기 권한만 받은 회원은
+     쓸 수 없다. 소식은 공개 묶음에도 들어 있으므로 그쪽에서 꺼내 온다. */
+  function reloadPosts() {
+    if (!SERVER) return Promise.resolve(false);
+    return api('/api/bootstrap').then(function (r) {
+      if (!r.ok || !r.data) return false;
+      cache[POSTS_KEY] = r.data.posts || [];
+      return true;
+    }).catch(function () { return false; });
+  }
 
   function renderNewsPreview() {
     var box = document.getElementById('news-rows');
@@ -830,7 +861,7 @@
      상품별 '배송안내' 글에는 금액을 넣지 않는다. 넣으면 설정을 고쳐도 이미 저장된
      상품들의 글에 옛 금액이 남아, 같은 화면에 두 금액이 동시에 보인다.
      **금액은 언제나 이 함수들이 만들고, 최종 입금액은 서버가 다시 계산한다.** */
-  function shipFee() { var v = Number(getSettings().shipFee); return isFinite(v) && v >= 0 ? v : 5000; }
+  function shipFee() { var v = Number(getSettings().shipFee); return isFinite(v) && v >= 0 ? v : 5100; }
   function shipFreeOver() { var v = Number(getSettings().shipFreeOver); return isFinite(v) && v > 0 ? v : 50000; }
   function shipFeeFor(itemsTotal) { return Number(itemsTotal) >= shipFreeOver() ? 0 : shipFee(); }
   // 무료 기준은 '50,000원'보다 '5만원'이 읽기 쉽다 — 만원으로 떨어질 때만 그렇게 쓴다
@@ -1136,7 +1167,7 @@
     holder: '한국참전통발효식품협동조합',    // 예금주
     // 택배비 — 주문 모달의 입금액과 서버의 주문 금액이 같은 값을 쓴다.
     // 0 을 넣으면 전 상품 무료배송, shipFreeOver 를 아주 크게 잡으면 무료 기준이 없어진다.
-    shipFee: 5000,                         // 편도 택배비(원)
+    shipFee: 5100,                         // 편도 택배비(원)
     shipFreeOver: 50000,                   // 이 금액 이상이면 무료
     phone: '02-855-8806',
     phone2: '010-8768-9551',               // 보조 전화(휴대폰)
@@ -2363,12 +2394,13 @@
     toast: toast, revealScan: revealScan, openPostcode: openPostcode,
     IMG_SLOTS: IMG_SLOTS, renderSlotImages: renderSlotImages, slotPos: slotPos, applySlot: applySlot,
     requireAdmin: requireAdmin, verifyLogin: verifyLogin, lockMs: lockMs,
+    postWriter: postWriter, forgetPostWriter: forgetPostWriter,
     openModal: openModal, closeModal: closeModal, rawModal: rawModal, openOrderLookup: openOrderLookup,
     openOrderRequest: openOrderRequest, orderReqOptions: orderReqOptions, orderReqNote: orderReqNote,
     openCart: openCart, cartAdd: cartAdd, cartCount: cartCount, unitPriceOf: unitPriceOf,
     getPartners: getPartners, setPartners: setPartners, renderPartnersStrip: renderPartnersStrip, partnerDefaults: PARTNER_DEFAULTS,
     POPUP_KEY: POPUP_KEY, getPopups: getPopups,
-    POSTS_KEY: POSTS_KEY, getPosts: getPosts, setPosts: setPosts,
+    POSTS_KEY: POSTS_KEY, getPosts: getPosts, setPosts: setPosts, reloadPosts: reloadPosts,
     CONSENT_KEY: CONSENT_KEY, getConsents: getConsents, consentDefaults: CONSENT_DEFAULTS,
     PRODUCTS_KEY: PRODUCTS_KEY, PRODUCT_CATS: PRODUCT_CATS, getProducts: getProducts, setProducts: setProducts, getProduct: getProduct,
     stockLeft: stockLeft, stockTotal: stockTotal, isSoldOut: isSoldOut,

@@ -21,7 +21,7 @@ export async function onRequestGet({ env }) {
     ).all().then((r) => (r.results || []).map(productRowToObj)),
 
     env.DB.prepare(
-      `SELECT id, cat, title, html, badge, important, sample, created_at
+      `SELECT id, cat, title, html, badge, important, sample, created_at, author_name
          FROM posts ORDER BY created_at DESC LIMIT 200`
     ).all().then((r) => (r.results || []).map(postRowToObj)),
 

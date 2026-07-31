@@ -17,7 +17,7 @@ import {
   orderRowToObj, ORDER_INSERT, orderObjToBind,
   recordRowToObj, APP_INSERT, INQ_INSERT, appBind, inqBind,
   productRowToObj, PRODUCT_INSERT, productObjToBind,
-  postRowToObj, POST_INSERT, postBind,
+  postRowToObj, POST_INSERT, postBind, bumpVersion,
 } from '../../../../_shared/store.js';
 import { SHIPPED } from '../../../../_shared/stock.js';
 import { json, badRequest, notFound, methodNotAllowed, readJson } from '../../../../_shared/http.js';
@@ -31,14 +31,6 @@ const ROW_KINDS = {
   products:     { table: 'products',     toObj: productRowToObj,                    insert: PRODUCT_INSERT, bind: productObjToBind },
   posts:        { table: 'posts',        toObj: postRowToObj,                       insert: POST_INSERT,    bind: postBind },
 };
-
-/** 목록이 바뀌었음을 알린다 — 다른 사람 화면이 옛 버전으로 저장하지 못하게 */
-function bump(env, kind, who) {
-  return env.DB.prepare(
-    `INSERT INTO list_versions (kind, version, updated_at, updated_by) VALUES (?, 1, datetime('now'), ?)
-     ON CONFLICT(kind) DO UPDATE SET version = version + 1, updated_at = datetime('now'), updated_by = excluded.updated_by`
-  ).bind(kind, who || null);
-}
 
 function who(data) {
   const s = data && data.session;
@@ -107,7 +99,7 @@ export async function onRequestPatch({ request, params, env, data }) {
 
   const stmts = [
     env.DB.prepare(spec.insert).bind(...spec.bind(merged)),
-    bump(env, kind, who(data)),
+    bumpVersion(env, kind, who(data)),
   ];
   // 발송선을 넘나들 때만 창고 수량을 건드린다. 같은 쪽 안에서의 상태 변경
   // (주문접수 → 결제완료, 배송중 → 배송완료)은 재고와 무관하다.
@@ -118,7 +110,7 @@ export async function onRequestPatch({ request, params, env, data }) {
       const shifts = await stockShiftStmts(env, merged, now ? -1 : +1);
       if (shifts.length) {
         stmts.push(...shifts);
-        stmts.push(bump(env, 'products', who(data)));
+        stmts.push(bumpVersion(env, 'products', who(data)));
       }
     }
   }
@@ -137,7 +129,7 @@ export async function onRequestDelete({ params, env, data }) {
   const del = [env.DB.prepare(`DELETE FROM ${spec.table} WHERE id = ?`).bind(id)];
   // 주문을 지우면 품목 줄도 함께 지운다 — 남으면 재고 예약이 영영 잡혀 있다
   if (kind === 'orders') del.push(env.DB.prepare(`DELETE FROM order_items WHERE order_id = ?`).bind(id));
-  del.push(bump(env, kind, who(data)));
+  del.push(bumpVersion(env, kind, who(data)));
   const res = await env.DB.batch(del);
   const changed = (res && res[0] && res[0].meta && res[0].meta.changes) || 0;
   // 이미 없어도 오류로 보지 않는다 — 지우려던 결과는 같다(두 번 눌러도 안전하다)

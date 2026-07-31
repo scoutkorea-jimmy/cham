@@ -43,7 +43,7 @@ async function issueOrderNo(env) {
    브라우저가 보낸 값은 쓰지 않는다. 총액을 조작하지 못하게 하는 것과 같은 이유로,
    손님이 입금할 금액은 서버가 처음부터 끝까지 다시 만든다.
    기본값은 site.js 의 SETTINGS_DEFAULTS 와 같아야 한다(설정을 한 번도 저장하지 않은 상태). */
-const SHIP_FEE_DEFAULT = 5000;
+const SHIP_FEE_DEFAULT = 5100;
 const SHIP_FREE_OVER_DEFAULT = 50000;
 async function shipFeeFor(env, itemsTotal) {
   const st = (await readDoc(env, 'settings')) || {};

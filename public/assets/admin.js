@@ -2238,6 +2238,9 @@
      ============================================================ */
   var accounts = null;      // 서버에서 받은 목록. null = 아직 못 받음
   var roles = null, permDefs = null, members = null, memberQ = '';
+  /* 소식마당 게시판 — 서버의 _shared/boards.js BOARDS 와 같아야 한다.
+     여기에 없는 이름을 보내도 서버가 버리므로, 어긋나면 '켜지지 않는 체크칸'으로 드러난다. */
+  var POST_BOARDS = ['공지', '교육'];
   var acctTab = 'admin';    // admin | member | role
   var ROLE_LABEL = { owner: '관리자(owner)', staff: '직원(staff)' };
   var myPerms = null;       // 세션에서 받은 내 권한 목록
@@ -2264,7 +2267,8 @@
     var rows = members.length ? members.map(function (m) {
       var tel = String(m.phone || '').replace(/[^0-9+]/g, '');
       return '<tr' + (m.status !== 'active' ? ' style="opacity:.55"' : '') + '>' +
-        '<td><b>' + esc(m.name) + '</b>' + (m.status !== 'active' ? ' <span class="tag">중지</span>' : '') + '</td>' +
+        '<td><b>' + esc(m.name) + '</b>' + (m.status !== 'active' ? ' <span class="tag">중지</span>' : '') +
+          ((m.postBoards || []).length ? ' <span class="tag point" title="소식마당 글쓰기">글 ' + esc((m.postBoards || []).join('·')) + '</span>' : '') + '</td>' +
         '<td>' + (tel ? '<a href="tel:' + tel + '" class="tel-link">' + esc(m.phone) + '</a>' : '-') + '</td>' +
         '<td>' + esc(m.username) + '</td>' +
         '<td>' + esc(m.email || '-') + '</td>' +
@@ -2462,6 +2466,15 @@
           '<div class="field full"><label style="display:inline-flex;gap:8px;align-items:center;cursor:pointer">' +
             '<input type="checkbox" id="mfMk"' + (!isNew && m.marketingOptin ? ' checked' : '') + ' style="width:18px;height:18px;accent-color:var(--main)">' +
             '광고성 정보 수신에 동의함 <span class="pc-sub">(선택 — 본인 동의를 받은 경우에만 체크)</span></label></div>' +
+          /* 소식마당 글쓰기 — 게시판마다 따로 준다. 관리자 계정을 하나 더 내주면
+             주문·회원·설정까지 열리므로, 글만 맡길 사람에게는 이쪽을 쓴다. */
+          '<div class="field full"><label>소식마당 글쓰기 권한 ' +
+            '<span class="pc-sub" style="font-weight:400">(체크한 게시판에만 글을 씁니다)</span></label>' +
+            '<div class="mem-boards">' + POST_BOARDS.map(function (b) {
+              var on = !isNew && (m.postBoards || []).indexOf(b) >= 0;
+              return '<label><input type="checkbox" data-mfboard="' + esc(b) + '"' + (on ? ' checked' : '') + '>' + esc(b) + '</label>';
+            }).join('') + '</div>' +
+            '<span class="hint">글쓴이 본인이 쓴 글만 고치고 지울 수 있습니다. 사진 갤러리는 관리자만 다룹니다.</span></div>' +
         '</div>' +
         '<div class="login-msg" id="mfMsg"></div>' +
         '<div class="modal-foot">' +
@@ -2483,6 +2496,8 @@
       postcode: v('mfPost'), address: v('mfAddr'), addressDetail: v('mfAddr2'),
       memo: document.getElementById('mfMemo').value.trim(),
       marketingOptin: document.getElementById('mfMk').checked,
+      postBoards: [].filter.call(document.querySelectorAll('[data-mfboard]'), function (c) { return c.checked; })
+        .map(function (c) { return c.dataset.mfboard; }),
     };
     if (v('mfPw')) body.password = v('mfPw');
     if (!id) { body.username = v('mfId'); if (!body.password) { showMsg('mfMsg', '비밀번호를 입력해 주세요.'); return; } }

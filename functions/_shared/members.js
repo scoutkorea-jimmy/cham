@@ -1,3 +1,4 @@
+import { memberBoards } from './boards.js';
 /** cham · 일반 계정(회원) 검증·정규화. 개인정보를 다루므로 내보내는 모양을 한 곳에서 정한다. */
 
 export const digitsOnly = (v) => String(v == null ? '' : v).replace(/\D/g, '');
@@ -38,6 +39,9 @@ export function publicMember(r, full) {
     status: r.status, mustChangePassword: !!r.must_change_password,
     marketingOptin: !!r.marketing_optin,
     lastLoginAt: r.last_login_at || null, createdAt: r.created_at || null,
+    /* 소식마당 글쓰기 권한(게시판 이름의 목록). 관리자 화면이 켜고 끄고,
+       마이페이지·소식마당은 이 값으로 글쓰기 버튼을 낼지 정한다. */
+    postBoards: memberBoards(r),
   };
   if (full) {
     o.postcode = r.postcode || null;

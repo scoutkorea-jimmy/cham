@@ -278,7 +278,8 @@ export async function getMemberSession(request, env) {
   try {
     row = await env.DB.prepare(
       `SELECT id, username, name, phone, email, postcode, address, address_detail,
-              status, must_change_password, token_min_iat, marketing_optin, created_at, last_login_at
+              status, must_change_password, token_min_iat, marketing_optin, created_at, last_login_at,
+              post_boards
          FROM members WHERE id = ?`
     ).bind(payload.mid).first();
   } catch { return null; }

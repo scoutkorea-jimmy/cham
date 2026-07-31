@@ -28,7 +28,7 @@ import {
   recordRowToObj, APP_INSERT, INQ_INSERT, appBind, inqBind,
   productRowToObj, PRODUCT_INSERT, productObjToBind,
   postRowToObj, POST_INSERT, postBind,
-  readCollection, writeCollection, readDoc, writeDoc,
+  readCollection, writeCollection, readDoc, writeDoc, bumpVersion,
 } from '../../../../_shared/store.js';
 import { json, badRequest, forbidden, notFound, methodNotAllowed, readJson } from '../../../../_shared/http.js';
 import { getOwnerSession } from '../../../../_shared/auth.js';
@@ -45,13 +45,6 @@ async function readVersion(env, kind) {
       `SELECT version, updated_at, updated_by FROM list_versions WHERE kind = ?`).bind(kind).first();
     return row ? { version: row.version, at: row.updated_at, by: row.updated_by } : { version: 0 };
   } catch { return { version: 0 }; }
-}
-
-function bumpVersion(env, kind, who) {
-  return env.DB.prepare(
-    `INSERT INTO list_versions (kind, version, updated_at, updated_by) VALUES (?, 1, datetime('now'), ?)
-     ON CONFLICT(kind) DO UPDATE SET version = version + 1, updated_at = datetime('now'), updated_by = excluded.updated_by`
-  ).bind(kind, who || null);
 }
 
 /** 목록을 값 하나로 넘긴다 — 항목마다 물음표를 쓰면 100건에서 막힌다. */
