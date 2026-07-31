@@ -59,6 +59,7 @@ export function rewriteHead(res, url, seo) {
 
   let sawOgUrl = false;
   let sawCanonical = false;
+  let sawIcon = false;
 
   return new HTMLRewriter()
     // 상대 경로 og:image → 절대 주소
@@ -70,6 +71,10 @@ export function rewriteHead(res, url, seo) {
     })
     .on('meta[property="og:url"]', { element(el) { sawOgUrl = true; el.setAttribute('content', canonical); } })
     .on('link[rel="canonical"]', { element(el) { sawCanonical = true; el.setAttribute('href', canonical); } })
+    /* 탭 아이콘이 어느 페이지에도 선언돼 있지 않아, 브라우저가 방문마다
+       /favicon.ico 를 찾다가 404 를 받고 있었다. 페이지마다 적으면 17곳이
+       따로 놀므로 여기 한 곳에서 붙인다. */
+    .on('link[rel~="icon"]', { element() { sawIcon = true; } })
     .on('head', {
       element(el) {
         /* 여는 태그에서 붙이면 안 된다 — 그 시점엔 자식(meta·link)을 아직 읽지 않아
@@ -79,6 +84,7 @@ export function rewriteHead(res, url, seo) {
           const add = [];
           if (!sawOgUrl) add.push(`<meta property="og:url" content="${canonical}">`);
           if (!sawCanonical) add.push(`<link rel="canonical" href="${canonical}">`);
+          if (!sawIcon) add.push(`<link rel="icon" href="${absolute(origin, 'assets/logo.png')}">`);
           // 트위터 카드도 같은 그림을 쓴다 — 없으면 링크가 글자만 나온다
           add.push(`<meta name="twitter:card" content="summary_large_image">`);
           add.push(`<meta name="twitter:image" content="${image}">`);

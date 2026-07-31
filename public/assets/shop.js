@@ -40,7 +40,13 @@
     }
     var dcRate = hasDc ? Math.round((1 - now / Number(p.price)) * 100) : 0;
     return (hasDc ? '<span class="dc">' + dcRate + '%</span><span class="was">' + fmtWon(p.price) + '원</span>' : '') +
-      '<span class="now">' + fmtWon(now) + '원</span><span class="muted" style="font-size:14px">/ ' + esc(p.unit || '') + '</span>';
+      '<span class="now" id="pdNow">' + fmtWon(now) + '원</span><span class="muted" id="pdUnit" style="font-size:14px">/ ' + esc(p.unit || '') + '</span>';
+  }
+
+  /* 옵션 이름에서 용량만 남긴다 — '300ml (소)' → '300ml'.
+     목록의 용량 칸(volCell)과 같은 규칙이다. */
+  function optVolume(label) {
+    return String(label || '').replace(/\s*\([^)]*\)\s*$/, '');
   }
 
   /* 대표 비주얼 — 관리자 업로드 사진이 없을 때 쓰이는 기본 표시.
@@ -333,6 +339,13 @@
       document.getElementById('pdTotal').textContent = total;
       var bb = document.getElementById('bbPrice');
       if (bb) bb.textContent = total;
+      /* 위쪽 큰 값도 고른 옵션을 따라간다. 두지 않았더니 500ml 를 고른 화면에
+         '25,000원 / 300ml' 가 그대로 남아, 바로 아래 총액과 어긋나 보였다. */
+      var o = currentOption();
+      var now = document.getElementById('pdNow');
+      var unit = document.getElementById('pdUnit');
+      if (now) now.textContent = fmtWon(unitPrice()) + '원';
+      if (unit) unit.textContent = '/ ' + (o ? optVolume(o.label) : (p.unit || ''));
     }
     if (!ask) {
       document.getElementById('pdMinus').addEventListener('click', function () {
@@ -346,6 +359,9 @@
       document.getElementById('pdQty').addEventListener('input', updateTotal);
       var optSel = document.getElementById('pdOpt');
       if (optSel) optSel.addEventListener('change', updateTotal);
+      /* 처음에도 한 번 맞춘다 — 브라우저가 되돌아가기에서 고른 옵션을 되살리면
+         화면은 기본값으로 그려져 있어 값과 용량이 어긋난 채 남는다. */
+      updateTotal();
     }
 
     /* --- 구매 / 문의 --- */

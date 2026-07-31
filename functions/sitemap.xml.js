@@ -5,18 +5,22 @@
  * 여기서 만들면 pages.dev 든 정식 도메인이든 **연결하는 즉시 맞는 주소**가 된다.
  * 상품 상세는 실제 판매 중인 것만 넣는다(숨김·품절은 색인해도 손님에게 도움이 안 된다).
  */
+/* 확장자 없는 주소로 적는다.
+   Pages 는 `/products.html` 을 `/products` 로 308 로 넘기고, 페이지가 스스로 밝히는
+   canonical 도 `/products` 다. sitemap 만 `.html` 을 실으면 색인해 달라고 낸 주소가
+   전부 '리다이렉트 + 정본은 딴 곳' 이 되어, 검색엔진에 같은 문서가 둘로 보인다. */
 const PAGES = [
   ['', 'weekly', '1.0'],
-  ['about.html', 'monthly', '0.8'],
-  ['ferments.html', 'monthly', '0.7'],
-  ['vinegar.html', 'monthly', '0.9'],
-  ['instructor.html', 'monthly', '0.9'],
-  ['nuruk.html', 'monthly', '0.8'],
-  ['products.html', 'weekly', '0.9'],
-  ['news.html', 'weekly', '0.7'],
-  ['contact.html', 'monthly', '0.6'],
-  ['terms.html', 'yearly', '0.3'],
-  ['privacy.html', 'yearly', '0.3'],
+  ['about', 'monthly', '0.8'],
+  ['ferments', 'monthly', '0.7'],
+  ['vinegar', 'monthly', '0.9'],
+  ['instructor', 'monthly', '0.9'],
+  ['nuruk', 'monthly', '0.8'],
+  ['products', 'weekly', '0.9'],
+  ['news', 'weekly', '0.7'],
+  ['contact', 'monthly', '0.6'],
+  ['terms', 'yearly', '0.3'],
+  ['privacy', 'yearly', '0.3'],
 ];
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => (
@@ -34,7 +38,7 @@ export async function onRequestGet({ request, env }) {
         `SELECT id FROM products WHERE status = '판매중' ORDER BY sort_order, id`
       ).all();
       (results || []).forEach((p) => {
-        rows.push(`  <url><loc>${esc(origin)}/product.html?id=${esc(p.id)}</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>`);
+        rows.push(`  <url><loc>${esc(origin)}/product?id=${esc(p.id)}</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>`);
       });
     } catch { /* 상품을 못 읽어도 나머지 주소는 내보낸다 */ }
   }
