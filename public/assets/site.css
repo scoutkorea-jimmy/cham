@@ -589,17 +589,13 @@ p  { margin: 0 0 var(--s4); text-wrap: pretty; }
 .field { display: flex; flex-direction: column; gap: 7px; }
 .field label { font-size: var(--fs-sm); font-weight: 600; color: var(--ink); }
 .field label .req { color: var(--danger); margin-left: 3px; }
-/* 필수·선택을 글자로 적는다. 별표 하나는 관례를 아는 사람에게만 통하고,
-   '선택' 을 placeholder 에 적어 두면 값을 넣는 순간 사라진다.
-   같은 화면의 동의 줄이 이미 [필수]·[선택] 이라고 적고 있어 그쪽에 맞춘다.
-   라벨 밖(안내문·동의 줄)에서도 같은 모양이어야 하므로 .field 안으로 가두지 않는다. */
+/* 필수·선택 배지. 칸마다 붙이지 않는다 — 아홉 번 반복되면 표시가 시끄러워
+   오히려 눈에 안 들어온다. 그 일은 카드 제목이 한다(signup 의 '필수 정보'·'선택 정보').
+   한 묶음 안에 둘이 섞여 카드로 나눌 수 없는 곳(약관 동의)에서만 줄마다 적는다. */
 .tag-req, .tag-opt {
   display: inline-block; padding: 1px 8px; border-radius: var(--r-pill);
   font-size: var(--fs-caption); font-weight: 700; line-height: 1.7; vertical-align: middle;
 }
-/* 칸 이름 뒤에 붙을 때만 띄운다. 동의 줄과 안내문에서는 배지가 문장 앞에 온다 */
-.field > label:not(.agree) .tag-req,
-.field > label:not(.agree) .tag-opt { margin-left: 6px; }
 .tag-req { color: var(--danger); background: var(--danger-tint); }
 .tag-opt { color: var(--ink-mute); background: var(--surface-2); }
 /* 비운 채 보내려 한 필수 칸 — 어디가 문제인지 칸에서 바로 보이게 한다 */
