@@ -130,7 +130,7 @@
        제품 페이지에서 한 번 겪은 것과 같은 일이다. 값이 두 군데 있으면 반드시 어긋난다. */
     var vt = document.getElementById('vin-price-rows');
     if (vt) {
-      var vin = products.filter(function (p) { return p.cat === '식초 · 와인' || isVinegar(p); });
+      var vin = products.filter(function (p) { return p.cat === '식초' || isVinegar(p); });
       vt.innerHTML = vin.length
         ? vin.map(function (p) {
             return '<tr><td>' + esc(p.name) + '</td><td>' + esc(volCell(p)) + '</td>' +

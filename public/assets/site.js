@@ -53,7 +53,7 @@
       { label: '수업 안내', href: 'nuruk.html#notice' },
     ]},
     { id: 'products', label: '제품', href: 'products.html', dd: [
-      { label: '식초 · 와인 (서연)', href: 'products.html#vinegar' },
+      { label: '식초 (서연)', href: 'products.html#vinegar' },
       { label: '장류', href: 'products.html#jang' },
       { label: '발효식품', href: 'products.html#ferment' },
       { label: '선물세트', href: 'products.html#gift' },
@@ -505,7 +505,7 @@
     { id: 'nuruk-gochujang',     page: '누룩이야기',   label: '저염 고추장 만들기', ar: '3/2' },
     { id: 'nuruk-makjang',       page: '누룩이야기',   label: '저염 막장 만들기', ar: '3/2' },
     { id: 'nuruk-ganjang',       page: '누룩이야기',   label: '저염 간장·소금 만들기', ar: '3/2' },
-    { id: 'prod-vinegar-line',   page: '제품',        label: '식초·와인 — 라인업 전경', ar: '16/9' },
+    { id: 'prod-vinegar-line',   page: '제품',        label: '식초 — 라인업 전경', ar: '16/9' },
     { id: 'prod-seedjang',       page: '제품',        label: '씨장 분양 — 장독대', ar: '4/3' },
   ];
   // 슬롯 레코드의 저장된 위치를 object-position/background-position 문자열로 — 없으면 가운데, 모바일은 PC 상속
@@ -852,7 +852,7 @@
   /* 상품 분류 — 목록 페이지 앵커와 관리자 등록 폼이 함께 참조하는 단일 정의 */
   var PRODUCT_CATS = [
     { name: '장류', gridId: 'grid-jang' },
-    { name: '식초 · 와인', gridId: 'grid-vinegar' },
+    { name: '식초', gridId: 'grid-vinegar' },
     { name: '발효식품', gridId: 'grid-ferment' },
     { name: '선물세트', gridId: 'grid-gift' },
   ];
@@ -862,7 +862,7 @@
   var VINEGAR_ACID = '총산 4.7%(기준 4.00~20.00) — 강원특별자치도보건환경연구원 시험·검사 적합 (2025.04.30)';
   function vinegarProduct(o) {
     return {
-      id: o.id, name: o.name, cat: '식초 · 와인', price: 25000, salePrice: null, unit: '300ml',
+      id: o.id, name: o.name, cat: '식초', price: 25000, salePrice: null, unit: '300ml',
       status: '판매중', stock: o.stock == null ? 20 : o.stock, photo: o.photo,
       option: { name: '용량', values: [ { label: '300ml (소)', add: 0, stock: 20 }, { label: '500ml (대)', add: 10000, stock: 20 } ] },
       summary: o.summary, icon: 'wine', tone: 'tone-point',
@@ -878,7 +878,7 @@
   }
 
   var PRODUCT_DEFAULTS = [
-    /* ---- 식초 · 와인 (서연 瑞蓮) ---- */
+    /* ---- 식초 (서연 瑞蓮) ---- */
     vinegarProduct({ id: 'p_vin_omija', name: '오미자 식초', photo: 'assets/product-vinegar-omija.jpg',
       summary: '다섯 가지 맛이 어우러진 오미자를 발효시킨 붉은빛 수제 식초.',
       body: '오미자 청을 담가 숙성한 뒤 와인 단계를 거쳐 초산 발효시킨 식초입니다. 오미자 특유의 새콤하고 은은한 향이 남아 물에 희석해 마시기 좋습니다.',
@@ -899,7 +899,7 @@
       summary: '여름 수박을 발효시킨 연한 빛깔의 순한 수제 식초.',
       body: '수박 과육으로 청을 담가 발효시킨 식초입니다. 산미가 순해 식초를 처음 접하는 분께 권합니다.',
       ingredients: '수박, 정제수, 설탕, 초산균', related: ['p_vin_plum', 'p_vin_omija', 'p_set_vinegar'] }),
-    { id: 'p_wine_grape', name: '수제 포도 와인', cat: '식초 · 와인', price: 35000, salePrice: null, unit: '370ml',
+    { id: 'p_wine_grape', name: '수제 포도 와인', cat: '식초', price: 35000, salePrice: null, unit: '370ml',
       status: '판매중', stock: 15, option: null, photo: 'assets/product-wine-grape.jpg',
       summary: '전통 발효 기법으로 빚은 수제 포도 와인. 낱개 상자 포장.', icon: 'wine', tone: 'tone-point',
       descHtml: '<h3>과일을 그대로 발효시킨 수제 와인</h3><p>포도를 설탕과 섞어 청으로 담가 3개월 숙성한 뒤, 16브릭스로 맞추고 이스트를 넣어 25~30℃ 발효실에서 2~3주 발효시켜 빚은 수제 와인입니다.</p><p>같은 방식으로 담근 와인이 식초의 원료가 되기도 합니다.</p>',
@@ -907,7 +907,7 @@
         maker: '한국참전통발효식품협동조합 (제조: 정선다문화가정영농조합법인)', origin: '국산',
         storage: '직사광선을 피해 서늘한 곳에 보관, 개봉 후 냉장 보관' }),
       ship: SHIP_TPL, refund: REFUND_TPL, related: ['p_wine_pineapple', 'p_vin_grape'] },
-    { id: 'p_wine_pineapple', name: '수제 파인애플 와인', cat: '식초 · 와인', price: 35000, salePrice: null, unit: '370ml',
+    { id: 'p_wine_pineapple', name: '수제 파인애플 와인', cat: '식초', price: 35000, salePrice: null, unit: '370ml',
       status: '판매중', stock: 12, option: null, photo: 'assets/product-wine-pineapple.jpg',
       summary: '파인애플의 향을 살려 발효시킨 맑은 빛깔의 수제 와인.', icon: 'wine', tone: 'tone-point',
       descHtml: '<h3>열대 과일의 향을 담은 수제 와인</h3><p>파인애플로 청을 담가 숙성시킨 뒤 효모로 발효시킨 수제 와인입니다. 향이 뚜렷해 선물용으로도 많이 찾으십니다.</p>',
