@@ -1632,6 +1632,14 @@
   ];
   var textPage = 'index';
   var textEdits = {};        // {key: 고친 글} — 저장 누르기 전까지 여기 모인다
+  /* 미리보기 폭. 저장되는 문구는 하나뿐이고 **보이는 방식만** 달라진다 —
+     같은 제목이 PC 에서는 두 줄, 모바일에서는 다섯 줄이 되므로 두 폭을 다 보고 고친다.
+     문구별로 값을 나누지 않는다(그러면 한쪽만 고쳐진 문구가 생긴다). */
+  var TEXT_DEVICES = [
+    { id: 'pc', label: 'PC', icon: 'monitor' },
+    { id: 'mobile', label: '모바일', icon: 'smartphone' },
+  ];
+  var textDevice = 'pc';
 
   /* 미리보기 편집기.
      예전에는 페이지의 문구를 목록으로 뽑아 텍스트칸에 늘어놓았다. 어느 글이 화면
@@ -1654,11 +1662,19 @@
           '<span class="ph-sub">' + (dirtyN ? '<b style="color:var(--danger)">고친 글 ' + dirtyN + '개 — 아직 저장하지 않았습니다</b>'
                                              : '저장된 문구 ' + changed + '개') + '</span>' +
           '<div class="panel-tools">' +
+            '<div class="tx-dev" role="group" aria-label="미리보기 폭">' +
+              TEXT_DEVICES.map(function (d) {
+                return '<button type="button" data-act="txdevice" data-device="' + d.id + '"' +
+                  ' aria-pressed="' + (textDevice === d.id ? 'true' : 'false') + '">' +
+                  '<i data-lucide="' + d.icon + '"></i>' + d.label + '</button>';
+              }).join('') +
+            '</div>' +
             '<button class="btn btn-ghost" data-act="txreload" style="padding:8px 14px"><i data-lucide="rotate-cw"></i>새로 읽기</button>' +
             '<button class="btn btn-ghost" data-act="txresetall" style="padding:8px 14px"><i data-lucide="rotate-ccw"></i>이 페이지 원래대로</button>' +
             '<button class="btn btn-point" data-act="txsave" style="padding:8px 16px"><i data-lucide="check"></i>저장</button>' +
           '</div></div>' +
-        '<div class="tx-frame-wrap"><iframe class="tx-frame" id="txFrame" title="문구 미리보기"></iframe></div>' +
+        '<div class="tx-frame-wrap" id="txFrameWrap" data-device="' + textDevice + '">' +
+          '<iframe class="tx-frame" id="txFrame" title="문구 미리보기"></iframe></div>' +
       '</div>';
   }
   function pageLabel(id) {
@@ -3519,6 +3535,16 @@
       resetTextsOfPage();
     } else if (act === 'txreload') {
       textEdits = {}; dirty = false; render();
+    } else if (act === 'txdevice') {
+      /* render() 를 부르지 않는다 — 화면을 다시 그리면 iframe 이 새로 만들어져
+         미리보기를 처음부터 다시 읽고, 보고 있던 자리와 편집 중이던 커서를 잃는다.
+         폭만 바꾸면 되는 일이므로 그 자리에서 표시만 고친다. */
+      textDevice = b.dataset.device;
+      var wrap = document.getElementById('txFrameWrap');
+      if (wrap) wrap.dataset.device = textDevice;
+      [].forEach.call(document.querySelectorAll('.tx-dev [data-act="txdevice"]'), function (btn) {
+        btn.setAttribute('aria-pressed', btn.dataset.device === textDevice ? 'true' : 'false');
+      });
     } else if (act === 'cedit') {
       cohortEditing = b.dataset.id; render();
       var first = document.querySelector('.row-editing [data-f=name]');
