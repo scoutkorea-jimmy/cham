@@ -66,11 +66,16 @@
           </div>
           <div class="field">
             <label for="su-post">우편번호</label>
-            <input id="su-post" name="postcode" autocomplete="postal-code" placeholder="선택">
+            <div class="field-row">
+              <input id="su-post" name="postcode" autocomplete="postal-code" placeholder="선택">
+              <button type="button" class="btn btn-ghost"
+                data-postcode-zip="#su-post" data-postcode-addr="#su-addr" data-postcode-detail="#su-addr2">
+                <i data-lucide="search"></i>주소 찾기</button>
+            </div>
           </div>
-          <div class="field">
+          <div class="field full">
             <label for="su-addr">주소</label>
-            <input id="su-addr" name="address" autocomplete="street-address" placeholder="선택">
+            <input id="su-addr" name="address" autocomplete="street-address" placeholder="선택 — 주소 찾기로 채워집니다">
           </div>
           <div class="field full">
             <label for="su-addr2">상세주소</label>

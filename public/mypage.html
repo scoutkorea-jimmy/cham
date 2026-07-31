@@ -141,9 +141,14 @@
           </div>
           <div class="field">
             <label for="mp-post">우편번호</label>
-            <input id="mp-post" name="postcode" autocomplete="postal-code">
+            <div class="field-row">
+              <input id="mp-post" name="postcode" autocomplete="postal-code">
+              <button type="button" class="btn btn-ghost"
+                data-postcode-zip="#mp-post" data-postcode-addr="#mp-addr" data-postcode-detail="#mp-addr2">
+                <i data-lucide="search"></i>주소 찾기</button>
+            </div>
           </div>
-          <div class="field">
+          <div class="field full">
             <label for="mp-addr">주소</label>
             <input id="mp-addr" name="address" autocomplete="street-address">
           </div>

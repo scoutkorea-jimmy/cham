@@ -1551,7 +1551,7 @@
         { name: 'name', label: '주문자', required: true, placeholder: '홍길동' },
         { name: 'phone', label: '연락처', type: 'tel', required: true, placeholder: '010-0000-0000' },
         { name: 'email', label: '이메일 (선택)', type: 'email', full: true, placeholder: '주문 조회에 사용할 수 있습니다' },
-        { name: 'address', label: '배송지 주소', required: true, full: true, placeholder: '받으실 주소를 입력해주세요.' },
+        { name: 'address', label: '배송지 주소', required: true, full: true, findAddress: true, placeholder: '주소 찾기를 누르시고, 동·호수를 이어 적어주세요.' },
         { name: 'request', label: '배송 요청사항', type: 'textarea', full: true, placeholder: '예) 부재 시 문 앞에 놓아주세요.' },
         { name: 'unitPrice', type: 'hidden' },
         { name: 'productId', type: 'hidden' },
@@ -1595,6 +1595,14 @@
       ctrl = '<textarea name="' + f.name + '" id="' + id + '" placeholder="' + esc(f.placeholder || '') + '"' + req + '>' + esc(val) + '</textarea>';
     } else {
       ctrl = '<input type="' + (f.type || 'text') + '" name="' + f.name + '" id="' + id + '" placeholder="' + esc(f.placeholder || '') + '" value="' + esc(val) + '"' + (f.readonly ? ' readonly' : '') + (f.min != null ? ' min="' + f.min + '"' : '') + req + '>';
+    }
+    /* 배송지는 우편번호 칸을 따로 두지 않는다 — 주문은 주소를 한 줄로 저장한다.
+       고른 주소를 '[12345] 도로명주소 ' 로 채우고 커서를 뒤에 두어
+       나머지(동·호수)를 이어 적게 한다. */
+    if (f.findAddress) {
+      ctrl = '<div class="field-row">' + ctrl +
+        '<button type="button" class="btn btn-ghost" data-postcode-addr="#' + id + '">' +
+        '<i data-lucide="search"></i>주소 찾기</button></div>';
     }
     return '<div class="field' + (f.full ? ' full' : '') + '"><label for="' + id + '">' + esc(f.label) + star + '</label>' + ctrl + '</div>';
   }
@@ -2055,6 +2063,78 @@
       '<i data-lucide="undo-2"></i>취소 · 반품 신청</button></div>';
   }
 
+  /* ---------------- 우편번호·주소 찾기 ----------------
+     다음(카카오) 우편번호 서비스. 무료·무제한이고 키가 필요 없다.
+
+     스크립트는 **누를 때** 한 번만 받는다. 모든 페이지가 늘 받게 하면
+     주소를 적을 일이 없는 사람까지 외부 요청의 값을 치른다.
+
+     쓰는 곳이 셋(회원가입·마이페이지·주문 배송지)이라 여기 한 군데만 둔다.
+     화면은 버튼에 어느 칸을 채울지만 적는다 — 채우는 규칙이 화면마다
+     흩어지면 같은 주소가 곳에 따라 다른 모양으로 저장된다. */
+  var POSTCODE_SRC = 'https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+  var postcodeLoading = null;
+  function loadPostcode() {
+    if (window.daum && window.daum.Postcode) return Promise.resolve();
+    if (postcodeLoading) return postcodeLoading;
+    postcodeLoading = new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = POSTCODE_SRC;
+      s.onload = function () { resolve(); };
+      /* 실패를 기억해 두면 잠깐 끊겼을 때 이후로 영영 안 열린다 — 비워서 다시 받게 한다 */
+      s.onerror = function () { postcodeLoading = null; reject(new Error('주소 검색을 불러오지 못했습니다.')); };
+      document.head.appendChild(s);
+    });
+    return postcodeLoading;
+  }
+
+  /* 고른 주소를 { zonecode, address } 로 넘긴다.
+     도로명이 있으면 도로명을 쓴다(택배사 기준). 참고항목(법정동·건물명)은
+     도로명 주소에만 규격이 있으므로 지번을 골랐을 때는 붙이지 않는다. */
+  function openPostcode(onPick) {
+    return loadPostcode().then(function () {
+      new window.daum.Postcode({
+        oncomplete: function (d) {
+          var useRoad = d.userSelectedType !== 'J' && !!d.roadAddress;
+          var addr = useRoad ? d.roadAddress : d.jibunAddress;
+          var extra = '';
+          if (useRoad) {
+            if (d.bname && /[동로가]$/.test(d.bname)) extra = d.bname;
+            if (d.buildingName && d.apartment === 'Y') extra += (extra ? ', ' : '') + d.buildingName;
+            if (extra) extra = ' (' + extra + ')';
+          }
+          onPick({ zonecode: d.zonecode, address: addr + extra });
+        },
+      }).open();
+    })['catch'](function (err) { toast(err.message); });
+  }
+
+  /* 버튼이 가리키는 칸을 채운다.
+       data-postcode-zip    우편번호 칸 (없으면 주소 앞에 [12345] 로 붙인다)
+       data-postcode-addr   주소 칸 (필수)
+       data-postcode-detail 상세주소 칸 — 고른 뒤 커서를 여기로 옮긴다
+     선택자는 버튼이 속한 form 안에서 먼저 찾는다. 같은 화면에 주소칸이
+     둘 이상일 때 남의 칸을 채우지 않게 한다. */
+  function postcodeFill(btn) {
+    var scope = btn.closest('form') || document;
+    var pick = function (sel) { return sel ? scope.querySelector(sel) || document.querySelector(sel) : null; };
+    var zip = pick(btn.dataset.postcodeZip);
+    var addr = pick(btn.dataset.postcodeAddr);
+    var detail = pick(btn.dataset.postcodeDetail);
+    if (!addr) return;
+    openPostcode(function (r) {
+      if (zip) { zip.value = r.zonecode; addr.value = r.address; }
+      else { addr.value = '[' + r.zonecode + '] ' + r.address + ' '; }
+      /* 저장·유효성 검사가 input 을 보고 있다 — 값만 넣으면 고친 줄 모른다 */
+      [zip, addr].forEach(function (el) {
+        if (el) el.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      var next = detail || addr;
+      next.focus();
+      if (next === addr) next.setSelectionRange(addr.value.length, addr.value.length);
+    });
+  }
+
   /* ---------------- 이벤트 위임 ---------------- */
   function initModalDelegation() {
     document.addEventListener('click', function(e){
@@ -2074,6 +2154,8 @@
         ct.classList.toggle('open', open);
         return;
       }
+      var pc = e.target.closest('[data-postcode-addr]');
+      if (pc) { e.preventDefault(); postcodeFill(pc); return; }
       if (e.target.closest('[data-open-cart]')) { e.preventDefault(); openCart(); return; }
       if (e.target.closest('[data-modal-close]')) { closeModal(); }
     });
@@ -2278,7 +2360,7 @@
     patchItem: patchItem, patchItems: patchItems, removeItem: removeItem, kindOf: function (k) { return KEY_MAP[k] || null; },
     loadOlder: loadOlder, windowInfo: windowInfo,
     isServer: function(){ return SERVER; }, memberLoggedIn: memberLoggedIn, ready: function(fn){ booted.then(function(){ ready(fn); }); },
-    toast: toast, revealScan: revealScan,
+    toast: toast, revealScan: revealScan, openPostcode: openPostcode,
     IMG_SLOTS: IMG_SLOTS, renderSlotImages: renderSlotImages, slotPos: slotPos, applySlot: applySlot,
     requireAdmin: requireAdmin, verifyLogin: verifyLogin, lockMs: lockMs,
     openModal: openModal, closeModal: closeModal, rawModal: rawModal, openOrderLookup: openOrderLookup,

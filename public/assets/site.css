@@ -597,6 +597,18 @@ p  { margin: 0 0 var(--s4); text-wrap: pretty; }
   outline: none; border-color: var(--main); box-shadow: 0 0 0 3px var(--main-tint);
 }
 .field .hint { font-size: var(--fs-caption); color: var(--ink-mute); }
+/* 칸 하나 + 옆의 버튼(예: 주소 찾기). 좁은 화면에서도 버튼 글자가 접히지 않게
+   버튼은 줄이지 않고, 칸이 남는 자리를 가져간다. */
+.field-row { display: flex; gap: 8px; align-items: stretch; }
+.field-row > input { flex: 1 1 auto; min-width: 0; }
+.field-row > .btn { flex: 0 0 auto; white-space: nowrap; padding: 0 16px; }
+/* 좁은 화면에서는 버튼을 아래로 내린다. 나란히 두면 주소 칸이 175px 까지 줄어
+   적은 주소가 잘려 보인다. 내려두면 누르기도 쉽다(폭 전체가 터치 영역). */
+@media (max-width: 640px) {
+  .field-row { flex-wrap: wrap; }
+  .field-row > input { flex: 1 0 100%; }
+  .field-row > .btn { flex: 1 0 100%; min-height: 44px; }
+}
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s5); }
 .form-grid .full { grid-column: 1 / -1; }
 @media (max-width: 640px){ .form-grid { grid-template-columns: 1fr; } }
