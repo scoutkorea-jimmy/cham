@@ -63,6 +63,48 @@
     return o;
   }
 
+  /* 비어 있는 필수 칸을 찾아 짚어 준다.
+     전에는 빈 칸을 그대로 서버로 보냈고, 돌아온 것은 한 줄짜리 메시지 하나였다 —
+     어느 칸을 비웠는지 화면 어디에도 표시가 없었다.
+
+     칸 이름은 **라벨에서 가져온다.** 여기에 또 적어 두면 라벨을 고칠 때 어긋나
+     '휴대폰을 입력해 주세요' 라고 하면서 화면에는 '휴대전화' 라고 적혀 있게 된다.
+     '필수' 배지 글자는 이름이 아니므로 뺀다. */
+  function fieldLabel(el) {
+    var lb = el.form && el.id ? el.form.querySelector('label[for="' + el.id + '"]') : null;
+    if (!lb) return '';
+    var t = lb.cloneNode(true);
+    [].forEach.call(t.querySelectorAll('.tag-req, .tag-opt, .req'), function (x) { x.remove(); });
+    return t.textContent.trim();
+  }
+  function markBad(el, on) { if (el) el.classList.toggle('bad', !!on); }
+
+  /* '아이디을(를) 입력해 주세요' 는 읽는 사람을 멈칫하게 한다.
+     끝 글자의 받침으로 고른다. 한글이 아니면 판정할 수 없으므로 둘 다 적는다. */
+  function eul(word) {
+    var c = word.charCodeAt(word.length - 1);
+    if (!(c >= 0xAC00 && c <= 0xD7A3)) return word + '을(를)';
+    return word + ((c - 0xAC00) % 28 ? '을' : '를');
+  }
+
+  function firstEmptyRequired(form) {
+    var found = null;
+    [].forEach.call(form.querySelectorAll('[required]'), function (el) {
+      var empty = !el.value.trim();
+      markBad(el, empty);
+      if (empty && !found) found = el;
+    });
+    return found;
+  }
+
+  /* 고치기 시작하면 빨간 표시를 거둔다 — 다 채웠는데도 빨간 채로 남아 있으면
+     무엇이 남았는지 다시 알 수 없다. */
+  function initBadClear(form) {
+    form.addEventListener('input', function (e) {
+      if (e.target.hasAttribute('required') && e.target.value.trim()) markBad(e.target, false);
+    });
+  }
+
   /* ================= 회원가입 ================= */
   function initSignup() {
     var form = document.getElementById('signupForm');
@@ -70,11 +112,28 @@
     var msg = document.getElementById('signupMsg');
     var btn = form.querySelector('button[type=submit]');
 
+    initBadClear(form);
+
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       var v = vals(form);
+      /* 빈 필수 칸이 먼저다. 동의부터 따지면 '동의해 주세요' 를 보고 동의한 뒤에야
+         '이름을 입력해 주세요' 를 만나, 한 번에 하나씩 되돌아오게 된다. */
+      var empty = firstEmptyRequired(form);
+      if (empty) {
+        var nm = fieldLabel(empty);
+        say(msg, nm ? eul(nm) + ' 입력해 주세요. 빨갛게 표시된 칸입니다.' : '필수 항목을 모두 입력해 주세요.', 'bad');
+        empty.focus();
+        return;
+      }
       if (!v.agreeTerms || !v.agreePrivacy) { say(msg, '이용약관과 개인정보 수집·이용에 동의해 주세요.', 'bad'); return; }
-      if (v.password !== v.password2) { say(msg, '비밀번호가 서로 다릅니다.', 'bad'); return; }
+      if (v.password !== v.password2) {
+        say(msg, '비밀번호가 서로 다릅니다.', 'bad');
+        markBad(form.querySelector('#su-pw2'), true);
+        form.querySelector('#su-pw2').focus();
+        return;
+      }
+      markBad(form.querySelector('#su-pw2'), false);
 
       say(msg, '');
       lock(btn, true, '가입 중…');

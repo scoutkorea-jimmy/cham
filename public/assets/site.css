@@ -67,6 +67,9 @@
   /* 안내 상자용 — 색 막대를 세우는 대신 면과 글자로 성격을 드러낸다 */
   --info-tint: #EDF2F6;
   --info-ink:  #33536A;
+  /* 오류 면. signup·mypage 가 `var(--danger-tint, #FBEAE8)` 로 같은 값을 각자
+     적어 두고 있었다 — 토큰이 없어 대비값이 원본 노릇을 하던 자리다 */
+  --danger-tint: #FBEAE8;
 
   /* ---- Type ---- */
   --font-head: 'PayboocFont', 'Pretendard Variable', sans-serif;  /* tweakable: 글꼴 변형 */
@@ -586,6 +589,23 @@ p  { margin: 0 0 var(--s4); text-wrap: pretty; }
 .field { display: flex; flex-direction: column; gap: 7px; }
 .field label { font-size: var(--fs-sm); font-weight: 600; color: var(--ink); }
 .field label .req { color: var(--danger); margin-left: 3px; }
+/* 필수·선택을 글자로 적는다. 별표 하나는 관례를 아는 사람에게만 통하고,
+   '선택' 을 placeholder 에 적어 두면 값을 넣는 순간 사라진다.
+   같은 화면의 동의 줄이 이미 [필수]·[선택] 이라고 적고 있어 그쪽에 맞춘다.
+   라벨 밖(안내문·동의 줄)에서도 같은 모양이어야 하므로 .field 안으로 가두지 않는다. */
+.tag-req, .tag-opt {
+  display: inline-block; padding: 1px 8px; border-radius: var(--r-pill);
+  font-size: var(--fs-caption); font-weight: 700; line-height: 1.7; vertical-align: middle;
+}
+/* 칸 이름 뒤에 붙을 때만 띄운다. 동의 줄과 안내문에서는 배지가 문장 앞에 온다 */
+.field > label:not(.agree) .tag-req,
+.field > label:not(.agree) .tag-opt { margin-left: 6px; }
+.tag-req { color: var(--danger); background: var(--danger-tint); }
+.tag-opt { color: var(--ink-mute); background: var(--surface-2); }
+/* 비운 채 보내려 한 필수 칸 — 어디가 문제인지 칸에서 바로 보이게 한다 */
+.field input.bad, .field select.bad, .field textarea.bad {
+  border-color: var(--danger); background: var(--danger-tint);
+}
 .field input, .field select, .field textarea {
   font-family: inherit; font-size: var(--fs-body); color: var(--ink);
   padding: 12px 14px; border: 1.5px solid var(--line); border-radius: var(--r-sm);
