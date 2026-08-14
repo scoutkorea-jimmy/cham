@@ -31,8 +31,24 @@ function notFound() {
    관리자·로그인은 noindex 라 손댈 이유가 없고, api·자원은 HTML 이 아니다. */
 const NO_SEO = [/^\/api\//, /^\/assets\//, /^\/admin/, /^\/login/, /\.(css|js|png|jpe?g|svg|ico|txt|xml|webmanifest)$/i];
 
+/* 색인·수집을 거부하는 주소. **응답 헤더로** 말한다.
+   `<meta name="robots">` 는 HTML 을 파싱해야 보이므로 JSON·리다이렉트에는 실을 수 없고,
+   robots.txt 는 "가져가지 마라"일 뿐 이미 가져간 것을 지우게 하지 못한다.
+   헤더는 응답마다 붙어 둘 다 해결한다 — 302 로 돌려보내는 관리자 주소에도 실린다.
+   noarchive·nosnippet 까지 넣는 이유는, 색인을 지워도 캐시와 미리보기가 남기 때문이다. */
+const NO_ROBOTS = [/^\/admin/, /^\/login/, /^\/mypage/, /^\/api\//, /^\/assets\/manual/];
+const NO_ROBOTS_VALUE = 'noindex, nofollow, noarchive, nosnippet, noimageindex';
+
+/* 응답은 불변일 수 있어(정적 자산) 헤더를 바로 못 쓴다 — 복사본에 붙인다. */
+function withNoRobots(res) {
+  const out = new Response(res.body, res);
+  out.headers.set('X-Robots-Tag', NO_ROBOTS_VALUE);
+  return out;
+}
+
 async function withSeo(context, url) {
   const res = await context.next();
+  if (NO_ROBOTS.some((re) => re.test(url.pathname))) return withNoRobots(res);
   if (NO_SEO.some((re) => re.test(url.pathname))) return res;
   if (!context.env || !context.env.DB) return res;      // D1 없이도 페이지는 그대로 나가야 한다
   try {
@@ -59,15 +75,22 @@ export async function onRequest(context) {
   // D1/시크릿이 아직 연결되지 않은 환경에서는 막지 않는다 —
   // 설정 누락 때문에 운영자가 자기 사이트에서 잠기는 편이 더 나쁘다.
   // (배포 전 체크리스트에서 바인딩을 확인한다 → docs/migration-cloudflare.md)
-  if (!env || !env.ADMIN_SECRET || !env.DB) return context.next();
+  if (!env || !env.ADMIN_SECRET || !env.DB) return withNoRobots(await context.next());
 
   const session = await getSession(request, env);
-  if (session) return context.next();
+  if (session) return withNoRobots(await context.next());
 
-  if (AS_NOT_FOUND.some((re) => re.test(path))) return notFound();
+  if (AS_NOT_FOUND.some((re) => re.test(path))) return withNoRobots(notFound());
 
+  /* 돌려보내는 응답에도 붙인다 — 크롤러는 302 의 Location 을 따라가 로그인 화면을
+     색인하고, 원래 주소를 '옮겨간 페이지'로 기억한다.
+     Response.redirect() 를 감싸지 않고 직접 만든다 — 그 응답은 불변이라
+     헤더를 더하려면 어차피 새로 만들어야 한다. */
   const to = new URL(request.url);
   to.pathname = '/login.html';
   to.search = `?next=${encodeURIComponent(path)}`;
-  return Response.redirect(to.toString(), 302);
+  return new Response(null, {
+    status: 302,
+    headers: { Location: to.toString(), 'X-Robots-Tag': NO_ROBOTS_VALUE },
+  });
 }
