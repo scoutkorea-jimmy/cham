@@ -8,6 +8,7 @@
 | 문서 | 내용 |
 |---|---|
 | [workflow.md](workflow.md) | **작업 절차** — 외부 변경 감지 · 조사 · 변경 계획 · 검증 · 커밋·배포 · 완료 보고 · 중단 조건 |
+| [failure-log.md](failure-log.md) | **실패 기록** — 무엇을 적고 무엇을 안 적는가 · 다섯 칸 형식 · 규칙으로 올리는 때 |
 | [code-quality.md](code-quality.md) | 구조 · 중복 · 책임 분리 · 타입 · 오류 처리 · 의존성 · 네이밍 |
 | [design-tokens.md](design-tokens.md) | 컬러 · 타이포그래피 · 모서리 · 그림자 · 모션 토큰과 사용 규칙 |
 | [spacing-rhythm.md](spacing-rhythm.md) | 세로 리듬 — 섹션 여백, 섹션 내부 간격, 허용 값 |
