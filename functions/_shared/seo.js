@@ -73,7 +73,10 @@ export function rewriteHead(res, url, seo) {
     .on('link[rel="canonical"]', { element(el) { sawCanonical = true; el.setAttribute('href', canonical); } })
     /* 탭 아이콘이 어느 페이지에도 선언돼 있지 않아, 브라우저가 방문마다
        /favicon.ico 를 찾다가 404 를 받고 있었다. 페이지마다 적으면 17곳이
-       따로 놀므로 여기 한 곳에서 붙인다. */
+       따로 놀므로 여기 한 곳에서 붙인다.
+       한때 여기서 `assets/logo.png` 를 가리켰는데, 404 는 사라졌지만 방문마다
+       120KB 로고를 받아 16px 로 줄이고 있었다 — 붓질이 뭉개져 알아볼 수도 없었다.
+       지금은 전용 마크(assets/favicon.svg · 951B)를 쓴다 → docs/failures.md */
     .on('link[rel~="icon"]', { element() { sawIcon = true; } })
     .on('head', {
       element(el) {
@@ -84,7 +87,13 @@ export function rewriteHead(res, url, seo) {
           const add = [];
           if (!sawOgUrl) add.push(`<meta property="og:url" content="${canonical}">`);
           if (!sawCanonical) add.push(`<link rel="canonical" href="${canonical}">`);
-          if (!sawIcon) add.push(`<link rel="icon" href="${absolute(origin, 'assets/logo.png')}">`);
+          if (!sawIcon) {
+            /* SVG 를 먼저 두고 .ico 를 뒤에 둔다 — SVG 를 모르는 브라우저만 뒤엣것을 쓴다.
+               apple-touch-icon 은 홈 화면에 담을 때 iOS 가 찾는 이름이라 별도로 붙인다. */
+            add.push(`<link rel="icon" type="image/svg+xml" href="${absolute(origin, 'assets/favicon.svg')}">`);
+            add.push(`<link rel="icon" sizes="32x32" href="${absolute(origin, 'favicon.ico')}">`);
+            add.push(`<link rel="apple-touch-icon" href="${absolute(origin, 'assets/apple-touch-icon.png')}">`);
+          }
           // 트위터 카드도 같은 그림을 쓴다 — 없으면 링크가 글자만 나온다
           add.push(`<meta name="twitter:card" content="summary_large_image">`);
           add.push(`<meta name="twitter:image" content="${image}">`);
