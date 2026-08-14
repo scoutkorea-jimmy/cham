@@ -14,11 +14,32 @@ import {
 } from '../../_shared/auth.js';
 import { checkMemberId, checkEmail, normPhone, publicMember } from '../../_shared/members.js';
 import { json, badRequest, readJson, methodNotAllowed } from '../../_shared/http.js';
+import { makeThrottle } from '../../_shared/throttle.js';
 
 const clean = (v, n) => (v == null ? null : String(v).trim().slice(0, n) || null);
 
+/* 가입은 아무나 부를 수 있고 한 번 부를 때마다 **개인정보 한 줄이 쌓인다.**
+   쌓이면 회원 목록·대시보드가 못 쓰게 되는 정도가 아니라, 진짜 손님이 가짜 사이에 묻힌다.
+   한 IP 에서 하루 5명까지는 그대로 받는다 — 가족이 함께 가입하는 일이 실제로 있다.
+   그 다음부터 1분 → 2분 → 4분으로 늘어나 스크립트가 쓸모없어진다. */
+const throttle = makeThrottle({ prefix: 's:', freeAttempts: 5, baseDelay: 60 });
+
 export async function onRequestPost({ request, env }) {
   if (!env || !env.DB || !env.ADMIN_SECRET) return json({ error: '가입을 처리할 수 없습니다.' }, 503);
+
+  const blocked = await throttle.check(request, env);
+  if (blocked) {
+    return json({
+      error: '가입 요청이 너무 잦습니다. 잠시 후 다시 시도해 주세요.',
+      code: 'throttled', retryAfter: blocked.retryAfter,
+    }, 429, { 'Retry-After': String(blocked.retryAfter) });
+  }
+
+  /* 성공·실패를 가리지 않고 센다. 실패한 시도도 자원을 쓰고, 중복 아이디 응답(409)은
+     아이디가 있는지 물어보는 수단이 되기도 한다. 화면이 필수 칸을 먼저 검사하므로
+     정상 이용자가 서버 검증에서 걸리는 일은 드물다. */
+  await throttle.count(request, env);
+
   const b = await readJson(request);
   if (!b) return badRequest();
 

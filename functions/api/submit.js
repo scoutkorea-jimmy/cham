@@ -16,6 +16,7 @@ import {
 import { reservedFor } from '../_shared/stock.js';
 import { getMemberSession } from '../_shared/auth.js';
 import { json, badRequest, methodNotAllowed, readJson } from '../_shared/http.js';
+import { makeThrottle } from '../_shared/throttle.js';
 
 const MAX_LEN = 2000;
 const MAX_ITEMS = 20;          // 장바구니 한 번에 담을 수 있는 가짓수
@@ -95,8 +96,24 @@ async function resolveItem(env, productId, optionLabel) {
   };
 }
 
+/* 네 가지 양식이 이 한 창구로 들어온다. 막지 않으면 스크립트가 주문·문의를 쌓아
+   주문 목록·대시보드·매출 통계를 못 쓰게 만들 수 있다(2026-07-31 에 알고도 미뤘던 것).
+   한도를 넉넉히 잡는 이유는 **한 IP 를 여럿이 나눠 쓰기** 때문이다 — 통신사 NAT,
+   사무실, 교육장에서 여러 분이 함께 신청하는 일이 실제로 있다. 하루 15건까지는
+   그대로 받고, 그 뒤로 30초 → 1분 → 2분으로 늘어난다. */
+const throttle = makeThrottle({ prefix: 'q:', freeAttempts: 15, baseDelay: 30 });
+
 export async function onRequestPost({ request, env }) {
   if (!env || !env.DB) return json({ error: '접수할 수 없습니다.', code: 'server_unavailable' }, 503);
+
+  const blocked = await throttle.check(request, env);
+  if (blocked) {
+    return json({
+      error: '요청이 너무 잦습니다. 잠시 후 다시 시도해 주세요. 급하시면 02-855-8806 으로 연락 주세요.',
+      code: 'throttled', retryAfter: blocked.retryAfter,
+    }, 429, { 'Retry-After': String(blocked.retryAfter) });
+  }
+  await throttle.count(request, env);
 
   const body = await readJson(request);
   if (!body || !KINDS.has(body.kind) || typeof body.data !== 'object' || !body.data) return badRequest();
