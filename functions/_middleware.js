@@ -12,6 +12,7 @@
 import { getSession } from './_shared/auth.js';
 import { readDoc } from './_shared/store.js';
 import { rewriteHead } from './_shared/seo.js';
+import { loadPostFor } from './_shared/post-seo.js';
 
 /* 설명서 본문(assets/manual.html)도 함께 막는다.
    화면은 관리자 콘솔 안에 있지만 본문은 **정적 파일**이라, 주소를 아는 사람은
@@ -53,9 +54,11 @@ async function withSeo(context, url) {
   if (!context.env || !context.env.DB) return res;      // D1 없이도 페이지는 그대로 나가야 한다
   try {
     const st = (await readDoc(context.env, 'settings')) || {};
+    // /news?id= 이면 그 글을 함께 읽어 제목·설명·본문을 갈아 끼운다
+    const post = await loadPostFor(context.env, url);
     return rewriteHead(res, url, {
       google: st.seoGoogle, naver: st.seoNaver, image: st.seoImage,
-    });
+    }, post);
   } catch {
     return res;     // 설정을 못 읽는다고 페이지를 못 보게 만들지 않는다
   }

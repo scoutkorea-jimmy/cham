@@ -91,8 +91,45 @@
     icons();
   }
 
+  /* ================= 글 하나의 주소 =================
+     글은 모달로 펼쳐질 뿐 주소가 없었다. 그래서 셋을 못 했다 —
+     검색 노출(크롤러가 글이 있다는 것조차 모른다) · 링크 공유 · 카톡 미리보기.
+     주소는 `/news?id=<글id>` 이고, 그 주소로 들어오면 **서버가 본문을 HTML 에 실어 준다**
+     (functions/_shared/post-seo.js). 화면이 뜨면 그 자리를 걷어내고 모달로 연다. */
+  function currentPostId() {
+    try { return new URLSearchParams(location.search).get('id'); } catch (e) { return null; }
+  }
+  function pushPost(id) {
+    // 주소만 바꾼다(문서를 다시 받지 않는다). 뒤로가기가 목록으로 돌아가게 된다
+    try { history.pushState({ post: id }, '', '?id=' + encodeURIComponent(id)); } catch (e) {}
+  }
+  function popPost() {
+    if (!currentPostId()) return;          // 이미 목록 주소면 기록을 더 쌓지 않는다
+    try { history.pushState({}, '', location.pathname); } catch (e) {}
+  }
+  function initPostRoute() {
+    /* 서버가 넣어 둔 본문을 걷는다 — 여기부터는 모달이 같은 글을 보여 준다.
+       두 곳에 같은 글이 보이면 어느 것이 진짜인지 알 수 없다. */
+    var ssr = document.getElementById('post-ssr');
+    if (ssr) ssr.innerHTML = '';
+
+    var id = currentPostId();
+    if (id) openPost(id, true);
+
+    // 모달이 닫히면 주소도 목록으로. 닫는 길이 여럿이라 site.js 의 신호 하나에 건다
+    window.addEventListener('site:modal-closed', popPost);
+
+    // 뒤로·앞으로
+    window.addEventListener('popstate', function () {
+      var pid = currentPostId();
+      if (pid) openPost(pid, true);
+      else if (S.closeModal) S.closeModal();
+    });
+  }
+
   /* ================= 게시글 보기 ================= */
-  function openPost(id) {
+  /** @param {boolean} [fromRoute] 주소를 보고 여는 경우 — 기록을 다시 쌓지 않는다 */
+  function openPost(id, fromRoute) {
     var p = S.getPosts().filter(function (x) { return x.id === id; })[0];
     if (!p) return;
     S.Media.list('post', id).then(function (files) {
@@ -137,6 +174,10 @@
           sliderHtml + attHtml +
           '<div class="modal-foot">' + adminBtns + '<button type="button" class="btn btn-point" data-modal-close>닫기</button></div>' +
         '</div>', 720);
+
+      /* 주소를 글의 것으로. 열린 **뒤에** 민다 — 글을 못 찾아 위에서 돌아간 경우
+         (`if (!p) return`)에는 주소가 바뀌면 안 된다. */
+      if (!fromRoute) pushPost(id);
 
       // 이미지 슬라이더
       if (imgs.length) {
@@ -430,5 +471,7 @@
       var row = e.target.closest('[data-post]');
       if (row) openPost(row.dataset.post);
     });
+
+    initPostRoute();
   });
 })();

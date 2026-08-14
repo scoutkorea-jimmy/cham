@@ -14,6 +14,8 @@
  * 주소를 요청에서 뽑으므로 **도메인을 붙여도 고칠 곳이 없다.**
  */
 
+import { postHeadTags, postBodyHTML } from './post-seo.js';
+
 const ABS = /^(https?:)?\/\//i;
 
 /** 상대 경로를 지금 요청 기준 절대 주소로. 이미 절대면 그대로 둔다. */
@@ -46,22 +48,28 @@ export function extractCode(raw) {
  * @param {Response} res   원본 응답
  * @param {URL} url        요청 주소
  * @param {object} seo     { google, naver, image, siteName }
+ * @param {object} [post]  소식마당 글 하나(/news?id=). 있으면 제목·설명을 그 글의 것으로
+ *                         바꾸고 본문을 `#post-ssr` 에 넣는다 → _shared/post-seo.js
  */
-export function rewriteHead(res, url, seo) {
+export function rewriteHead(res, url, seo, post) {
   const type = res.headers.get('content-type') || '';
   if (!type.includes('text/html')) return res;
 
   const origin = url.origin;
-  // 질의문자열은 상품 상세(?id=)만 의미가 있다 — 나머지(utm 등)는 같은 문서로 본다
+  /* 질의문자열은 **상품 상세와 소식 글(?id=)만** 의미가 있다 — 나머지(utm 등)는 같은 문서로 본다.
+     ?id= 를 canonical 에 남기지 않으면 소식 글 스무 개가 전부 /news 한 문서로 합쳐진다. */
   const id = url.searchParams.get('id');
   const canonical = origin + url.pathname + (id ? '?id=' + encodeURIComponent(id) : '');
   const image = absolute(origin, seo.image || 'assets/logo.png');
+
+  const siteName = seo.siteName || '한국참전통발효식품협동조합';
+  const head = post ? postHeadTags(post, siteName) : null;
 
   let sawOgUrl = false;
   let sawCanonical = false;
   let sawIcon = false;
 
-  return new HTMLRewriter()
+  const rw = new HTMLRewriter()
     // 상대 경로 og:image → 절대 주소
     .on('meta[property="og:image"]', {
       element(el) {
@@ -103,6 +111,20 @@ export function rewriteHead(res, url, seo) {
           if (add.length) end.before('\n' + add.join('\n') + '\n', { html: true });
         });
       },
-    })
-    .transform(res);
+    });
+
+  /* 소식 글 하나를 보는 중이면 제목·설명을 그 글의 것으로 바꾼다.
+     안 바꾸면 글 스무 개의 검색결과 제목이 전부 '소식마당'으로 같아지고,
+     카톡으로 링크를 보내도 어느 글인지 알 수 없다. */
+  if (head) {
+    rw.on('title', { element(el) { el.setInnerContent(head.title); } })
+      .on('meta[name="description"]', { element(el) { el.setAttribute('content', head.desc); } })
+      .on('meta[property="og:title"]', { element(el) { el.setAttribute('content', head.title); } })
+      .on('meta[property="og:description"]', { element(el) { el.setAttribute('content', head.desc); } })
+      /* 본문을 HTML 에 실어 보낸다. 이 자리가 없으면 크롤러는 글이 있다는 것조차 모른다
+         — 자바스크립트를 돌리지 않기 때문이다. JS 가 뜨면 board.js 가 걷어내고 모달로 연다. */
+      .on('#post-ssr', { element(el) { el.setInnerContent(postBodyHTML(post), { html: true }); } });
+  }
+
+  return rw.transform(res);
 }

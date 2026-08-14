@@ -51,6 +51,11 @@
   </div>
 </section>
 
+<!-- 글 하나를 볼 때(/news?id=) **서버가** 여기에 본문을 넣는다.
+     크롤러는 자바스크립트를 돌리지 않아, 이 자리가 없으면 소식 글은 영영 색인되지 않는다.
+     화면이 뜨면 board.js 가 걷어내고 같은 글을 모달로 연다 → functions/_shared/post-seo.js -->
+<section class="section" id="post-ssr"></section>
+
 <!-- 공지사항 -->
 <section class="section" id="notice">
   <div class="wrap">
