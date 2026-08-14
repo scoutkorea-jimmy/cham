@@ -38,6 +38,8 @@ wrangler.toml       Pages 설정 · D1(DB) · R2(MEDIA) 바인딩
 docs/migration-cloudflare.md   서버 이전 계획 — 단계·스키마
 docs/deploy.md      배포 절차 — Cloudflare 설정 · 확인 · 정리 · 되돌리기
 docs/handoff.md     **요청 추적** — 받은 요청·상태·검증 도구. 작업 시작 전에 여기부터 본다
+docs/failures.md    **실패 기록부** — 되돌리거나 다시 만든 것의 원인·재발 방지
+                    (무엇을 적는가는 rules/failure-log.md)
 terms.html / privacy.html                signup.html / mypage.html   회원가입 · 마이페이지
 llms.txt            AI 검색용 요약 (정적)
                     robots.txt · sitemap.xml 은 **파일이 아니라 함수**가 만듭니다
@@ -67,6 +69,7 @@ Basic_Infomation/   고객사 원본 자료(pptx·jpg) — 콘텐츠 근거. 편
 |---|---|
 | **모든 작업 시작 전** | [docs/handoff.md](docs/handoff.md) — 받은 요청과 상태. 새 요청은 여기 먼저 적는다 |
 | 작업 절차 | [rules/workflow.md](rules/workflow.md) — 외부 변경 감지 · 조사 · 계획 · 검증 · **커밋·배포** · 보고 |
+| **되돌리거나 다시 만들었을 때** | [rules/failure-log.md](rules/failure-log.md) — 무엇을 적고 무엇을 안 적는가. 기록부는 [docs/failures.md](docs/failures.md) |
 | 코드를 쓰거나 고칠 때 | [rules/code-quality.md](rules/code-quality.md) — 중복 · 책임 분리 · 타입 · 오류 · 네이밍 |
 | 색 · 글꼴 · 그림자 · 모션 | [rules/design-tokens.md](rules/design-tokens.md) |
 | 여백 · 간격 · 리듬 | [rules/spacing-rhythm.md](rules/spacing-rhythm.md) |

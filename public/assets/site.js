@@ -1662,6 +1662,17 @@
       '<div class="pay-row pay-sum"><span>총 입금 금액</span><b class="pay-total">' + fmtWon(items + ship) + '원</b></div>';
   }
 
+  /* 청약철회가 제한되는 상품은 **주문 전에** 그 사실을 알려야 제한이 효력을 갖는다
+     (전자상거래법 제17조 6항). 상품 상세의 '교환·반품·환불 안내'에도 있지만 접힌 자리라
+     주문 화면에도 둔다. 규정의 원본은 terms.html 제7조이고 여기는 그 요약이다 —
+     기간·부담 주체를 고칠 일이 생기면 두 곳을 함께 고친다. */
+  function withdrawNote() {
+    return '<p>발효식품 특성상 <b>개봉하셨거나 포장이 훼손된 상품은 교환·반품이 제한</b>됩니다. ' +
+      '단순 변심은 수령 후 7일 이내 신청하실 수 있고 왕복 배송비는 구매자 부담이며, ' +
+      '상품 하자·오배송은 조합이 전액 부담합니다. ' +
+      '자세한 내용은 <a href="terms.html#refund" target="_blank" rel="noopener">이용약관 제7조</a>에 있습니다.</p>';
+  }
+
   function payBoxHTML(mode, data) {
     var qty = Number((data && data.qty) || 1) || 1;
     var unit = Number((data && data.unitPrice) || 0) || 0;
@@ -1673,6 +1684,7 @@
         '<div id="payAmount">' + payAmountRows(ct.items) + '</div>' +
         '<div class="pay-row"><span>입금 기한</span><span>주문 후 3일 이내</span></div>' +
         '<p>입금자명은 ‘입금자명’ 항목과 동일하게 입금해 주세요. 입금 확인 후 결제완료 처리되며 순차 배송됩니다.</p>' +
+        withdrawNote() +
         (payBankIsSample() ? '<p class="pay-demo">※ 표시된 계좌번호는 <b>예시</b>입니다. 입금 전 02-855-8806 으로 확인해 주세요.</p>' : '') +
       '</div>';
     }
@@ -1688,6 +1700,8 @@
       totalRow +
       '<div class="pay-row"><span>입금 기한</span><span>주문 후 3일 이내</span></div>' +
       '<p>입금자명은 ‘입금자명’ 항목과 동일하게 입금해 주세요. 입금 확인 후 결제완료 처리되며 순차 배송됩니다. 주문 완료 시 발급되는 <b>주문번호</b>와 연락처(또는 이메일)로 언제든 주문을 조회할 수 있습니다.</p>' +
+      // 씨장 분양은 상담 후 용량·금액을 정하는 자리라 상품 주문의 철회 안내를 붙이지 않는다
+      (mode === 'note' ? '' : withdrawNote()) +
       (payBankIsSample()
         ? '<p class="pay-demo">※ 표시된 계좌번호는 <b>예시</b>입니다. 입금 전 02-855-8806 으로 확인해 주세요.</p>'
         : '') +
