@@ -1,0 +1,71 @@
+# 매일 D1 을 통째로 떠서 R2 에 보관한다.
+#
+# **왜 GitHub Actions 인가.** Cloudflare Pages Functions 에는 정해진 시각에 도는 자리가
+# 없다(크론은 Workers 기능이다). 백업 하나 때문에 Worker 를 따로 두는 것보다,
+# 이미 배포를 맡고 있는 곳에서 도는 편이 챙길 것이 적다.
+#
+# **왜 R2 인가.** 저장소에 커밋하면 안 된다 — 이 저장소는 공개이고 덤프에는
+# 회원 이름·연락처·주소가 들어 있다. Actions 산출물(artifact)도 저장소를 읽을 수 있는
+# 사람이면 받을 수 있어 같은 이유로 안 된다. R2 의 `backups/` 는 밖에서 닿지 않는다 —
+# 이미지 서빙 함수가 `images` 표에 있는 id 만 내주므로, 표에 없는 이 파일은 주소가 없다.
+#
+# **처음 한 번은 운영자가 해야 한다.** 저장소 Settings > Secrets and variables > Actions 에
+#   CLOUDFLARE_API_TOKEN   — D1 읽기·R2 쓰기 권한이 있는 토큰
+#   CLOUDFLARE_ACCOUNT_ID  — b8cc5609b10c4df5b8e31aec570937b8
+# 를 넣는다. 없으면 이 워크플로는 **조용히 실패하지 않고 멈춘다**(아래 확인 단계).
+#
+# 되돌리는 방법은 docs/deploy.md '복구' 절.
+name: 백업 — D1 → R2
+
+on:
+  schedule:
+    # 매일 03:00 KST (= 18:00 UTC 전날). 손님이 가장 적은 시간대다.
+    - cron: '0 18 * * *'
+  workflow_dispatch:        # 손으로도 돌릴 수 있게 둔다 — 큰 변경 직전에 한 번 뜬다
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 시크릿이 있는지 먼저 본다
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          # 없는 채로 진행하면 wrangler 가 애매한 오류를 내고 끝난다 —
+          # '백업이 돌고 있다'고 믿는 상태가 가장 위험하므로 여기서 분명히 멈춘다.
+          if [ -z "$TOKEN" ] || [ -z "$ACCOUNT" ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID 시크릿이 없습니다."
+            echo "저장소 Settings > Secrets and variables > Actions 에서 넣어 주세요."
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+
+      - name: D1 덤프
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          DAY=$(date -u +%Y-%m-%d)
+          echo "DAY=$DAY" >> "$GITHUB_ENV"
+          npx --yes wrangler@4 d1 export cham-db --remote --output="cham-$DAY.sql"
+          # 빈 파일이 올라가면 '백업이 있다'는 착각만 남는다
+          test -s "cham-$DAY.sql"
+          echo "덤프 크기: $(wc -c < "cham-$DAY.sql") 바이트"
+
+      - name: R2 로 올린다
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4 r2 object put \
+            "cham-media/backups/cham-${DAY}.sql" \
+            --file="cham-${DAY}.sql" --remote \
+            --content-type "application/sql"
+          echo "올림: backups/cham-${DAY}.sql"
