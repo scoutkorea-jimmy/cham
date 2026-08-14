@@ -140,7 +140,12 @@
       api('/api/members/signup', { method: 'POST', body: {
         username: v.username, password: v.password, name: v.name, phone: v.phone,
         email: v.email, postcode: v.postcode, address: v.address, addressDetail: v.addressDetail,
-        marketingOptin: !!v.marketingOptin, agreeTerms: true, agreePrivacy: true,
+        marketingOptin: !!v.marketingOptin,
+        /* 실제로 체크한 값을 보낸다. 예전에는 `true` 를 상수로 박아 두었는데,
+           바로 위에서 화면이 이미 막고 있으니 통과에는 지장이 없었다. 문제는
+           **서버가 남기는 동의 이력이 화면이 아니라 상수를 적게 된다**는 것이다.
+           증명하려고 남기는 기록이 늘 참이면 아무것도 증명하지 못한다. */
+        agreeTerms: !!v.agreeTerms, agreePrivacy: !!v.agreePrivacy,
       } }).then(function (r) {
         lock(btn, false);
         if (!r.ok) { say(msg, (r.data && r.data.error) || '가입하지 못했습니다.', 'bad'); return; }
@@ -210,6 +215,32 @@
   }
 
   /* ================= 마이페이지 ================= */
+
+  /* 동의 내역. **없다고 '동의하지 않았다'가 아니다** — 이 기록은 2026-08-15 부터
+     쌓이므로, 그 전에 가입하신 분은 비어 있다. 비어 있을 때 그 사실을 적지 않으면
+     "내 동의가 사라졌다"로 읽힌다. */
+  function consentRows(list) {
+    if (!list || !list.length) {
+      return '<p class="mp-sub">아직 남은 기록이 없습니다. 동의 내역은 <b>2026년 8월 15일</b>부터 ' +
+        '기록하기 시작했습니다 — 그 전에 가입·주문하신 분은 비어 있을 수 있습니다.</p>';
+    }
+    return '<ul class="mp-consent-list">' + list.map(function (c) {
+      var where = { signup: '회원가입', order: '주문', seedjang: '씨장 분양 신청',
+                    apply: '교육 신청', inquiry: '문의', mypage: '마이페이지', admin: '관리자 처리' }[c.where] || c.where || '';
+      return '<li>' +
+        '<span class="tag' + (c.granted ? '' : ' tag-off') + '">' + (c.granted ? '동의' : '철회') + '</span> ' +
+        '<b>' + esc(c.label) + '</b>' +
+        '<div class="mp-sub">' + fmtDate(c.at) +
+          (where ? ' · ' + esc(where) : '') +
+          (c.docVersion ? ' · ' + esc(c.docVersion) + ' 시행판' : '') + '</div>' +
+      '</li>';
+    }).join('') + '</ul>';
+  }
+  function paintConsents(list) {
+    var box = document.getElementById('mpConsents');
+    if (box) box.innerHTML = consentRows(list);
+  }
+
   function orderRows(orders) {
     if (!orders || !orders.length) {
       return '<tr><td colspan="4" style="text-align:center;color:var(--ink-mute);padding:24px">' +
@@ -301,6 +332,7 @@
         tb.innerHTML = orderRows(list);
         bindOrderRequests(tb, list);
       }
+      paintConsents(r.data.consents);
       icons();
     }).catch(function () {
       if (gate) gate.hidden = false;

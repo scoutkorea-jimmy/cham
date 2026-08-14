@@ -15,6 +15,7 @@ import {
 import { checkMemberId, checkEmail, normPhone, publicMember } from '../../_shared/members.js';
 import { json, badRequest, readJson, methodNotAllowed } from '../../_shared/http.js';
 import { makeThrottle } from '../../_shared/throttle.js';
+import { recordConsents } from '../../_shared/consent.js';
 
 const clean = (v, n) => (v == null ? null : String(v).trim().slice(0, n) || null);
 
@@ -83,6 +84,14 @@ export async function onRequestPost({ request, env }) {
     return json({ error: '가입을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.' }, 500);
   }
   if (!row) return json({ error: '가입을 처리하지 못했습니다.' }, 500);
+
+  /* 계정이 만들어진 **뒤에** 남긴다 — member_id 가 있어야 나중에 이 사람의 이력으로 편다.
+     실패해도 가입을 되돌리지 않는다. 동의는 위에서 이미 확인했고(없으면 여기 못 온다),
+     기록을 못 남겼다고 방금 만든 계정을 지우는 편이 더 나쁘다. */
+  await recordConsents(env, {
+    memberId: row.id, refKind: 'signup',
+    items: { terms: true, privacy: true, marketing: !!b.marketingOptin },
+  });
 
   const token = await createMemberToken(env.ADMIN_SECRET, { mid: row.id, username: row.username });
   const headers = new Headers({ 'Content-Type': 'application/json; charset=utf-8' });

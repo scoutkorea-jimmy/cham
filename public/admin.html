@@ -607,6 +607,12 @@
     font-size: 14.5px; background: var(--surface); }
   .mem-boards input { width: 17px; height: 17px; accent-color: var(--main); }
   .mem-boards label:has(input:checked) { border-color: var(--main); background: var(--main-tint); }
+  /* 회원 상세의 주문·동의 이력. 건수가 많을 수 있어 **모달 안에서만** 세로로 스크롤한다 —
+     모달 전체가 길어지면 아래 저장 버튼이 화면 밖으로 밀린다. */
+  .mem-log { max-height: 210px; overflow-y: auto; border: 1px solid var(--line);
+    border-radius: var(--r-sm); background: var(--surface-2); }
+  .mem-log-row { padding: 10px 13px; border-bottom: 1px solid var(--line-soft); font-size: 14px; }
+  .mem-log-row:last-child { border-bottom: none; }
 
   .tel-link { color: var(--info); font-weight: 600; font-variant-numeric: tabular-nums; }
   .tel-link:hover { text-decoration: underline; }

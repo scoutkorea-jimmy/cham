@@ -17,6 +17,7 @@ import { reservedFor } from '../_shared/stock.js';
 import { getMemberSession } from '../_shared/auth.js';
 import { json, badRequest, methodNotAllowed, readJson } from '../_shared/http.js';
 import { makeThrottle } from '../_shared/throttle.js';
+import { recordConsents } from '../_shared/consent.js';
 
 const MAX_LEN = 2000;
 const MAX_ITEMS = 20;          // 장바구니 한 번에 담을 수 있는 가짓수
@@ -123,12 +124,54 @@ export async function onRequestPost({ request, env }) {
   const now = new Date().toISOString();
   const id = uid();
 
+  /* 필수 동의 — **화면에서만 막지 않는다.** 이 창구는 화면을 거치지 않고도 부를 수 있다.
+     양식마다 받는 동의가 다르다(site.js 의 MODALS `consents`) — 여기와 그쪽이 어긋나면
+     손님은 체크했는데 서버가 거절한다. 바꿀 때 두 곳을 함께 본다. */
+  const REQUIRED_CONSENTS = {
+    order:    ['privacy', 'third'],
+    seedjang: ['privacy', 'third'],
+    apply:    ['privacy'],
+    inquiry:  ['privacy'],
+  };
+  const need = REQUIRED_CONSENTS[kind] || [];
+
+  /* `consents` 는 새 화면만 보낸다. 체크를 안 했으면 `false` 가 담겨 오므로,
+     **이 칸이 통째로 없다는 것은 옛 화면**이라는 뜻이다(체크를 안 한 것과 구분된다).
+     site.js 는 4시간 캐시라, 방금 배포해도 이미 열려 있는 창은 옛 화면 그대로다.
+     그 손님의 주문을 거절하면 체크를 했는데도 거절당한다 — 그래서 지금은 받는다.
+     → **캐시가 빠지면 이 갈래를 지운다.** docs/handoff.md T13 */
+  const sent = d.consents && typeof d.consents === 'object' ? d.consents : null;
+  if (sent) {
+    const missing = need.filter((k) => !sent[k]);
+    if (missing.length) {
+      return json({
+        error: '개인정보 수집·이용에 동의해 주셔야 접수할 수 있습니다.',
+        code: 'consent_required',
+      }, 400);
+    }
+  }
+  /* 기록에는 **받은 그대로** 적는다. 옛 화면이면 무엇에 동의했는지 서버가 모르므로
+     아무것도 적지 않는다 — 모르는 것을 '동의함'으로 적으면 기록이 거짓이 된다. */
+  const consentItems = sent ? need.reduce((o, k) => { o[k] = !!sent[k]; return o; }, {}) : null;
+
+  /* 접수가 **된 뒤에** 부른다 — 접수가 실패했는데 동의 기록만 남으면
+     가리키는 곳이 없는 줄이 된다. 회원이면 쿠키로 판정한 id 로 묶는다
+     (브라우저가 보낸 값은 믿지 않는다 — 아래 주문 처리와 같은 이유다). */
+  const logConsent = async (refId) => {
+    if (!consentItems) return;
+    const ms = await getMemberSession(request, env);
+    await recordConsents(env, {
+      memberId: ms ? ms.mid : null, refKind: kind, refId, items: consentItems,
+    });
+  };
+
   if (kind === 'apply') {
     if (!clean(d.name) || !clean(d.phone)) return badRequest('이름과 연락처를 입력해 주세요.');
     await env.DB.prepare(APP_INSERT).bind(...appBind({
       id, name: clean(d.name, 60), phone: clean(d.phone, 40), region: clean(d.region, 80),
       course: clean(d.course, 120), memo: clean(d.memo, MAX_LEN), status: '신규', at: now,
     })).run();
+    await logConsent(id);
     return json({ ok: true, id }, 201);
   }
 
@@ -138,6 +181,7 @@ export async function onRequestPost({ request, env }) {
       id, name: clean(d.name, 60), phone: clean(d.phone, 40), type: clean(d.type, 40),
       memo: clean(d.memo, MAX_LEN), status: '신규', at: now,
     })).run();
+    await logConsent(id);
     return json({ ok: true, id }, 201);
   }
 
@@ -228,6 +272,8 @@ export async function onRequestPost({ request, env }) {
     env.DB.prepare(ORDER_INSERT).bind(...orderObjToBind(rec)),
     ...itemStmts,
   ]);
+  // 비회원 주문은 이 기록이 동의를 되짚는 유일한 실마리다 — 주문번호가 아니라 id 로 묶는다
+  await logConsent(id);
   return json({
     ok: true, id, orderNo,
     total: rec.total ?? null, shipFee: rec.shipFee ?? null, itemCount: rec.itemCount ?? null,

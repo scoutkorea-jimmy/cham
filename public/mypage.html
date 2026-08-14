@@ -29,6 +29,11 @@
   .mp-table th { background: var(--surface-2); font-size: var(--fs-caption); color: var(--ink-soft); font-weight: 700; white-space: nowrap; }
   .mp-table tr:last-child td { border-bottom: none; }
   .mp-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s4); flex-wrap: wrap; }
+  /* 동의 내역 — 한 줄에 '무엇에 · 언제 · 어느 판'. 표로 만들면 좁은 화면에서 또 넘친다 */
+  .mp-consent-list { list-style: none; margin: 0; padding: 0; }
+  .mp-consent-list li { padding: 12px 0; border-bottom: 1px solid var(--line-soft); font-size: var(--fs-sm); }
+  .mp-consent-list li:last-child { border-bottom: none; }
+  .tag-off { background: var(--surface-2); color: var(--ink-mute); }
   /* 탈퇴 안내 — 되돌릴 수 없는 일이라 무엇이 지워지고 무엇이 남는지를 먼저 읽게 한다 */
   .mp-danger { background: var(--surface-2); border-radius: var(--r-md); padding: 16px 18px;
     font-size: var(--fs-sm); color: var(--ink-soft); line-height: var(--lh-relaxed); }
@@ -188,6 +193,17 @@
       <p class="muted" style="margin:var(--gap-related) 0 0;font-size:var(--fs-caption)">
         바꾸시면 다른 기기에서 로그인된 것은 모두 끊깁니다. 이 화면은 그대로 쓰실 수 있습니다.
       </p>
+    </div>
+
+    <div class="card card-pad">
+      <h4 style="margin:0 0 var(--gap-related)">내 자료 내려받기</h4>
+      <p class="mp-sub">조합이 보관 중인 회원님의 정보를 <b>한 파일로</b> 받으실 수 있습니다. 회원 정보 · 주문 내역 · 동의하신 내역이 담깁니다.</p>
+      <p class="mp-sub">비회원으로 넣으신 주문과 교육 신청·문의는 계정과 묶는 값이 없어 담기지 않습니다. 필요하시면 <b>02-855-8806</b>으로 요청해 주세요.</p>
+      <p><a class="btn btn-ghost" id="mpExport" href="/api/members/export"><i data-lucide="download"></i>내 자료 내려받기</a></p>
+
+      <h4 style="margin:var(--gap-group) 0 var(--gap-related)">동의 내역</h4>
+      <p class="mp-sub">언제 · 어느 판의 문서에 동의하셨는지 남겨 둔 기록입니다.</p>
+      <div id="mpConsents" class="mp-consents"><p class="mp-sub">불러오는 중…</p></div>
     </div>
 
     <div class="card card-pad">

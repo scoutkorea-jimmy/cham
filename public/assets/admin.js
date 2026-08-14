@@ -2445,11 +2445,61 @@
       (o.ph ? ' placeholder="' + esc(o.ph) + '"' : '') + (o.ro ? ' readonly' : '') + '></div>';
   }
 
-  function openMemberEdit(m) {
+  /* 회원을 보다가 '이 사람이 뭘 샀지'를 확인하려면 주문 목록으로 가서 이름으로 다시
+     찾아야 했다 — 동명이인이면 그것도 확실하지 않다. 서버가 member_id 로 묶어 준 것만
+     여기 편다(연락처로 끌어오지 않는다 — 가족이 번호를 함께 쓴다). */
+  function memberOrdersHTML(orders) {
+    if (!orders) return '';
+    if (!orders.length) {
+      return '<div class="field full"><label>주문 내역</label>' +
+        '<p class="pc-sub">회원으로 로그인한 채 넣은 주문이 없습니다. ' +
+        '비회원으로 넣은 주문은 계정과 묶이지 않아 여기 나오지 않습니다.</p></div>';
+    }
+    var sum = orders.reduce(function (n, o) { return n + (Number(o.total) || 0); }, 0);
+    return '<div class="field full"><label>주문 내역 ' +
+      '<span class="pc-sub" style="font-weight:400">' + orders.length + '건 · 합계 ' + fmtWon(sum) + '원</span></label>' +
+      '<div class="mem-log">' + orders.map(function (o) {
+        return '<div class="mem-log-row">' +
+          '<b style="font-variant-numeric:tabular-nums">' + esc(o.orderNo || '-') + '</b> ' +
+          stTag(o.status) +
+          '<div class="pc-sub">' + esc((o.at || '').slice(0, 10)) + ' · ' +
+            esc(o.product || o.amount || '-') +
+            (o.total ? ' · ' + fmtWon(o.total) + '원' : '') + '</div>' +
+        '</div>';
+      }).join('') + '</div></div>';
+  }
+
+  /* 동의 이력 — '언제 · 무엇에 · 어느 판'. 없다고 동의하지 않은 것이 아니라
+     2026-08-15 부터 쌓기 시작한 기록이라, 비었으면 그 사실을 함께 적는다. */
+  function memberConsentsHTML(list) {
+    if (!list) return '';
+    if (!list.length) {
+      return '<div class="field full"><label>동의 이력</label>' +
+        '<p class="pc-sub">남은 기록이 없습니다. 동의 이력은 <b>2026년 8월 15일</b>부터 쌓습니다 — ' +
+        '그 전에 가입·주문한 분은 비어 있습니다. <b>동의하지 않았다는 뜻이 아닙니다.</b></p></div>';
+    }
+    var WHERE = { signup: '회원가입', order: '주문', seedjang: '씨장 분양', apply: '교육 신청',
+                  inquiry: '문의', mypage: '마이페이지', admin: '관리자 처리' };
+    return '<div class="field full"><label>동의 이력 ' +
+      '<span class="pc-sub" style="font-weight:400">' + list.length + '건</span></label>' +
+      '<div class="mem-log">' + list.map(function (c) {
+        return '<div class="mem-log-row">' +
+          '<span class="tag' + (c.granted ? ' olive' : '') + '">' + (c.granted ? '동의' : '철회') + '</span> ' +
+          '<b>' + esc(c.label) + '</b>' +
+          '<div class="pc-sub">' + esc((c.at || '').slice(0, 16)) +
+            (c.where ? ' · ' + esc(WHERE[c.where] || c.where) : '') +
+            (c.docVersion ? ' · ' + esc(c.docVersion) + ' 시행판' : '') + '</div>' +
+        '</div>';
+      }).join('') + '</div></div>';
+  }
+
+  function openMemberEdit(m, orders, consents) {
     var isNew = !m;
     S.rawModal(
       '<div class="modal-head"><div><div class="eyebrow">일반 계정</div><h3>' + (isNew ? '회원 등록' : esc(m.name)) + '</h3>' +
-        '<p>필수 항목은 이름과 휴대전화번호입니다.</p></div>' +
+        '<p>' + (isNew ? '필수 항목은 이름과 휴대전화번호입니다.'
+          : '가입 ' + esc((m.createdAt || '').slice(0, 10)) +
+            ' · 마지막 로그인 ' + (m.lastLoginAt ? esc(m.lastLoginAt.slice(0, 16)) : '기록 없음')) + '</p></div>' +
         '<button class="modal-close" data-modal-close aria-label="닫기"><i data-lucide="x"></i></button></div>' +
       '<div class="modal-body"><div class="mem-form" data-mem-id="' + (isNew ? '' : m.id) + '">' +
         '<div class="form-grid">' +
@@ -2475,6 +2525,8 @@
               return '<label><input type="checkbox" data-mfboard="' + esc(b) + '"' + (on ? ' checked' : '') + '>' + esc(b) + '</label>';
             }).join('') + '</div>' +
             '<span class="hint">글쓴이 본인이 쓴 글만 고치고 지울 수 있습니다. 사진 갤러리는 관리자만 다룹니다.</span></div>' +
+          memberOrdersHTML(orders) +
+          memberConsentsHTML(consents) +
         '</div>' +
         '<div class="login-msg" id="mfMsg"></div>' +
         '<div class="modal-foot">' +
@@ -3615,7 +3667,7 @@
     } else if (act === 'memEdit') {
       S.api('/api/admin/members/' + b.dataset.id).then(function (r) {
         if (!r.ok) { alert(r.data.error || '불러오지 못했습니다.'); return; }
-        openMemberEdit(r.data.member);
+        openMemberEdit(r.data.member, r.data.orders, r.data.consents);
       });
     } else if (act === 'memSave') {
       saveMember();

@@ -9,6 +9,8 @@ import { getSession, hashPassword, checkPasswordStrength } from '../../../_share
 import { boardsToColumn } from '../../../_shared/boards.js';
 import { can } from '../../../_shared/perm.js';
 import { checkEmail, normPhone, publicMember } from '../../../_shared/members.js';
+import { orderRowToObj } from '../../../_shared/store.js';
+import { memberConsents } from '../../../_shared/consent.js';
 import { json, badRequest, forbidden, notFound, readJson } from '../../../_shared/http.js';
 
 const clean = (v, n) => (v == null ? null : String(v).trim().slice(0, n) || null);
@@ -16,9 +18,28 @@ const clean = (v, n) => (v == null ? null : String(v).trim().slice(0, n) || null
 export async function onRequestGet({ request, env, params, data }) {
   const s = (data && data.session) || await getSession(request, env);
   if (!can(s, 'members.view')) return forbidden();
-  const row = await env.DB.prepare(`SELECT * FROM members WHERE id = ?`).bind(Number(params.id)).first();
+  const id = Number(params.id);
+  const row = await env.DB.prepare(`SELECT * FROM members WHERE id = ?`).bind(id).first();
   if (!row) return notFound('회원을 찾을 수 없습니다.');
-  return json({ member: publicMember(row, true) });
+
+  /* 이 사람의 주문을 함께 준다. 지금까지는 회원을 보다가 주문을 확인하려면
+     주문 목록으로 가서 이름으로 다시 찾아야 했다 — 동명이인이면 그것도 확실하지 않다.
+     여기서는 **member_id 로 묶인 것**만 준다(연락처로 끌어오지 않는다).
+     품목 줄(order_items)까지는 붙이지 않는다 — 상세 화면은 '몇 건·얼마·어떤 상태'를
+     보는 자리이고, 품목까지 보려면 주문 화면이 이미 있다. */
+  let orders = [];
+  try {
+    const { results } = await env.DB.prepare(
+      `SELECT * FROM orders WHERE member_id = ? ORDER BY created_at DESC LIMIT 50`
+    ).bind(id).all();
+    orders = (results || []).map(orderRowToObj);
+  } catch { orders = []; }
+
+  return json({
+    member: publicMember(row, true),
+    orders,
+    consents: await memberConsents(env, id, 50),
+  });
 }
 
 export async function onRequestPatch({ request, env, params, data }) {

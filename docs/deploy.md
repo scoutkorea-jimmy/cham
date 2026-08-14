@@ -42,12 +42,28 @@ npx wrangler d1 create cham-db
 npx wrangler r2 bucket create cham-media
 ```
 
-스키마를 운영 D1 에 적용한다.
+스키마를 운영 D1 에 적용한다. `db/` 안의 파일을 **번호순으로 모두** 넣는다.
 
 ```bash
-npx wrangler d1 execute cham-db --remote --file=db/0001_auth.sql
-npx wrangler d1 execute cham-db --remote --file=db/0002_data.sql
+for f in db/0*.sql; do npx wrangler d1 execute cham-db --remote --file="$f"; done
 ```
+
+> **`--file` 이 `Authentication error [code: 10000]` 로 막히면** 토큰에 D1 *import* 권한이
+> 없는 것이다(질의 권한만 있는 토큰으로도 `--command` 는 된다). 대시보드에서 토큰 권한을
+> 올리거나, 파일 안의 문장을 하나씩 `--command` 로 넣는다 —
+> 실제로 `db/0010_consent_log.sql` 을 그렇게 넣었다.
+>
+> ```bash
+> npx wrangler d1 execute cham-db --remote --command "CREATE TABLE …"
+> ```
+>
+> 넣은 뒤에는 **표가 생겼는지 눈으로 확인한다.** 성공 메시지만 보고 넘어가면
+> 표가 없는 채로 코드만 배포된다.
+>
+> ```bash
+> npx wrangler d1 execute cham-db --remote --command \
+>   "SELECT name, type FROM sqlite_master WHERE name LIKE '%찾는이름%';"
+> ```
 
 ## 2. 시크릿
 

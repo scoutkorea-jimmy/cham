@@ -1638,13 +1638,17 @@
     return '<div class="field' + (f.full ? ' full' : '') + '"><label for="' + id + '">' + esc(f.label) + star + '</label>' + ctrl + '</div>';
   }
 
+  /* 체크박스에 `name` 을 붙인다. 없으면 FormData 에 담기지 않아 **서버는 동의 여부를
+     아예 못 본다** — 화면만 막고 있는 상태였다. 서버가 확인해야 창구를 직접 부르는
+     요청도 걸리고, 동의 이력에 적을 값도 생긴다(functions/_shared/consent.js). */
   function consentHTML(keys) {
     var c = getConsents();
     return keys.map(function (k) {
       var t = c[k];
       return '<div class="consent-box">' +
         '<div class="consent-head">' +
-          '<label><input type="checkbox" class="consent-chk"><span>[필수] ' + esc(t.title) + '</span></label>' +
+          '<label><input type="checkbox" class="consent-chk" name="consent_' + k + '" value="1">' +
+            '<span>[필수] ' + esc(t.title) + '</span></label>' +
           '<button type="button" class="consent-toggle" data-consent-toggle>전문 보기 <i data-lucide="chevron-down"></i></button>' +
         '</div>' +
         '<div class="consent-body" hidden>' + esc(t.body) + '</div>' +
@@ -1789,6 +1793,18 @@
     fd.forEach(function(v, k){ data[k] = v; });
     var type = form.getAttribute('data-type');
     data.kind = type;
+
+    /* 동의를 **명시적으로** 담는다. 체크박스는 안 눌렀을 때 FormData 에서 아예 빠지므로,
+       그것만으로는 서버가 '안 눌렀다'와 '옛 화면이라 보내지 않았다'를 구분하지 못한다.
+       빈 객체라도 이 칸이 있으면 새 화면이라는 뜻이다 → functions/api/submit.js */
+    data.consents = {};
+    [].forEach.call(form.querySelectorAll('.consent-chk'), function (chk) {
+      var nm = chk.getAttribute('name') || '';
+      var key = nm.replace(/^consent_/, '');
+      if (!key) return;
+      data.consents[key] = !!chk.checked;
+      delete data[nm];      // 체크한 것은 FormData 에도 들어와 있다 — 한 벌만 남긴다
+    });
     var isOrder = (type === 'order' || type === 'seedjang');
     var isCart = form.getAttribute('data-cart') === '1';
     if (isCart) {

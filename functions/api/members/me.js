@@ -12,6 +12,7 @@ import {
 } from '../../_shared/auth.js';
 import { checkEmail, normPhone, publicMember } from '../../_shared/members.js';
 import { orderRowToObj, attachOrderItems } from '../../_shared/store.js';
+import { recordConsents, memberConsents } from '../../_shared/consent.js';
 import { json, badRequest, readJson, methodNotAllowed } from '../../_shared/http.js';
 
 const clean = (v, n) => (v == null ? null : String(v).trim().slice(0, n) || null);
@@ -31,7 +32,7 @@ export async function onRequestGet({ request, env }) {
     orders = await attachOrderItems(env, (results || []).map(orderRowToObj));
   } catch { orders = []; }
 
-  return json({ member: publicMember(s.member, true), orders });
+  return json({ member: publicMember(s.member, true), orders, consents: await memberConsents(env, s.mid) });
 }
 
 export async function onRequestPatch({ request, env }) {
@@ -92,6 +93,16 @@ export async function onRequestPatch({ request, env }) {
               marketing_optin = ?, updated_at = datetime('now') WHERE id = ?`
     ).bind(name, phone, email, postcode, address, addressDetail, optin, s.mid).run();
   } catch { return json({ error: '저장하지 못했습니다.' }, 500); }
+
+  /* 마케팅 수신은 **켠 것도 끈 것도** 남긴다. 지금 값만 들고 있으면
+     "동의한 적 없다"에도, "분명히 껐다"에도 댈 것이 없다.
+     바뀌지 않았으면 적지 않는다 — 주소 한 줄 고칠 때마다 같은 줄이 쌓인다. */
+  const was = s.member.marketing_optin ? 1 : 0;
+  if (optin !== was) {
+    await recordConsents(env, {
+      memberId: s.mid, refKind: 'mypage', items: { marketing: !!optin },
+    });
+  }
 
   const row = await env.DB.prepare(`SELECT * FROM members WHERE id = ?`).bind(s.mid).first();
   return json({ ok: true, member: publicMember(row, true) });
