@@ -2089,6 +2089,7 @@ function viewSettings() {
       field('founded', '설립일', '', '2021년 11월 1일') +
       field('bizNo', '사업자등록번호', '', '869-81-02406') +
       field('mailOrderNo', '통신판매업 신고번호', '', '2025-서울구로-1345') +
+      field('trademark', '상표등록', '(소개 페이지 등록 사항과 식초 페이지에 함께 표시됩니다)', '서연(瑞蓮) — 제 40-2572359 호 (2026.07.22 등록 · 제30류 와인식초 등 10건)') +
       areaField('bizType', '업태 · 종목', '(여러 줄 입력 가능)', 2) +
       areaField('eduCert', '교육 인증', '', 2) +
       areaField('productTest', '제품 시험 · 검사', '', 2) +

@@ -1182,6 +1182,7 @@
     bizType: '교육서비스업 — 발효식품교육, 체험학습\n도소매업 — 발효식품, 전자상거래',  // 업태·종목(여러 줄)
     eduCert: '교육부 교육기부 진로체험 인증기관',
     productTest: '발효식초 총산 4.7%(기준 4.00~20.00) 적합 — 강원특별자치도보건환경연구원 (2025.04.30)',
+    trademark: '서연(瑞蓮) — 제 40-2572359 호 (2026.07.22 등록 · 제30류 와인식초 등 10건)',  // 상표등록. 소개·식초 두 페이지가 이 값 하나를 본다
     lat: 37.50331, lng: 126.88262,         // 약도 핀 좌표
     // 검색 노출 — 서버가 <head> 에 넣는다(functions/_shared/seo.js). 비워 두면 넣지 않는다.
     seoGoogle: '',                         // 구글 서치콘솔 소유확인 코드
@@ -2039,6 +2040,24 @@
   // 방금 조회에 쓴 연락처. 신청할 때 본인 확인에 다시 필요한데,
   // 결과 화면에는 개인정보를 그리지 않으므로 여기에 들고 있는다.
   var lookupContact = '';
+  /* 등록증·증서를 큰 그림으로 펼친다.
+     화면에는 축소본만 두고 원본은 여기서 본다 — 문서는 확인하러 오는 것이지 읽으며 지나가는 것이 아니다.
+     무엇을 펼칠지는 부르는 자리가 data-src 로 정한다. 문서가 늘어도 길은 이 하나다. */
+  function openDoc(d) {
+    var src = (d && d.src) || ''; if (!src) return;
+    var title = (d && d.caption) || '문서 보기';
+    rawModal(
+      '<div class="modal-head"><div><div class="eyebrow">' + esc((d && d.kicker) || '공식 문서') + '</div><h3>' + esc(title) + '</h3></div>' +
+        '<button class="modal-close" data-modal-close aria-label="닫기"><i data-lucide="x"></i></button></div>' +
+      /* 닫기 버튼을 따로 두지 않는다 — 머리의 ✕ 와 바깥 클릭이 이미 그 일을 한다.
+         버튼 줄을 넣으면 그림에 쓸 높이를 뺏겨 세로로 긴 문서가 스크롤 안으로 밀린다. */
+      '<div class="modal-body">' +
+        '<img class="doc-full" src="' + esc(src) + '" alt="' + esc((d && d.alt) || title) + '">' +
+        '<p class="note doc-note"><a href="' + esc(src) + '" target="_blank" rel="noopener">' +
+          '<i data-lucide="external-link"></i>원본 크기로 열기</a></p>' +
+      '</div>', 760);
+  }
+
   function openOrderLookup() {
     rawModal(
       '<div class="modal-head"><div><div class="eyebrow">비회원 주문</div><h3>주문 조회</h3><p>주문번호와 연락처(또는 이메일)를 입력하시면 진행 상태를 확인할 수 있습니다.</p></div>' +
@@ -2209,6 +2228,7 @@
         e.preventDefault();
         var t = trigger.getAttribute('data-modal');
         if (t === 'orderlookup') { openOrderLookup(); return; }
+        if (t === 'doc') { openDoc(trigger.dataset); return; }
         openModal(t, trigger.dataset);
         return;
       }
@@ -2430,7 +2450,7 @@
     IMG_SLOTS: IMG_SLOTS, renderSlotImages: renderSlotImages, slotPos: slotPos, applySlot: applySlot,
     requireAdmin: requireAdmin, verifyLogin: verifyLogin, lockMs: lockMs,
     postWriter: postWriter, forgetPostWriter: forgetPostWriter,
-    openModal: openModal, closeModal: closeModal, rawModal: rawModal, openOrderLookup: openOrderLookup,
+    openModal: openModal, closeModal: closeModal, rawModal: rawModal, openOrderLookup: openOrderLookup, openDoc: openDoc,
     openOrderRequest: openOrderRequest, orderReqOptions: orderReqOptions, orderReqNote: orderReqNote,
     openCart: openCart, cartAdd: cartAdd, cartCount: cartCount, unitPriceOf: unitPriceOf,
     getPartners: getPartners, setPartners: setPartners, renderPartnersStrip: renderPartnersStrip, partnerDefaults: PARTNER_DEFAULTS,
