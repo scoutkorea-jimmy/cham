@@ -926,8 +926,14 @@ body { background-image: var(--pat-dark); background-size: var(--pat-size); back
 /* 문서는 확인하러 오는 것이지 읽으며 지나가는 것이 아니다.
    그래서 화면에는 작게 두고, 누르면 모달에서 원본 크기로 편다(site.js openDoc).
    기재 내용을 옆에 글자로도 적는 이유: 그림이 안 뜨거나 화면낭독기를 쓰는 손님도 읽어야 한다. */
-.cert { display: grid; grid-template-columns: minmax(0, 210px) minmax(0, 1fr); gap: var(--gap-group); align-items: start; }
+/* 3:7 — 증서는 '있다'는 표시이고 읽는 것은 옆의 글이다. 좁은 화면에서도 세로로 접지 않는다:
+   접으면 축소본이 화면 폭을 다 먹어 문서가 본문 행세를 한다 */
+.cert { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 7fr); gap: var(--gap-related); align-items: start; }
+/* 아래 띠는 화면 폭이 아니라 '이 축소본이 몇 px 인가'를 보고 줄여야 한다 —
+   같은 390px 화면에서도 카드 폭에 따라 축소본 폭이 달라진다.
+   질의를 받는 쪽은 자손(.cert-zoom)이다. 컨테이너는 자기 자신을 질의하지 못한다 */
 .cert-thumb { display: block; position: relative; border-radius: var(--r-sm); overflow: hidden;
+  container-type: inline-size;
   border: 1px solid var(--line); background: var(--surface-2); box-shadow: var(--sh-sm);
   transition: box-shadow var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease); }
 .cert-thumb:hover { box-shadow: var(--sh-md); transform: translateY(-2px); }
@@ -938,17 +944,22 @@ body { background-image: var(--pat-dark); background-size: var(--pat-size); back
    늘 보이게 두는 이유: 호버로만 알리면 손가락으로 쓰는 손님에게는 없는 것과 같다 */
 .cert-thumb .cert-zoom { display: flex; align-items: center; justify-content: center; gap: 6px;
   padding: 9px 10px; background: var(--surface-2); border-top: 1px solid var(--line);
-  color: var(--ink-soft); font-size: var(--fs-caption); font-weight: 700;
+  color: var(--ink-soft); font-size: var(--fs-caption); font-weight: 700; white-space: nowrap;
   transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease); }
 .cert-thumb:hover .cert-zoom { background: var(--main-tint); color: var(--main); }
-.cert-thumb .cert-zoom i[data-lucide] { width: 15px; height: 15px; }
+/* 선택자를 `i[data-lucide]` 로 쓰지 않는다 — lucide 는 `<i>` 를 `<svg>` 로 **교체**하므로
+   화면이 뜬 뒤에는 `<i>` 가 없다. 속성만으로 고른다 */
+.cert-thumb .cert-zoom [data-lucide] { width: 15px; height: 15px; }
+/* 폭이 카드의 3할뿐이라 좁은 화면에서는 글자와 아이콘이 함께 설 자리가 없다.
+   남길 것은 글자다 — 돋보기만 남으면 무엇이 열리는지 알 수 없다 */
+@container (max-width: 150px){
+  .cert-thumb .cert-zoom { gap: 0; padding: 8px 4px; }
+  .cert-thumb .cert-zoom [data-lucide] { display: none; }
+}
 /* 카드 안이라 .stack 의 덩어리 간격(44px)은 넓다 — 한 덩어리로 읽히게 문단 간격을 쓴다 */
 .cert > div > * + * { margin-top: var(--gap-related); }
 .cert > div > .eyebrow + h3 { margin-top: var(--gap-tight); }
-@media (max-width: 700px){
-  .cert { grid-template-columns: 1fr; gap: var(--gap-related); }
-  .cert-thumb { max-width: 260px; }
-}
+@media (min-width: 700px){ .cert { gap: var(--gap-group); } }
 /* 모달 안의 원본 — 세로로 긴 문서라 화면 높이를 넘지 않게 묶는다.
    폭을 100% 로 고정하면 높이 제한에 걸린 그림 좌우로 빈 띠가 남는다 → 폭은 내용에 맡기고 가운데 세운다 */
 /* 62vh — 남는 30vh 가 머리글과 아래 링크 자리다. 여기서 더 키우면 대화상자(92vh)를 넘겨
@@ -957,7 +968,7 @@ body { background-image: var(--pat-dark); background-size: var(--pat-size); back
   border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--surface-2); }
 .doc-note { text-align: center; }
 .doc-note a { display: inline-flex; align-items: center; gap: 6px; color: var(--main); font-weight: 700; }
-.doc-note i[data-lucide] { width: 15px; height: 15px; }
+.doc-note [data-lucide] { width: 15px; height: 15px; }
 
 /* ============================================================
    가격표 — 실제 판매가 고지용 표
