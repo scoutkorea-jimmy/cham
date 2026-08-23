@@ -57,6 +57,7 @@ a.evaluate("""(id)=>{const g=document.querySelector(`[data-navgroup="${id}"]`);
 | `./venv/bin/python .claude/skills/verify/tools/concurrent_edit.py` | 두 사람이 동시에 저장하면 앞 사람 작업이 남는가 |
 | `./venv/bin/python .claude/skills/verify/tools/data_window.py` | **1년 이전 자료가 살아남는가** — 구조를 건드리면 반드시 돌린다 |
 | `./venv/bin/python .claude/skills/verify/tools/payload_size.py` | 시작 적재량·저장 1회 전송량 실측 |
+| `./venv/bin/python .claude/skills/verify/tools/crawler_view.py` | **크롤러가 받는 문서** — 본문 글자 수 · 제목 중복 · JSON-LD. 사이트맵이 실은 상세 주소까지 |
 
 ## 재는 도구가 먼저 틀린다
 
@@ -114,6 +115,15 @@ a.evaluate("""(id)=>{const g=document.querySelector(`[data-navgroup="${id}"]`);
 
 **숫자만 보지 말고 화면을 본다.** 절 수·앵커·넘침이 모두 정상인데 화면이 통째로
 비어 있던 적이 있다(`.reveal` 이 해제되지 않아 투명하게 남았다).
+
+**화면이 멀쩡해도 크롤러에게는 빈 문서일 수 있다.** 자바스크립트로 그리는 화면을
+사이트맵에 실을 때는 `crawler_view.py` 를 돌린다 — 상품 상세 14건이 **본문 21자에
+제목이 전부 같은 문서**인 채로 색인 요청이 나가고 있던 적이 있다. 브라우저로 열어 본
+화면은 아무 이상이 없었다 → [docs/failures.md](../../../docs/failures.md)
+
+**운영 설정을 쓰는 코드는 로컬 통과가 통과가 아니다.** 로컬 D1 에는 설정이 비어 있어
+기본값으로 떨어진다. 실제 설정값(`/api/bootstrap` 의 `settings`)을 받아 그 함수를 직접
+돌려 본다 — 그러지 않아 검색 제목에 `(법인사업자)` 가 나간 적이 있다.
 
 **검증하며 만든 데이터는 지운다.** 시험 주문이 매출로 잡힌다.
 관리자 화면과 `login.html` 은 방문 집계에서 빠져 있어 그쪽 검증은 안전하다.
