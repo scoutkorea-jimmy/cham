@@ -41,6 +41,9 @@ export function onRequestGet({ request }) {
     '',
     `Sitemap: ${origin}/sitemap.xml`,
     '',
+    '# 소식 글은 RSS 로도 나갑니다 — 네이버 서치어드바이저에 따로 낼 수 있습니다.',
+    `# Feed: ${origin}/rss.xml`,
+    '',
   ].join('\n');
 
   return new Response(body, {

@@ -83,6 +83,10 @@
 
   /* ================= 제품 목록 페이지 ================= */
   function renderLists() {
+    /* 서버가 넣어 둔 목록을 걷는다 — 여기부터는 이 화면이 같은 상품을 보여 준다.
+       (크롤러는 스크립트를 돌리지 않으므로 서버가 넣은 쪽을 읽는다) */
+    var ssr = document.getElementById('pl-ssr');
+    if (ssr) ssr.innerHTML = '';
     var any = false;
     var products = S.getProducts().filter(function (p) { return p.status !== '숨김'; });
     S.PRODUCT_CATS.forEach(function (cat) {
@@ -169,6 +173,11 @@
   function renderDetail() {
     var rootEl = document.getElementById('pdRoot');
     if (!rootEl) return;
+    /* 서버가 넣어 둔 본문을 걷는다 — 여기부터는 이 화면이 같은 상품을 보여 준다.
+       두 곳에 같은 상품이 보이면 어느 것이 진짜인지 알 수 없다.
+       (크롤러는 스크립트를 돌리지 않으므로 서버가 넣은 쪽을 읽는다) */
+    var ssr = document.getElementById('pd-ssr');
+    if (ssr) ssr.innerHTML = '';
     var p = S.getProduct(qs('id'));
     if (!p || p.status === '숨김') {
       rootEl.innerHTML = '<div class="wrap" style="padding:96px 32px;text-align:center">' +
@@ -190,18 +199,28 @@
     var ask = !!p.priceOnRequest;
     var basePrice = p.salePrice != null && p.salePrice !== '' ? Number(p.salePrice) : Number(p.price);
 
-    /* --- JSON-LD (SEO) --- */
-    try {
+    /* --- JSON-LD (SEO) ---
+       **서버가 넣은 것이 있으면 넣지 않는다.** 운영에서는 `product-seo.js` 가 사진·재고·
+       배송비까지 담아 이미 실어 보냈다 — 같은 Product 가 둘이면 구글이 어느 쪽을 볼지
+       알 수 없다. 여기 것은 `/api` 가 없는 로컬 검증 화면에서만 쓰인다. */
+    if (!document.querySelector('script[type="application/ld+json"][data-ssr="detail"]')) {
       var ld = document.createElement('script');
       ld.type = 'application/ld+json';
-      ld.textContent = JSON.stringify({
+      var ldDoc = {
         '@context': 'https://schema.org', '@type': 'Product',
-        name: p.name, description: p.summary,
-        offers: { '@type': 'Offer', price: basePrice, priceCurrency: 'KRW', availability: soldout ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock' },
+        name: p.name, description: p.summary, sku: p.id,
         brand: { '@type': 'Brand', name: '한국참전통발효식품협동조합' },
-      });
+      };
+      // 화면에 '가격 문의'라고 써 두고 구조화 데이터에만 숫자를 실으면 표시가 어긋난 것이다
+      if (!ask) {
+        ldDoc.offers = {
+          '@type': 'Offer', price: String(basePrice), priceCurrency: 'KRW',
+          availability: soldout ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
+        };
+      }
+      ld.textContent = JSON.stringify(ldDoc);
       document.head.appendChild(ld);
-    } catch (e) {}
+    }
 
     var optHtml = '';
     if (p.option && p.option.values && p.option.values.length) {

@@ -3,13 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>제품 · 수제식초 서연(瑞蓮) — 한국참전통발효식품협동조합</title>
-<meta name="description" content="수제 발효식초 서연(瑞蓮) 오미자·포도·감귤·매실·수박 식초와 수제 와인, 전통 장류·선물세트. 300ml 25,000원 · 500ml 35,000원. 회원가입 없이 비회원 주문이 가능합니다.">
+<title>선물세트 · 수제식초 서연(瑞蓮)과 전통 장류 — 한국참전통발효식품협동조합</title>
+<meta name="description" content="추석·설 명절 선물세트 — 전통 된장·고추장·막장 3종 세트와 수제 발효식초 서연(瑞蓮) 선물상자. 오미자·포도·감귤·매실·수박 식초 300ml 25,000원 · 500ml 35,000원. 회원가입 없이 비회원 주문, 단체·답례품 별도 견적.">
+<meta name="keywords" content="명절 선물세트, 추석 선물세트, 전통장류 선물, 수제식초 선물세트, 된장 고추장 막장 세트, 발효식품 선물, 서연 식초, 답례품, 기업 명절선물">
 <meta name="robots" content="index,follow">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="한국참전통발효식품협동조합">
-<meta property="og:title" content="제품 · 수제식초 서연(瑞蓮) — 한국참전통발효식품협동조합">
-<meta property="og:description" content="수제 발효식초·와인, 전통 장류, 선물세트 — 비회원 주문 가능, 무통장입금.">
+<meta property="og:title" content="명절 선물세트 · 수제식초 서연(瑞蓮)과 전통 장류">
+<meta property="og:description" content="추석·설 명절 선물세트 — 전통 장 3종과 수제식초 선물상자. 비회원 주문 가능, 무통장입금.">
 <meta property="og:image" content="assets/logo.png">
 <link rel="preconnect" href="https://unpkg.com" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -19,8 +20,8 @@
 <link rel="stylesheet" href="assets/site.css">
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[
- {"@type":"ListItem","position":1,"name":"홈","item":"index.html"},
- {"@type":"ListItem","position":2,"name":"제품","item":"products.html"}]}
+ {"@type":"ListItem","position":1,"name":"홈","item":"/"},
+ {"@type":"ListItem","position":2,"name":"제품","item":"/products"}]}
 </script>
 <style id="page-style">
   .cat-bar { display:flex; gap:10px; flex-wrap:wrap; }
@@ -175,6 +176,9 @@
     </p>
   </div>
 </section>
+
+<!-- 서버가 제품 목록을 여기에 실어 보낸다(크롤러용). JS 가 뜨면 shop.js 가 걷어낸다 → functions/_shared/product-seo.js -->
+<section class="section" id="pl-ssr"></section>
 
 <footer id="site-footer"></footer>
 <script defer src="https://unpkg.com/lucide@1.17.0"></script>
