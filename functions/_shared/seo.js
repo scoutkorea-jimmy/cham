@@ -17,7 +17,7 @@
  * 주소를 요청에서 뽑으므로 **도메인을 붙여도 고칠 곳이 없다.**
  */
 
-import { orgJsonLd, siteJsonLd } from './org-seo.js';
+import { orgJsonLd, siteJsonLd, SITE_NAME } from './org-seo.js';
 
 const ABS = /^(https?:)?\/\//i;
 
@@ -95,7 +95,7 @@ export function rewriteHead(res, url, seo, detail) {
   const origin = url.origin;
   const canonical = canonicalFor(url);
   const image = absolute(origin, (detail && detail.image) || seo.image || 'assets/logo.png');
-  const siteName = seo.siteName || '한국참전통발효식품협동조합';
+  const siteName = SITE_NAME;
 
   let sawOgUrl = false;
   let sawCanonical = false;

@@ -16,6 +16,7 @@
 
 import { productRowToObj } from './store.js';
 import { plainText, attr, wonText } from './html-text.js';
+import { SITE_NAME } from './org-seo.js';
 
 /** 확정 판매가. `shop.js` 의 규칙과 같아야 한다 — 화면과 구조화 데이터가 어긋나면 안 된다. */
 function realPrice(p) {
@@ -103,7 +104,7 @@ function jsonLd(p, canonical, image, shipFee) {
     url: canonical,
     image: [image],
     description: plainText(p.descHtml, 300) || p.summary || p.name,
-    brand: { '@type': 'Brand', name: /식초|와인/.test(p.cat || '') ? '서연(瑞蓮)' : '한국참전통발효식품협동조합' },
+    brand: { '@type': 'Brand', name: /식초|와인/.test(p.cat || '') ? '서연(瑞蓮)' : SITE_NAME },
   };
   if (p.cat) ld.category = p.cat;
 
@@ -116,7 +117,7 @@ function jsonLd(p, canonical, image, shipFee) {
       price: String(realPrice(p)),
       itemCondition: 'https://schema.org/NewCondition',
       availability: inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
-      seller: { '@type': 'Organization', name: '한국참전통발효식품협동조합' },
+      seller: { '@type': 'Organization', name: SITE_NAME },
     };
     /* 배송비는 운영 설정에서 온다. 이것이 있으면 구글이 '무료 리스팅'에 실을 때
        배송비를 따로 묻지 않는다 — 없으면 상품이 후순위로 밀린다. */
@@ -149,7 +150,7 @@ export async function loadProductDetail(env, url, canonical, opt) {
     const imgId = await mainImageId(env, p.id);
     const image = imgId ? `${url.origin}/api/images/${imgId}` : null;
 
-    const site = (opt && opt.siteName) || '한국참전통발효식품협동조합';
+    const site = SITE_NAME;
     /* 제목에 분류를 함께 넣는다 — '오미자 식초'만으로는 검색어와 겹치는 폭이 좁다.
        '선물세트'·'전통 장류' 같은 말이 제목에 있어야 명절 검색에 닿는다. */
     const title = `${p.name}${p.cat ? ' · ' + p.cat : ''} — ${site}`;
@@ -209,7 +210,7 @@ function listJsonLd(rows, origin) {
   return {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
-    name: '한국참전통발효식품협동조합 제품',
+    name: `${SITE_NAME} 제품`,
     numberOfItems: rows.length,
     itemListElement: rows.map((p, i) => ({
       '@type': 'ListItem',

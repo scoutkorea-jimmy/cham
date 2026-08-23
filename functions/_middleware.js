@@ -59,14 +59,14 @@ async function withSeo(context, url) {
        넷은 **서로 다른 주소에서만** 값을 내므로(각자 경로를 확인한다) 첫 번째로 걸리는
        것 하나만 쓴다 — 한 화면에 둘이 걸리는 일은 없다. */
     const canonical = canonicalFor(url);
-    const opt = { siteName: st.corpName, shipFee: st.shipFee };
+    const opt = { shipFee: st.shipFee };
     let detail = null;
     for (const load of [loadPostDetail, loadProductDetail, loadPostListDetail, loadProductListDetail]) {
       detail = await load(context.env, url, canonical, opt);
       if (detail) break;
     }
     return rewriteHead(res, url, {
-      google: st.seoGoogle, naver: st.seoNaver, image: st.seoImage, siteName: st.corpName, settings: st,
+      google: st.seoGoogle, naver: st.seoNaver, image: st.seoImage, settings: st,
     }, detail);
   } catch {
     return res;     // 설정을 못 읽는다고 페이지를 못 보게 만들지 않는다

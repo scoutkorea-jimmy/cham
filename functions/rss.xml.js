@@ -10,6 +10,7 @@
  * 운영자가 할 일은 서치어드바이저에 `https://charmjt.org/rss.xml` 을 한 번 내는 것뿐이다.
  */
 import { plainText } from './_shared/html-text.js';
+import { SITE_NAME } from './_shared/org-seo.js';
 
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => (
   { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[c]
@@ -26,7 +27,7 @@ function rfc822(v) {
 
 export async function onRequestGet({ request, env }) {
   const origin = new URL(request.url).origin;
-  const title = '한국참전통발효식품협동조합 소식';
+  const title = `${SITE_NAME} 소식`;
   const desc = '전통발효식품 교육·체험지도사 과정과 수제식초 서연(瑞蓮)의 새 소식.';
 
   let items = [];

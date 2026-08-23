@@ -18,6 +18,7 @@
  */
 
 import { plainText, attr } from './html-text.js';
+import { SITE_NAME } from './org-seo.js';
 
 /** `YYYY-MM-DD HH:MM:SS` → `YYYY-MM-DD`. 형식이 아니면 null — 틀린 날짜는 없는 것만 못하다. */
 function isoDay(v) {
@@ -98,7 +99,7 @@ export async function loadPostDetail(env, url, canonical, opt) {
     const post = await loadPost(env, id);
     if (!post) return null;
 
-    const site = (opt && opt.siteName) || '한국참전통발효식품협동조합';
+    const site = SITE_NAME;
     const image = `${url.origin}/assets/logo.png`;
     return {
       slot: 'post-ssr',
