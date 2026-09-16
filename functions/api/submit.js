@@ -135,30 +135,26 @@ export async function onRequestPost({ request, env }) {
   };
   const need = REQUIRED_CONSENTS[kind] || [];
 
-  /* `consents` 는 새 화면만 보낸다. 체크를 안 했으면 `false` 가 담겨 오므로,
-     **이 칸이 통째로 없다는 것은 옛 화면**이라는 뜻이다(체크를 안 한 것과 구분된다).
-     site.js 는 4시간 캐시라, 방금 배포해도 이미 열려 있는 창은 옛 화면 그대로다.
-     그 손님의 주문을 거절하면 체크를 했는데도 거절당한다 — 그래서 지금은 받는다.
-     → **캐시가 빠지면 이 갈래를 지운다.** docs/handoff.md T13 */
+  /* `consents` 는 화면이 언제나 보낸다 — 체크를 안 했으면 `false` 가 담겨 오고, 하나도
+     없으면 빈 객체라도 온다(site.js submitModal). 이 칸이 통째로 없다는 것은 화면을 거치지
+     않은 요청이라는 뜻이다. 2026-08-15 부터 한 달 동안은 배포 전에 열려 있던 옛 화면
+     (site.js 4시간 캐시)을 봐주느라 없어도 받았는데, 그 유예는 끝났다(handoff T13).
+     무엇에 동의했는지 모르는 접수를 '동의함'으로 적을 수는 없으므로 거절한다. */
   const sent = d.consents && typeof d.consents === 'object' ? d.consents : null;
-  if (sent) {
-    const missing = need.filter((k) => !sent[k]);
-    if (missing.length) {
-      return json({
-        error: '개인정보 수집·이용에 동의해 주셔야 접수할 수 있습니다.',
-        code: 'consent_required',
-      }, 400);
-    }
+  const missing = need.filter((k) => !sent || !sent[k]);
+  if (missing.length) {
+    return json({
+      error: '개인정보 수집·이용에 동의해 주셔야 접수할 수 있습니다.',
+      code: 'consent_required',
+    }, 400);
   }
-  /* 기록에는 **받은 그대로** 적는다. 옛 화면이면 무엇에 동의했는지 서버가 모르므로
-     아무것도 적지 않는다 — 모르는 것을 '동의함'으로 적으면 기록이 거짓이 된다. */
-  const consentItems = sent ? need.reduce((o, k) => { o[k] = !!sent[k]; return o; }, {}) : null;
+  // 기록에는 **받은 그대로** 적는다.
+  const consentItems = need.reduce((o, k) => { o[k] = !!sent[k]; return o; }, {});
 
   /* 접수가 **된 뒤에** 부른다 — 접수가 실패했는데 동의 기록만 남으면
      가리키는 곳이 없는 줄이 된다. 회원이면 쿠키로 판정한 id 로 묶는다
      (브라우저가 보낸 값은 믿지 않는다 — 아래 주문 처리와 같은 이유다). */
   const logConsent = async (refId) => {
-    if (!consentItems) return;
     const ms = await getMemberSession(request, env);
     await recordConsents(env, {
       memberId: ms ? ms.mid : null, refKind: kind, refId, items: consentItems,
