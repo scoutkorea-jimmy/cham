@@ -342,6 +342,24 @@
   .pimg-cell img { width: 100%; height: 100%; object-fit: cover; }
   .pimg-role { position: absolute; left: 4px; bottom: 4px; background: rgba(42,39,35,.66); color: #fff; font-size: 10px; padding: 1px 6px; border-radius: 99px; }
   .pimg-cell .gal-del { top: 4px; right: 4px; width: 20px; height: 20px; }
+  /* 이미 올린 사진 — 썸네일 아래에 내려받기·자르기·교체·삭제. 새로 고른 사진(.new)은 위 작은 칸 그대로 */
+  .pimg-cell.has { width: 132px; height: auto; display: flex; flex-direction: column; }
+  .pimg-cell.has .pimg-thumb { position: relative; width: 100%; aspect-ratio: 1 / 1; background: var(--surface-2); }
+  .pimg-cell.has .pimg-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .pimg-cell.has.pending { border-color: var(--main); box-shadow: 0 0 0 2px var(--main-tint); }
+  .pimg-acts { display: flex; justify-content: space-evenly; padding: 4px; border-top: 1px solid var(--line-soft); background: var(--surface); }
+  .pimg-acts a, .pimg-acts button { width: 28px; height: 28px; border-radius: 50%; border: none; background: none; color: var(--ink-soft); display: grid; place-items: center; cursor: pointer; }
+  .pimg-acts a:hover, .pimg-acts button:hover { background: var(--main-tint); color: var(--ink); }
+  .pimg-acts .danger:hover { background: var(--danger-tint); color: var(--danger); }
+  .pimg-acts [data-lucide] { width: 15px; height: 15px; }
+  /* 1:1 자르기 대화상자 (assets/image-crop.js) */
+  .crop-stage { position: relative; margin: 0 auto; overflow: hidden; border-radius: var(--r-md); background: var(--ink); touch-action: none; user-select: none; cursor: move; }
+  .crop-stage img { display: block; width: 100%; height: 100%; pointer-events: none; }
+  .crop-box { position: absolute; box-sizing: border-box; border: 2px solid var(--point); box-shadow: 0 0 0 9999px rgba(42,39,35,.55); pointer-events: none; }
+  .crop-box::before { content: ''; position: absolute; top: 0; bottom: 0; left: 33.33%; right: 33.33%; border-left: 1px solid rgba(255,255,255,.35); border-right: 1px solid rgba(255,255,255,.35); }
+  .crop-box::after { content: ''; position: absolute; left: 0; right: 0; top: 33.33%; bottom: 33.33%; border-top: 1px solid rgba(255,255,255,.35); border-bottom: 1px solid rgba(255,255,255,.35); }
+  .crop-ctl { display: flex; align-items: center; gap: 12px; margin-top: 14px; font-size: var(--fs-caption); color: var(--ink-mute); }
+  .crop-ctl input[type=range] { flex: 1; accent-color: var(--main); }
 
   /* 관련상품 멀티 드롭다운 */
   .ms { position: relative; max-width: 480px; }

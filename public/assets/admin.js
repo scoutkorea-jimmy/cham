@@ -16,6 +16,8 @@
    실행 순서 — site.js(defer) → editor.js(defer) → 이 파일(module).
    모듈도 defer 와 같은 대기열에 들어가 문서 순서대로 돈다. 그래서 여기서
    window.Site 를 바로 읽어도 이미 준비돼 있다. 순서를 바꾸면 이 전제가 깨진다. */
+import { isSquare, cropSquare } from './image-crop.js';
+
 var S = window.Site || {};
 // 저장소는 site.js 한 곳을 통한다(서버 모드면 D1, 아니면 localStorage).
 // 여기서 localStorage 를 직접 읽으면 서버 모드에서 빈 화면이 된다.
@@ -505,7 +507,10 @@ function viewDashboard() {
    상품 관리
    ============================================================ */
 var prodEditing = null;      // null=목록, 'new'=신규, id=수정
-var pImgState = { main: null, extra: [], detail: [], removed: [] };
+/* 상품 사진 상태. removed 는 지울 기존 사진 id, replace 는 { 기존 id: { file, role, ord } } —
+   다시 자르거나 다른 사진으로 바꾼 것. 둘 다 '수정 저장'을 눌러야 서버에 간다. */
+var pImgState = { main: null, extra: [], detail: [], removed: [], replace: {} };
+var pImgCurrent = [];   // 지금 화면의 기존 사진 목록(내려받기·자르기가 찾아 쓴다)
 var descEditor = null, prodDescInit = '';
 
 function viewProducts() {
@@ -554,7 +559,7 @@ function copyProduct(srcId) {
   if (!S.setProducts(list)) { toast('복제한 상품을 저장하지 못했습니다.'); return; }
   toast('복제했습니다. 사진을 옮기는 중…');
   copyProductImages(srcId, copy.id).then(function (r) {
-    prodEditing = copy.id; pImgState = { main: null, extra: [], detail: [], removed: [] };
+    prodEditing = copy.id; pImgState = { main: null, extra: [], detail: [], removed: [], replace: {} };
     render();
     toast(r.failed
       ? '복제했습니다. 사진 ' + r.copied + '장을 옮겼고 ' + r.failed + '장은 실패했습니다 — 실패한 사진은 직접 올려 주세요.'
@@ -625,11 +630,11 @@ function productFormHTML(p) {
       '<div class="full form-sec"><b>상세 설명</b><div class="pc-sub">판매자 직접 관리 — Tiptap 에디터(이미지·표·영상 등 전체 기능)</div></div>' +
       '<div class="field full"><div class="tt-toolbar" id="pdescBar"></div><div class="tt-body"><div id="pdescEditor"></div></div></div>' +
 
-      '<div class="full form-sec"><b>이미지</b><div class="pc-sub">대표 1장 · 추가 갤러리 · 상세 이미지 — 선택 즉시 미리보기 (IndexedDB 저장)</div></div>' +
-      '<div class="field"><label>대표 이미지</label><input type="file" accept="image/*" id="pImgMain"></div>' +
-      '<div class="field"><label>추가 이미지 (여러 장)</label><input type="file" accept="image/*" multiple id="pImgExtra"></div>' +
+      '<div class="full form-sec"><b>이미지</b><div class="pc-sub">대표·추가 사진은 <b>정사각형(1:1)</b> 으로 올려 주세요 — 1:1 이 아니면 자르기 창이 뜹니다. 상세 사진은 비율 제한이 없습니다. 이미 올린 사진은 아래 칸에서 내려받기 · 다시 자르기 · 교체 · 삭제할 수 있습니다.</div></div>' +
+      '<div class="field"><label>대표 이미지 (1:1 · 1장)</label><input type="file" accept="image/*" id="pImgMain"></div>' +
+      '<div class="field"><label>추가 이미지 (1:1 · 여러 장)</label><input type="file" accept="image/*" multiple id="pImgExtra"></div>' +
       '<div class="field"><label>상세 이미지 (여러 장)</label><input type="file" accept="image/*" multiple id="pImgDetail"></div>' +
-      '<div class="full"><div class="pc-sub lbl-gap">미리보기</div><div id="pImgList" class="pimg-grid"></div><div id="pImgNew" class="pimg-grid"></div></div>' +
+      '<div class="full"><div class="pc-sub lbl-gap">올린 사진</div><div id="pImgList" class="pimg-grid"></div><div class="pc-sub lbl-gap">새로 고른 사진 — 저장을 누르면 올라갑니다</div><div id="pImgNew" class="pimg-grid"></div></div>' +
 
       '<div class="full" style="border-top:1px solid var(--line-soft);padding-top:18px;display:flex;align-items:center;gap:12px"><b>옵션</b>' +
         '<label style="display:inline-flex;gap:7px;align-items:center;font-size:13.5px;cursor:pointer"><input type="checkbox" id="optUse"' + (opt ? ' checked' : '') + ' style="accent-color:var(--main)">옵션 사용</label></div>' +
@@ -670,19 +675,88 @@ function optRowHTML(v) {
     '<input placeholder="재고" type="number" class="ov-stock" value="' + (v ? v.stock : 10) + '" style="flex:1;min-width:70px">' +
     '<button type="button" class="icon-btn" data-act="optdel" title="옵션값 삭제"><i data-lucide="x"></i></button></div>';
 }
+function roleLabel(role) { return role === 'main' ? '대표' : role === 'detail' ? '상세' : '추가'; }
+/* 내려받을 때의 파일 이름 — 올릴 때 이름이 남아 있으면 그것, 없으면 상품·역할로 만든다 */
+function imageFileName(im, pid) {
+  if (im.name) return im.name;
+  var ext = (im.type || '').split('/')[1] || 'jpg';
+  return pid + '-' + (im.role || 'image') + (im.ord != null ? '-' + im.ord : '') + '.' + ext;
+}
 function loadProductImages() {
   var box = document.getElementById('pImgList');
   var form = document.getElementById('productForm');
-  if (!box || !form || !form.dataset.pid) return;
+  if (!box || !form) return;
+  if (!form.dataset.pid) { box.innerHTML = '<p class="pc-sub">아직 올린 사진이 없습니다.</p>'; return; }
   S.Media.list('product', form.dataset.pid).then(function (imgs) {
-    imgs.sort(function (a, b) { return (a.ord || 0) - (b.ord || 0); });
-    box.innerHTML = imgs.map(function (im) {
+    // 대표 → 추가 → 상세 순서로, 같은 역할 안에서는 ord 순서로 보여 준다
+    var rank = { main: 0, extra: 1, detail: 2 };
+    imgs.sort(function (a, b) {
+      return ((rank[a.role] != null ? rank[a.role] : 1) - (rank[b.role] != null ? rank[b.role] : 1)) || ((a.ord || 0) - (b.ord || 0));
+    });
+    pImgCurrent = imgs;
+    var cells = imgs.map(function (im) {
       if (pImgState.removed.indexOf(im.id) > -1) return '';
-      return '<div class="pimg-cell"><img src="' + im.url + '"><span class="pimg-role">' + (im.role === 'main' ? '대표' : im.role === 'detail' ? '상세' : '추가') + '</span>' +
-        '<button type="button" class="gal-del" data-act="pimgdel" data-id="' + im.id + '"><i data-lucide="x"></i></button></div>';
+      var pend = pImgState.replace[im.id];
+      var src = pend ? mkURL(pend.file) : im.url;
+      return '<div class="pimg-cell has' + (pend ? ' pending' : '') + '" data-imgid="' + im.id + '">' +
+        '<div class="pimg-thumb"><img src="' + src + '" alt=""><span class="pimg-role">' + roleLabel(im.role) + (pend ? ' · 저장하면 교체' : '') + '</span></div>' +
+        '<div class="pimg-acts">' +
+          '<a href="' + im.url + '" download="' + esc(imageFileName(im, form.dataset.pid)) + '" title="내려받기"><i data-lucide="download"></i></a>' +
+          (im.role === 'detail' ? '' : '<button type="button" data-act="pimgcrop" data-id="' + im.id + '" title="정사각형으로 다시 자르기"><i data-lucide="crop"></i></button>') +
+          '<button type="button" data-act="pimgswap" data-id="' + im.id + '" title="다른 사진으로 교체"><i data-lucide="image-up"></i></button>' +
+          '<button type="button" class="danger" data-act="pimgdel" data-id="' + im.id + '" title="삭제"><i data-lucide="trash-2"></i></button>' +
+        '</div></div>';
     }).join('');
+    box.innerHTML = cells || '<p class="pc-sub">아직 올린 사진이 없습니다.</p>';
     icons();
   });
+}
+/* 정사각형이 아닌 것만 자르기 창을 띄운다 — 한 장씩 차례로. 취소한 장은 뺀다. */
+function squareFiles(files, title) {
+  var out = [];
+  var chain = Promise.resolve();
+  files.forEach(function (f) {
+    chain = chain.then(function () {
+      return isSquare(f).then(function (ok) {
+        if (ok) { out.push(f); return; }
+        return cropSquare(f, { title: title + ' — ' + (f.name || '사진') }).then(function (c) { if (c) out.push(c); });
+      }).catch(function () { toast('「' + (f.name || '사진') + '」 은(는) 이미지 파일로 읽히지 않습니다.'); });
+    });
+  });
+  return chain.then(function () { return out; });
+}
+/* 기존 사진을 파일로 — 서버 모드는 R2 주소, 로컬 모드는 blob 주소. 둘 다 fetch 로 읽힌다 */
+function fetchImageFile(im) {
+  return fetch(im.url).then(function (r) { if (!r.ok) throw new Error('fetch'); return r.blob(); })
+    .then(function (b) { return new File([b], im.name || ('photo.' + ((im.type || 'image/jpeg').split('/')[1] || 'jpg')), { type: b.type || im.type || 'image/jpeg' }); });
+}
+function setReplacement(im, file) {
+  pImgState.replace[im.id] = { file: file, role: im.role || 'extra', ord: im.ord || 0 };
+  dirty = true;
+  loadProductImages();
+}
+function cropExisting(id) {
+  var im = pImgCurrent.filter(function (x) { return x.id === id; })[0];
+  if (!im) return;
+  var pend = pImgState.replace[id];
+  (pend ? Promise.resolve(pend.file) : fetchImageFile(im)).then(function (f) {
+    return cropSquare(f, { title: roleLabel(im.role) + ' 사진 다시 자르기' });
+  }).then(function (c) { if (c) setReplacement(im, c); })
+    .catch(function () { toast('사진을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.'); });
+}
+function swapExisting(id) {
+  var im = pImgCurrent.filter(function (x) { return x.id === id; })[0];
+  if (!im) return;
+  var fin = document.createElement('input');
+  fin.type = 'file'; fin.accept = 'image/*';
+  fin.onchange = function () {
+    var f = fin.files[0]; if (!f) return;
+    if (f.size > S.MAX_IMAGE_BYTES) { toast(S.tooBigMsg(f.name, f.size)); return; }
+    // 상세 사진은 비율을 묻지 않는다. 대표·추가는 정사각형이어야 한다
+    var p = im.role === 'detail' ? Promise.resolve([f]) : squareFiles([f], roleLabel(im.role) + ' 사진 교체');
+    p.then(function (arr) { if (arr[0]) setReplacement(im, arr[0]); });
+  };
+  fin.click();
 }
 function renderNewPreviews() {
   var box = document.getElementById('pImgNew');
@@ -710,14 +784,23 @@ function updateRelChips() {
 function bindProductForm() {
   var form = document.getElementById('productForm');
   if (!form) return;
-  pImgState = { main: null, extra: [], detail: [], removed: pImgState.removed || [] };
+  pImgState = { main: null, extra: [], detail: [], removed: pImgState.removed || [], replace: pImgState.replace || {} };
 
+  /* 대표·추가는 정사각형이 아니면 자르기 창을 거친다. input 은 비워 둔다 — 같은 파일을
+     다시 고를 때 change 가 안 나는 것을 막고, 어차피 원본은 pImgState 가 들고 있다. */
   var mi = document.getElementById('pImgMain');
-  if (mi) mi.addEventListener('change', function(){ pImgState.main = mi.files[0] || null; renderNewPreviews(); });
+  if (mi) mi.addEventListener('change', function(){
+    var f = mi.files[0]; mi.value = '';
+    if (!f) return;
+    squareFiles([f], '대표 사진').then(function (arr) { pImgState.main = arr[0] || null; dirty = true; renderNewPreviews(); });
+  });
   var ei = document.getElementById('pImgExtra');
-  if (ei) ei.addEventListener('change', function(){ pImgState.extra = Array.prototype.slice.call(ei.files || []); renderNewPreviews(); });
+  if (ei) ei.addEventListener('change', function(){
+    var fs = Array.prototype.slice.call(ei.files || []); ei.value = '';
+    squareFiles(fs, '추가 사진').then(function (arr) { pImgState.extra = arr; dirty = true; renderNewPreviews(); });
+  });
   var di = document.getElementById('pImgDetail');
-  if (di) di.addEventListener('change', function(){ pImgState.detail = Array.prototype.slice.call(di.files || []); renderNewPreviews(); });
+  if (di) di.addEventListener('change', function(){ pImgState.detail = Array.prototype.slice.call(di.files || []); dirty = true; renderNewPreviews(); });
   var ou = document.getElementById('optUse');
   if (ou) ou.addEventListener('change', function(){ document.getElementById('optWrap').style.display = ou.checked ? '' : 'none'; });
 
@@ -784,6 +867,17 @@ function bindProductForm() {
     rec.related = Array.prototype.slice.call(form.querySelectorAll('input[name=rel]:checked')).map(function (c) { return c.value; });
     if (!S.setProducts(products)) { toast('저장 공간이 부족합니다. 상세 설명의 첨부 이미지를 줄이거나 데이터를 백업·정리해 주세요.'); return; }
 
+    /* 교체(다시 자르기·다른 사진)를 먼저 끝낸다 — 새 사진을 올린 **뒤에** 옛것을 지운다.
+       올리기가 실패하면 옛 사진이 그대로 남는다(먼저 지우면 실패했을 때 사진이 없어진다).
+       대표 교체와 새 대표 고르기가 같이 있으면, 아래 대표 처리가 '모든 대표를 지우고 새로 올린다'라
+       나중에 고른 새 대표가 남는다. */
+    var replaceJobs = Object.keys(pImgState.replace).map(function (oldId) {
+      var r = pImgState.replace[oldId];
+      return S.Media.put('product', rec.id, r.file, { role: r.role, ord: r.ord }).then(function (res) {
+        if (!res || res.error) return res;
+        return S.Media.del('product', oldId).then(function () { return res; });
+      });
+    });
     var jobs = [];
     pImgState.removed.forEach(function (iid) { jobs.push(S.Media.del('product', iid)); });
     if (pImgState.main) {
@@ -794,9 +888,11 @@ function bindProductForm() {
     }
     pImgState.extra.forEach(function (f, i) { jobs.push(S.Media.put('product', rec.id, f, { role: 'extra', ord: i + 1 })); });
     pImgState.detail.forEach(function (f, i) { jobs.push(S.Media.put('product', rec.id, f, { role: 'detail', ord: i })); });
-    Promise.all(jobs).then(function (results) {
+    Promise.all(replaceJobs).then(function (rres) {
+      return Promise.all(jobs).then(function (results) { return rres.concat(results); });
+    }).then(function (results) {
       prodEditing = null;
-      pImgState = { main: null, extra: [], detail: [], removed: [] };
+      pImgState = { main: null, extra: [], detail: [], removed: [], replace: {} };
       render();
       // 이미지 올리기는 실패해도 null 로 끝난다 — 저장됐다고만 알리면 사진이 빠진 걸 나중에 안다
       var failed = results.filter(function (r) { return !r || r.error || r === false; });
@@ -3653,9 +3749,9 @@ document.addEventListener('click', function(e){
     if (!confirm('이 자리의 사진을 내릴까요? 페이지는 기본 자리표시로 돌아갑니다.')) return;
     if (imgSel === b.dataset.id) imgSel = null;
     S.Media.del('page', b.dataset.id).then(function(){ render(); toast('사진을 내렸습니다.'); });
-  } else if (act === 'pnew') { prodEditing = 'new'; pImgState.removed = []; render();
-  } else if (act === 'pedit') { prodEditing = b.dataset.id; pImgState.removed = []; render();
-  } else if (act === 'pback') { if (!confirmLeave()) return; prodEditing = null; pImgState = { main: null, extra: [], detail: [], removed: [] }; render();
+  } else if (act === 'pnew') { prodEditing = 'new'; pImgState.removed = []; pImgState.replace = {}; render();
+  } else if (act === 'pedit') { prodEditing = b.dataset.id; pImgState.removed = []; pImgState.replace = {}; render();
+  } else if (act === 'pback') { if (!confirmLeave()) return; prodEditing = null; pImgState = { main: null, extra: [], detail: [], removed: [], replace: {} }; render();
   } else if (act === 'txsave') {
     saveTexts();
   } else if (act === 'txresetall') {
@@ -3690,7 +3786,12 @@ document.addEventListener('click', function(e){
     render();
   } else if (act === 'pimgdel') {
     pImgState.removed.push(b.dataset.id);
+    delete pImgState.replace[b.dataset.id];
     b.closest('.pimg-cell').remove(); dirty = true;
+  } else if (act === 'pimgcrop') {
+    cropExisting(b.dataset.id);
+  } else if (act === 'pimgswap') {
+    swapExisting(b.dataset.id);
   } else if (act === 'optadd') {
     document.getElementById('optRows').insertAdjacentHTML('beforeend', optRowHTML(null)); icons(); dirty = true;
   } else if (act === 'optdel') {
