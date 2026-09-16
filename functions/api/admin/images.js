@@ -2,6 +2,7 @@
  * POST   /api/admin/images   multipart — 이미지 올리기
  *          file, scope(product|page|post|gallery), ref, role, ord, id(선택 — 페이지 슬롯은 슬롯 id 고정)
  * PATCH  /api/admin/images   { id, pcx, pcy, mbx, mby }  — 페이지 슬롯 초점 위치만 수정
+ *                            { id, role?, ord? }        — 상품 사진의 역할(main|extra|detail)·순서만 수정
  * DELETE /api/admin/images   { id } 또는 { scope, ref }  — 낱개 또는 한 상품의 전체
  *
  * 실물은 R2, 메타는 D1. 브라우저에서 만든 dataURL 을 D1 에 넣지 않는다 —
@@ -60,12 +61,27 @@ export async function onRequestPost({ request, env }) {
   return json({ image: imageRowToObj(row) }, 201);
 }
 
+const ROLES = new Set(['main', 'extra', 'detail']);
+
 export async function onRequestPatch({ request, env }) {
   const body = await readJson(request);
   if (!body || !body.id) return badRequest();
 
-  const row = await env.DB.prepare(`SELECT id FROM images WHERE id = ?`).bind(String(body.id)).first();
+  const row = await env.DB.prepare(`SELECT id, scope FROM images WHERE id = ?`).bind(String(body.id)).first();
   if (!row) return notFound('이미지를 찾을 수 없습니다.');
+
+  /* 상품 사진 — 역할·순서. 사진 자체는 그대로라 id 도 캐시도 그대로다.
+     페이지 슬롯의 초점 좌표와는 다른 요청이라 갈래를 나눈다(두 갈래가 섞이면 초점이 null 로 지워진다). */
+  if ('role' in body || 'ord' in body) {
+    if (row.scope !== 'product') return badRequest('역할·순서는 상품 사진만 바꿀 수 있습니다.');
+    const role = body.role == null ? null : String(body.role);
+    if (role != null && !ROLES.has(role)) return badRequest('역할이 올바르지 않습니다.');
+    const ord = body.ord == null ? null : Math.max(0, Math.floor(Number(body.ord) || 0));
+    await env.DB.prepare(
+      `UPDATE images SET role = COALESCE(?, role), ord = COALESCE(?, ord) WHERE id = ?`
+    ).bind(role, ord, String(body.id)).run();
+    return json({ ok: true });
+  }
 
   await env.DB.prepare(
     `UPDATE images SET pcx = ?, pcy = ?, mbx = ?, mby = ? WHERE id = ?`

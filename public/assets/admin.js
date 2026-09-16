@@ -509,8 +509,13 @@ function viewDashboard() {
 var prodEditing = null;      // null=목록, 'new'=신규, id=수정
 /* 상품 사진 상태. removed 는 지울 기존 사진 id, replace 는 { 기존 id: { file, role, ord } } —
    다시 자르거나 다른 사진으로 바꾼 것. 둘 다 '수정 저장'을 눌러야 서버에 간다. */
-var pImgState = { main: null, extra: [], detail: [], removed: [], replace: {} };
+var pImgState = { main: null, extra: [], detail: [], removed: [], replace: {}, meta: {} };
 var pImgCurrent = [];   // 지금 화면의 기존 사진 목록(내려받기·자르기가 찾아 쓴다)
+/* meta 는 기존 사진의 **바라는** 역할·순서 { id: { role, ord } }. 화면은 이것으로 그리고,
+   저장할 때 서버 값(pImgOrig)과 다른 것만 PATCH 한다. 대표는 언제나 한 장(ord 0). */
+var pImgOrig = {};
+var IMG_ROLES = ['main', 'extra', 'detail'];
+var IMG_ROLE_RANK = { main: 0, extra: 1, detail: 2 };
 var descEditor = null, prodDescInit = '';
 
 function viewProducts() {
@@ -559,7 +564,7 @@ function copyProduct(srcId) {
   if (!S.setProducts(list)) { toast('복제한 상품을 저장하지 못했습니다.'); return; }
   toast('복제했습니다. 사진을 옮기는 중…');
   copyProductImages(srcId, copy.id).then(function (r) {
-    prodEditing = copy.id; pImgState = { main: null, extra: [], detail: [], removed: [], replace: {} };
+    prodEditing = copy.id; pImgState = { main: null, extra: [], detail: [], removed: [], replace: {}, meta: {} };
     render();
     toast(r.failed
       ? '복제했습니다. 사진 ' + r.copied + '장을 옮겼고 ' + r.failed + '장은 실패했습니다 — 실패한 사진은 직접 올려 주세요.'
@@ -688,28 +693,90 @@ function loadProductImages() {
   if (!box || !form) return;
   if (!form.dataset.pid) { box.innerHTML = '<p class="pc-sub">아직 올린 사진이 없습니다.</p>'; return; }
   S.Media.list('product', form.dataset.pid).then(function (imgs) {
-    // 대표 → 추가 → 상세 순서로, 같은 역할 안에서는 ord 순서로 보여 준다
-    var rank = { main: 0, extra: 1, detail: 2 };
-    imgs.sort(function (a, b) {
-      return ((rank[a.role] != null ? rank[a.role] : 1) - (rank[b.role] != null ? rank[b.role] : 1)) || ((a.ord || 0) - (b.ord || 0));
-    });
     pImgCurrent = imgs;
-    var cells = imgs.map(function (im) {
-      if (pImgState.removed.indexOf(im.id) > -1) return '';
-      var pend = pImgState.replace[im.id];
-      var src = pend ? mkURL(pend.file) : im.url;
-      return '<div class="pimg-cell has' + (pend ? ' pending' : '') + '" data-imgid="' + im.id + '">' +
-        '<div class="pimg-thumb"><img src="' + src + '" alt=""><span class="pimg-role">' + roleLabel(im.role) + (pend ? ' · 저장하면 교체' : '') + '</span></div>' +
-        '<div class="pimg-acts">' +
-          '<a href="' + im.url + '" download="' + esc(imageFileName(im, form.dataset.pid)) + '" title="내려받기"><i data-lucide="download"></i></a>' +
-          (im.role === 'detail' ? '' : '<button type="button" data-act="pimgcrop" data-id="' + im.id + '" title="정사각형으로 다시 자르기"><i data-lucide="crop"></i></button>') +
-          '<button type="button" data-act="pimgswap" data-id="' + im.id + '" title="다른 사진으로 교체"><i data-lucide="image-up"></i></button>' +
-          '<button type="button" class="danger" data-act="pimgdel" data-id="' + im.id + '" title="삭제"><i data-lucide="trash-2"></i></button>' +
-        '</div></div>';
-    }).join('');
-    box.innerHTML = cells || '<p class="pc-sub">아직 올린 사진이 없습니다.</p>';
-    icons();
+    pImgOrig = {};
+    imgs.forEach(function (im) {
+      var role = IMG_ROLES.indexOf(im.role) > -1 ? im.role : 'extra';
+      pImgOrig[im.id] = { role: role, ord: Number(im.ord) || 0 };
+      if (!pImgState.meta[im.id]) pImgState.meta[im.id] = { role: role, ord: Number(im.ord) || 0 };
+    });
+    renderExistingImages();
   });
+}
+/* 대표 → 추가 → 상세, 같은 역할 안에서는 ord 순서. 지운 것은 뺀다 */
+function orderedExisting() {
+  return pImgCurrent.filter(function (im) { return pImgState.removed.indexOf(im.id) < 0; })
+    .map(function (im) { var m = pImgState.meta[im.id]; return { im: im, role: m.role, ord: m.ord }; })
+    .sort(function (a, b) { return (IMG_ROLE_RANK[a.role] - IMG_ROLE_RANK[b.role]) || (a.ord - b.ord); });
+}
+function renderExistingImages() {
+  var box = document.getElementById('pImgList');
+  var form = document.getElementById('productForm');
+  if (!box || !form) return;
+  var rows = orderedExisting();
+  var cells = rows.map(function (r, i) {
+    var im = r.im;
+    var pend = pImgState.replace[im.id];
+    var src = pend ? mkURL(pend.file) : im.url;
+    var prevSame = i > 0 && rows[i - 1].role === r.role;
+    var nextSame = i < rows.length - 1 && rows[i + 1].role === r.role;
+    var changed = pImgOrig[im.id] && (pImgOrig[im.id].role !== r.role || pImgOrig[im.id].ord !== r.ord);
+    return '<div class="pimg-cell has' + (pend || changed ? ' pending' : '') + '" data-imgid="' + im.id + '">' +
+      '<div class="pimg-thumb"><img src="' + src + '" alt=""><span class="pimg-role">' + roleLabel(r.role) + (pend ? ' · 저장하면 교체' : changed ? ' · 저장하면 반영' : '') + '</span></div>' +
+      '<div class="pimg-meta">' +
+        '<button type="button" data-act="pimgmove" data-dir="-1" data-id="' + im.id + '" title="앞으로"' + (prevSame ? '' : ' disabled') + '><i data-lucide="chevron-left"></i></button>' +
+        '<select class="pimg-rolesel" data-id="' + im.id + '" title="역할">' + IMG_ROLES.map(function (ro) { return '<option value="' + ro + '"' + (ro === r.role ? ' selected' : '') + '>' + roleLabel(ro) + '</option>'; }).join('') + '</select>' +
+        '<button type="button" data-act="pimgmove" data-dir="1" data-id="' + im.id + '" title="뒤로"' + (nextSame ? '' : ' disabled') + '><i data-lucide="chevron-right"></i></button>' +
+      '</div>' +
+      '<div class="pimg-acts">' +
+        '<a href="' + im.url + '" download="' + esc(imageFileName(im, form.dataset.pid)) + '" title="내려받기"><i data-lucide="download"></i></a>' +
+        (r.role === 'detail' ? '' : '<button type="button" data-act="pimgcrop" data-id="' + im.id + '" title="정사각형으로 다시 자르기"><i data-lucide="crop"></i></button>') +
+        '<button type="button" data-act="pimgswap" data-id="' + im.id + '" title="다른 사진으로 교체"><i data-lucide="image-up"></i></button>' +
+        '<button type="button" class="danger" data-act="pimgdel" data-id="' + im.id + '" title="삭제"><i data-lucide="trash-2"></i></button>' +
+      '</div></div>';
+  }).join('');
+  box.innerHTML = cells || '<p class="pc-sub">아직 올린 사진이 없습니다.</p>';
+  icons();
+}
+/* 한 역할 안의 순서를 0부터 다시 매긴다 — 옮기거나 역할을 바꾼 뒤에만 부른다.
+   (처음 열 때 매기면 안 바꾼 사진까지 '바뀐 것'이 되어 저장마다 서버를 두드린다) */
+function renumberRole(role) {
+  orderedExisting().filter(function (r) { return r.role === role; })
+    .forEach(function (r, i) { pImgState.meta[r.im.id].ord = i; });
+}
+function moveExisting(id, dir) {
+  var rows = orderedExisting();
+  var i = rows.findIndex(function (r) { return r.im.id === id; });
+  if (i < 0) return;
+  var j = i + dir;
+  if (j < 0 || j >= rows.length || rows[j].role !== rows[i].role) return;
+  var a = pImgState.meta[rows[i].im.id], b = pImgState.meta[rows[j].im.id];
+  // 순서를 맞바꾼다. 같은 ord 였으면(옛 자료) 번호를 새로 매긴 뒤 바꾼다
+  if (a.ord === b.ord) { renumberRole(a.role); return moveExisting(id, dir); }
+  var t = a.ord; a.ord = b.ord; b.ord = t;
+  dirty = true; renderExistingImages();
+}
+function setExistingRole(id, role) {
+  var m = pImgState.meta[id];
+  if (!m || IMG_ROLES.indexOf(role) < 0 || m.role === role) return;
+  var from = m.role;
+  if (role === 'main') {
+    // 대표는 한 장 — 지금 대표는 추가 사진의 맨 앞으로 내린다
+    Object.keys(pImgState.meta).forEach(function (oid) {
+      if (oid !== id && pImgState.meta[oid].role === 'main') { pImgState.meta[oid].role = 'extra'; pImgState.meta[oid].ord = -1; }
+    });
+    m.role = 'main'; m.ord = 0;
+  } else {
+    m.role = role;
+    m.ord = orderedExisting().filter(function (r) { return r.role === role && r.im.id !== id; }).length;   // 맨 뒤
+  }
+  renumberRole(from); renumberRole(role); if (role !== 'main') renumberRole('extra');
+  dirty = true; renderExistingImages();
+}
+/* 새로 올릴 사진의 ord — 그 역할의 기존 사진 뒤에 붙인다(겹치면 목록 순서가 흔들린다) */
+function nextOrd(role) {
+  var rows = orderedExisting().filter(function (r) { return r.role === role; });
+  return rows.length ? rows[rows.length - 1].ord + 1 : 0;
 }
 /* 정사각형이 아닌 것만 자르기 창을 띄운다 — 한 장씩 차례로. 취소한 장은 뺀다. */
 function squareFiles(files, title) {
@@ -731,16 +798,16 @@ function fetchImageFile(im) {
     .then(function (b) { return new File([b], im.name || ('photo.' + ((im.type || 'image/jpeg').split('/')[1] || 'jpg')), { type: b.type || im.type || 'image/jpeg' }); });
 }
 function setReplacement(im, file) {
-  pImgState.replace[im.id] = { file: file, role: im.role || 'extra', ord: im.ord || 0 };
+  pImgState.replace[im.id] = { file: file };
   dirty = true;
-  loadProductImages();
+  renderExistingImages();
 }
 function cropExisting(id) {
   var im = pImgCurrent.filter(function (x) { return x.id === id; })[0];
   if (!im) return;
   var pend = pImgState.replace[id];
   (pend ? Promise.resolve(pend.file) : fetchImageFile(im)).then(function (f) {
-    return cropSquare(f, { title: roleLabel(im.role) + ' 사진 다시 자르기' });
+    return cropSquare(f, { title: roleLabel((pImgState.meta[im.id] || im).role) + ' 사진 다시 자르기' });
   }).then(function (c) { if (c) setReplacement(im, c); })
     .catch(function () { toast('사진을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.'); });
 }
@@ -753,7 +820,8 @@ function swapExisting(id) {
     var f = fin.files[0]; if (!f) return;
     if (f.size > S.MAX_IMAGE_BYTES) { toast(S.tooBigMsg(f.name, f.size)); return; }
     // 상세 사진은 비율을 묻지 않는다. 대표·추가는 정사각형이어야 한다
-    var p = im.role === 'detail' ? Promise.resolve([f]) : squareFiles([f], roleLabel(im.role) + ' 사진 교체');
+    var role = (pImgState.meta[im.id] || im).role;
+    var p = role === 'detail' ? Promise.resolve([f]) : squareFiles([f], roleLabel(role) + ' 사진 교체');
     p.then(function (arr) { if (arr[0]) setReplacement(im, arr[0]); });
   };
   fin.click();
@@ -784,7 +852,7 @@ function updateRelChips() {
 function bindProductForm() {
   var form = document.getElementById('productForm');
   if (!form) return;
-  pImgState = { main: null, extra: [], detail: [], removed: pImgState.removed || [], replace: pImgState.replace || {} };
+  pImgState = { main: null, extra: [], detail: [], removed: pImgState.removed || [], replace: pImgState.replace || {}, meta: pImgState.meta || {} };
 
   /* 대표·추가는 정사각형이 아니면 자르기 창을 거친다. input 은 비워 둔다 — 같은 파일을
      다시 고를 때 change 가 안 나는 것을 막고, 어차피 원본은 pImgState 가 들고 있다. */
@@ -801,6 +869,11 @@ function bindProductForm() {
   });
   var di = document.getElementById('pImgDetail');
   if (di) di.addEventListener('change', function(){ pImgState.detail = Array.prototype.slice.call(di.files || []); dirty = true; renderNewPreviews(); });
+  var il = document.getElementById('pImgList');
+  if (il) il.addEventListener('change', function (e) {
+    var sel = e.target.closest('.pimg-rolesel');
+    if (sel) setExistingRole(sel.dataset.id, sel.value);
+  });
   var ou = document.getElementById('optUse');
   if (ou) ou.addEventListener('change', function(){ document.getElementById('optWrap').style.display = ou.checked ? '' : 'none'; });
 
@@ -873,11 +946,20 @@ function bindProductForm() {
        나중에 고른 새 대표가 남는다. */
     var replaceJobs = Object.keys(pImgState.replace).map(function (oldId) {
       var r = pImgState.replace[oldId];
-      return S.Media.put('product', rec.id, r.file, { role: r.role, ord: r.ord }).then(function (res) {
+      var m = pImgState.meta[oldId] || pImgOrig[oldId] || { role: 'extra', ord: 0 };
+      return S.Media.put('product', rec.id, r.file, { role: m.role, ord: m.ord }).then(function (res) {
         if (!res || res.error) return res;
         return S.Media.del('product', oldId).then(function () { return res; });
       });
     });
+    /* 역할·순서가 바뀐 사진만 서버에 알린다. 교체한 사진은 위에서 새 값으로 올라갔고,
+       지운 사진은 건드릴 것이 없다. 대표를 새로 고른 경우보다 먼저 돌아야 한다 —
+       내린 옛 대표가 아래 '대표 전부 지우기'에 걸리지 않게. */
+    var metaJobs = Object.keys(pImgState.meta).filter(function (iid) {
+      var m = pImgState.meta[iid], o = pImgOrig[iid];
+      return o && !pImgState.replace[iid] && pImgState.removed.indexOf(iid) < 0 && (o.role !== m.role || o.ord !== m.ord);
+    }).map(function (iid) { return S.Media.setMeta('product', iid, pImgState.meta[iid]); });
+    var extraStart = nextOrd('extra'), detailStart = nextOrd('detail');
     var jobs = [];
     pImgState.removed.forEach(function (iid) { jobs.push(S.Media.del('product', iid)); });
     if (pImgState.main) {
@@ -886,13 +968,15 @@ function bindProductForm() {
         return Promise.all(imgs.filter(function (i) { return i.role === 'main'; }).map(function (i) { return S.Media.del('product', i.id); }));
       }).then(function () { return S.Media.put('product', rec.id, pImgState.main, { role: 'main', ord: 0 }); }));
     }
-    pImgState.extra.forEach(function (f, i) { jobs.push(S.Media.put('product', rec.id, f, { role: 'extra', ord: i + 1 })); });
-    pImgState.detail.forEach(function (f, i) { jobs.push(S.Media.put('product', rec.id, f, { role: 'detail', ord: i })); });
+    pImgState.extra.forEach(function (f, i) { jobs.push(S.Media.put('product', rec.id, f, { role: 'extra', ord: extraStart + i })); });
+    pImgState.detail.forEach(function (f, i) { jobs.push(S.Media.put('product', rec.id, f, { role: 'detail', ord: detailStart + i })); });
     Promise.all(replaceJobs).then(function (rres) {
+      return Promise.all(metaJobs).then(function (mres) { return rres.concat(mres); });
+    }).then(function (rres) {
       return Promise.all(jobs).then(function (results) { return rres.concat(results); });
     }).then(function (results) {
       prodEditing = null;
-      pImgState = { main: null, extra: [], detail: [], removed: [], replace: {} };
+      pImgState = { main: null, extra: [], detail: [], removed: [], replace: {}, meta: {} };
       render();
       // 이미지 올리기는 실패해도 null 로 끝난다 — 저장됐다고만 알리면 사진이 빠진 걸 나중에 안다
       var failed = results.filter(function (r) { return !r || r.error || r === false; });
@@ -3406,7 +3490,6 @@ function render() {
   document.getElementById('adminTitle').textContent = n.title;
   var av = document.getElementById('adminView');
   av.innerHTML = n.view();
-  av.classList.toggle('view-full', current === 'dashboard' || current === 'manual');
   // 설명서는 절마다 색 밴드가 이어진다 — 좌우 여백을 화면이 아니라 각 절이 만든다
   av.classList.toggle('view-manual', current === 'manual');
   renderNav();
@@ -3749,9 +3832,9 @@ document.addEventListener('click', function(e){
     if (!confirm('이 자리의 사진을 내릴까요? 페이지는 기본 자리표시로 돌아갑니다.')) return;
     if (imgSel === b.dataset.id) imgSel = null;
     S.Media.del('page', b.dataset.id).then(function(){ render(); toast('사진을 내렸습니다.'); });
-  } else if (act === 'pnew') { prodEditing = 'new'; pImgState.removed = []; pImgState.replace = {}; render();
-  } else if (act === 'pedit') { prodEditing = b.dataset.id; pImgState.removed = []; pImgState.replace = {}; render();
-  } else if (act === 'pback') { if (!confirmLeave()) return; prodEditing = null; pImgState = { main: null, extra: [], detail: [], removed: [], replace: {} }; render();
+  } else if (act === 'pnew') { prodEditing = 'new'; pImgState.removed = []; pImgState.replace = {}; pImgState.meta = {}; render();
+  } else if (act === 'pedit') { prodEditing = b.dataset.id; pImgState.removed = []; pImgState.replace = {}; pImgState.meta = {}; render();
+  } else if (act === 'pback') { if (!confirmLeave()) return; prodEditing = null; pImgState = { main: null, extra: [], detail: [], removed: [], replace: {}, meta: {} }; render();
   } else if (act === 'txsave') {
     saveTexts();
   } else if (act === 'txresetall') {
@@ -3787,7 +3870,9 @@ document.addEventListener('click', function(e){
   } else if (act === 'pimgdel') {
     pImgState.removed.push(b.dataset.id);
     delete pImgState.replace[b.dataset.id];
-    b.closest('.pimg-cell').remove(); dirty = true;
+    dirty = true; renderExistingImages();
+  } else if (act === 'pimgmove') {
+    moveExisting(b.dataset.id, Number(b.dataset.dir) || 1);
   } else if (act === 'pimgcrop') {
     cropExisting(b.dataset.id);
   } else if (act === 'pimgswap') {

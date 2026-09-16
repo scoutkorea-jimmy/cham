@@ -463,6 +463,21 @@
         return Promise.all(recs.map(function (r) { return Media.del(scope, r.id); })).then(function () { return true; });
       });
     },
+    // 상품 사진의 역할·순서만 바꾼다(사진은 그대로) — 관리자 '올린 사진' 칸의 대표로/앞뒤 이동
+    setMeta: function (scope, id, meta) {
+      if (SERVER) {
+        return api('/api/admin/images', { method: 'PATCH', body: { id: id, role: meta.role, ord: meta.ord } })
+          .then(function (r) { return r.ok ? true : { error: (r.data && r.data.error) || '사진 정보를 저장하지 못했습니다.', status: r.status }; })
+          .catch(function () { return { error: '연결하지 못했습니다. 인터넷 연결을 확인해 주세요.', status: 0 }; });
+      }
+      var m = SCOPE_STORE[scope]; if (!m) return Promise.resolve(false);
+      return idb.all(m.store).then(function (recs) {
+        var rec = recs.filter(function (r) { return r.id === id; })[0];
+        if (!rec) return false;
+        rec.role = meta.role; rec.ord = meta.ord;
+        return idb.put(m.store, rec).then(function () { return true; });
+      });
+    },
     // 페이지 슬롯의 초점 위치만 저장(사진은 그대로)
     setPos: function (rec, pos) {
       if (SERVER) {
