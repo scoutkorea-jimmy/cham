@@ -335,6 +335,8 @@
   /* 접수(주문·신청·문의) — 서버 모드에서는 서버가 주문번호와 금액을 정한다.
      Promise<rec> 를 돌려주므로 호출부는 결과를 기다려야 한다. */
   function submitRecord(kind, data) {
+    // 서버가 죽은 동안 로컬에 쌓으면 손님은 접수된 줄 알고 서버에는 없다 — 받지 않는다
+    if (API_DOWN) return Promise.reject(new Error(apiDownMessage()));
     if (SERVER) {
       return api('/api/submit', { method: 'POST', body: { kind: kind, data: data } }).then(function (r) {
         if (!r.ok) throw new Error(r.data.error || '접수하지 못했습니다.');
@@ -1775,7 +1777,9 @@
     rawModal(
       '<div class="modal-head"><div><div class="eyebrow">' + cfg.kicker + '</div><h3>' + esc(cfg.title) + '</h3><p>' + esc(cfg.desc) + '</p></div>' +
         '<button class="modal-close" data-modal-close aria-label="닫기"><i data-lucide="x"></i></button></div>' +
-      '<div class="modal-body"><form id="modalForm" data-store="' + cfg.store + '" data-type="' + type + '"' + (isCart ? ' data-cart="1"' : '') + '>' +
+      '<div class="modal-body">' +
+        (API_DOWN ? '<div class="modal-note"><i data-lucide="wifi-off"></i><span>' + esc(apiDownMessage()) + '</span></div>' : '') +
+        '<form id="modalForm" data-store="' + cfg.store + '" data-type="' + type + '"' + (isCart ? ' data-cart="1"' : '') + '>' +
         '<div class="form-grid">' + fields + '</div>' +
         pay + consents +
         '<div class="modal-foot"><button type="button" class="btn btn-ghost" data-modal-close>취소</button><button type="submit" class="btn btn-point"' + disabled + '>' + cfg.submit + '</button></div>' +
@@ -2376,17 +2380,38 @@
      받아 온 뒤에 그려야 상품·소식·설정이 한 번에 제자리로 나온다
      (먼저 그리고 나중에 채우면 화면이 두 번 바뀐다). */
   var NO_API_FLAG = 'kach_no_api';
+  /* **서버가 답하지 않는 상태**. 로컬 모드와 다르다 —
+     로컬 모드는 '이 호스트에는 /api 가 없다'(정적 호스팅·검증 서버)이고,
+     이것은 '있어야 할 /api 가 지금 답하지 않는다'(5xx·네트워크 끊김)이다.
+     예전에는 둘을 가르지 않아 **5xx 한 번에 그 세션이 데모 모드로 떨어졌다** —
+     코드 기본 상품과 자리표시 계좌가 보이고, 주문을 넣으면 가짜 주문번호가 발급되며
+     서버에는 아무것도 남지 않았다. 이제 몇 번 더 시도한 뒤 안내 띠를 띄우고 접수를 막는다. */
+  var API_DOWN = false;
+  var BOOT_RETRY_MS = [800, 2400];   // 배포 직후의 잠깐, 순간 장애를 넘길 만큼만
+
+  function markNoApi() { try { sessionStorage.setItem(NO_API_FLAG, '1'); } catch (e) {} }
+
   function boot() {
     // 정적 호스팅이라고 한 번 확인했으면 페이지마다 404 를 다시 부르지 않는다
     // (콘솔에 오류가 쌓이고 요청도 헛돈다). 세션이 끝나면 다시 확인한다.
     try { if (sessionStorage.getItem(NO_API_FLAG) === '1') return Promise.resolve(false); } catch (e) {}
+    if (location.protocol === 'file:') { markNoApi(); return Promise.resolve(false); }
+    return fetchBootstrap(0);
+  }
+
+  function fetchBootstrap(attempt) {
     return fetch('/api/bootstrap', { credentials: 'same-origin' })
-      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (r) {
+        /* 404 나 HTML 로 답하면 '이 호스트에는 /api 가 없다' — 로컬 모드로 간다.
+           5xx 나 JSON 이 아닌 오류는 '있는데 죽었다' — 아래 catch 로 가서 다시 시도한다. */
+        var ct = r.headers.get('content-type') || '';
+        if (r.status === 404 || (r.status < 500 && ct.indexOf('json') < 0)) { markNoApi(); return null; }
+        if (!r.ok) throw new Error('bootstrap ' + r.status);
+        return r.json();
+      })
       .then(function (d) {
-        if (!d || !d.products) {               // 정적 호스팅의 404 HTML 등
-          try { sessionStorage.setItem(NO_API_FLAG, '1'); } catch (e) {}
-          return false;
-        }
+        if (d === null) return false;
+        if (!d || !d.products) throw new Error('bootstrap body');
         SERVER = true;
         cache['kach_products_v3']  = d.products;
         cache['kach_posts_v1']     = d.posts;
@@ -2404,13 +2429,39 @@
         return true;
       })
       .catch(function () {
-        try { sessionStorage.setItem(NO_API_FLAG, '1'); } catch (e) {}
+        if (attempt < BOOT_RETRY_MS.length) {
+          return new Promise(function (resolve) { setTimeout(resolve, BOOT_RETRY_MS[attempt]); })
+            .then(function () { return fetchBootstrap(attempt + 1); });
+        }
+        API_DOWN = true;
         return false;
       });
   }
 
+  function apiDownMessage() {
+    return '지금은 서버에 연결되지 않아 접수할 수 없습니다. 잠시 후 다시 시도하시거나 전화(' +
+      getSettings().phone + ')로 연락해 주세요.';
+  }
+
+  /* 서버가 답하지 않을 때의 상단 안내 띠. 조용히 빈 화면을 내면 손님은
+     '상품이 없다'로 읽고 운영자는 고장을 모른다 — 멈추지 않는 화면은 고장을 숨긴다. */
+  function showApiDownNotice() {
+    if (document.getElementById('siteApiDown')) return;
+    var st = getSettings();
+    var tel = String(st.phone || '').replace(/[^0-9+]/g, '');
+    var n = el('<div id="siteApiDown" class="site-alert" role="alert"><i data-lucide="wifi-off"></i><span>' +
+      '지금 서버에 연결되지 않아 상품·소식이 표시되지 않습니다. 잠시 후 ' +
+      '<button type="button" data-reload>새로고침</button>해 주세요. 급한 주문·문의는 전화 ' +
+      '<a href="tel:' + tel + '">' + esc(st.phone) + '</a></span></div>');
+    n.querySelector('[data-reload]').addEventListener('click', function () { location.reload(); });
+    var nav = document.getElementById('site-nav');
+    if (nav) nav.insertAdjacentElement('beforebegin', n); else document.body.insertAdjacentElement('afterbegin', n);
+  }
+
   function start() {
-    if (!SERVER) { seedProducts(); dropDemoData(); }   // 로컬 모드에서만 상품 카탈로그를 심는다
+    // 로컬 모드에서만 상품 카탈로그를 심는다. 서버가 죽은 것이지 없는 것이 아니면 심지 않는다
+    if (!SERVER && !API_DOWN) { seedProducts(); dropDemoData(); }
+    if (API_DOWN) showApiDownNotice();
     if (!isPreviewFrame) trackVisit();
     // 회원 정보는 주문 폼을 채울 때만 쓴다 — 화면을 그리는 것을 기다리게 하지 않는다
     if (!isPreviewFrame) loadMemberProfile();

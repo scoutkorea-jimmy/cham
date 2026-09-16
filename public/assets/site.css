@@ -1324,6 +1324,14 @@ button[type=submit]:disabled, .btn:disabled { opacity: 0.45; cursor: not-allowed
 /* ============================================================
    토스트
    ============================================================ */
+/* 서버가 답하지 않을 때 상단 안내 띠 — site.js showApiDownNotice(). 내비 위에 선다 */
+.site-alert {
+  display: flex; align-items: flex-start; justify-content: center; gap: var(--s2);
+  padding: var(--s3) var(--s4); background: var(--danger-tint); color: var(--ink);
+  border-bottom: 1px solid var(--danger); font-size: var(--fs-sm); line-height: var(--lh-snug);
+}
+.site-alert [data-lucide] { width: 18px; height: 18px; color: var(--danger); flex-shrink: 0; margin-top: 2px; }
+.site-alert a, .site-alert button { color: var(--danger); font: inherit; font-weight: 700; text-decoration: underline; background: none; border: 0; padding: 0; cursor: pointer; }
 .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(8px); background: var(--ink); color: #fff; padding: 12px 22px; border-radius: var(--r-pill); font-size: 13.5px; font-weight: 600; z-index: 3000; box-shadow: var(--sh-lg); opacity: 0; visibility: hidden; transition: all var(--dur) var(--ease); max-width: 88vw; text-align: center; }
 .toast.show { opacity: 1; visibility: visible; transform: translateX(-50%); }
 
