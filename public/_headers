@@ -6,3 +6,11 @@
 /*
   X-Frame-Options: SAMEORIGIN
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+
+# 스크립트·스타일은 15분만 캐시한다(Pages 기본은 4시간). 배포 직후 새 HTML 이 옛 site.js 와
+# 만나는 창이 4시간이면, 그동안 새 화면이 부르는 함수가 없어 조용히 빈 자리가 생긴다.
+# ETag 가 있어 15분마다 다시 묻는 요청은 304 한 줄이다.
+/assets/*.js
+  Cache-Control: public, max-age=900, must-revalidate
+/assets/*.css
+  Cache-Control: public, max-age=900, must-revalidate
