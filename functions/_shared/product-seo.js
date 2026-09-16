@@ -23,6 +23,28 @@ function realPrice(p) {
   return p.salePrice != null && p.salePrice !== '' ? Number(p.salePrice) : Number(p.price);
 }
 
+/** 옵션 이름에서 용량만 — '300ml (소)' → '300ml'. `shop.js` 의 optVolume 과 같은 규칙. */
+function optVolume(label) {
+  return String(label || '').replace(/\s*\([^)]*\)\s*$/, '');
+}
+
+/**
+ * 사람이 읽는 가격 한 줄. 홈 미리보기(`shop.js` priceLine)와 같은 모양이다.
+ *   옵션이 있으면  '300ml 25,000원 · 500ml 35,000원'
+ *   없으면        '50,000원 / 세트'
+ *   가격 문의면   '가격 문의' — 화면에 '가격 문의'라 써 두고 숫자를 내보내면 어긋난 것이다
+ * 상품 본문·목록·llms.txt 가 함께 쓴다 — 셋이 각자 만들면 한 곳만 고쳐지는 날이 온다.
+ */
+export function priceText(p) {
+  if (p.priceOnRequest) return '가격 문의';
+  const base = realPrice(p);
+  const vals = p.option && Array.isArray(p.option.values) ? p.option.values : [];
+  if (vals.length) {
+    return vals.map((v) => `${optVolume(v.label)} ${wonText(base + (Number(v.add) || 0))}원`).join(' · ');
+  }
+  return `${wonText(base)}원${p.unit ? ' / ' + p.unit : ''}`;
+}
+
 /**
  * `/product?id=` 요청이면 그 상품을 읽어 온다. 아니면 null.
  * **숨김 상품은 null 을 준다** — 화면이 '찾을 수 없습니다'를 보여 주는 것과 같아야 한다.
@@ -72,13 +94,11 @@ function gosiHTML(gosi) {
  * 저장할 때 걸러진다. 평문으로 넣을 값(이름·요약·고시)만 이스케이프한다.
  */
 function bodyHTML(p) {
-  const ask = !!p.priceOnRequest;
-  const price = ask ? '가격 문의' : `${wonText(realPrice(p))}원${p.unit ? ' / ' + attr(p.unit) : ''}`;
   return '<div class="wrap legal">' +
     '<article class="card card-pad">' +
       '<div class="crumb"><a href="/products">제품</a></div>' +
       `<h1>${attr(p.name)}</h1>` +
-      `<p class="muted">${attr(p.cat || '')} · ${price}` +
+      `<p class="muted">${attr(p.cat || '')} · ${attr(priceText(p))}` +
         (p.status === '품절' ? ' · 품절' : '') + '</p>' +
       (p.summary ? `<p>${attr(p.summary)}</p>` : '') +
       (p.descHtml ? `<div class="rich">${p.descHtml}</div>` : '') +
@@ -176,8 +196,9 @@ export async function loadProductDetail(env, url, canonical, opt) {
    1,269자짜리 껍데기였다 — '명절 선물세트'로 검색해도 닿을 글자가 페이지에 없었다.
    상세와 같은 방식으로 서버가 목록을 실어 보낸다. */
 
-/** 판매 중인 상품 전부. 숨김은 뺀다 — 화면에 없는 것을 검색에 내보내면 안 된다. */
-async function loadSellable(env) {
+/** 판매 중인 상품 전부. 숨김은 뺀다 — 화면에 없는 것을 검색에 내보내면 안 된다.
+    제품 목록 SSR 과 llms.txt 가 함께 쓴다. */
+export async function loadSellable(env) {
   const { results } = await env.DB.prepare(
     `SELECT id, name, cat, price, sale_price, unit, status, stock, summary,
             price_on_request, doc
@@ -195,8 +216,7 @@ function listBodyHTML(rows) {
     g.items.push(p);
   }
   const block = (g) => `<h2>${attr(g.name)}</h2><ul>` + g.items.map((p) => {
-    const price = p.priceOnRequest ? '가격 문의' : `${wonText(realPrice(p))}원${p.unit ? ' / ' + attr(p.unit) : ''}`;
-    return `<li><a href="/product?id=${encodeURIComponent(p.id)}">${attr(p.name)}</a> — ${price}` +
+    return `<li><a href="/product?id=${encodeURIComponent(p.id)}">${attr(p.name)}</a> — ${attr(priceText(p))}` +
       (p.status === '품절' ? ' (품절)' : '') +
       (p.summary ? ` · ${attr(p.summary)}` : '') + '</li>';
   }).join('') + '</ul>';
