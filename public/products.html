@@ -45,7 +45,7 @@
     <h1 data-text="products.top.title" class="reveal">수제 발효식초 서연(瑞蓮),<br>그리고 전통의 장(醬)</h1>
     <p data-text="products.top.lede" class="lede reveal">과일을 청으로 담가 와인으로 빚고, 다시 초산 발효시킨 수제 식초와 와인. 그리고 정선에서 익힌 전통 장류를 소개합니다. 회원가입 없이 <b>비회원 주문</b>이 가능합니다.</p>
     <div class="cat-bar reveal" id="lookup">
-      <a href="#vinegar">식초</a><a href="#jang">장류</a><a href="#ferment">발효식품</a><a href="#gift">선물세트</a><a href="#price">가격 안내</a><a href="#seedjang">씨장 분양</a>
+      <a href="#vinegar">식초</a><a href="#gift">선물세트</a><a href="#jang">장류</a><a href="#ferment">발효식품</a><a href="#seedjang">씨장 분양</a><a href="#price">가격 안내</a>
       <button type="button" data-modal="orderlookup"><i data-lucide="package-search"></i>비회원 주문 조회</button>
     </div>
   </div>
@@ -56,10 +56,10 @@
 <nav class="jump" aria-label="페이지 목차">
   <div class="wrap"><div class="jump-inner">
     <a href="#vinegar">식초</a>
+    <a href="#gift">선물세트</a>
     <a href="#jang">장류</a>
     <a href="#ferment">발효식품</a>
     <a href="#seedjang">씨장 분양</a>
-    <a href="#gift">선물세트</a>
     <a href="#price">가격 안내</a>
   </div></div>
 </nav>
@@ -102,8 +102,24 @@
   </div>
 </section>
 
+<!-- 선물세트 -->
+<section class="section band-oat" id="gift">
+  <div class="wrap">
+    <div class="section-head reveal"><span class="eyebrow">선물세트</span><h2 data-text="products.gift.title">명절 선물세트</h2>
+      <p data-text="products.gift.lede" class="lede">추석·설 명절 선물로 전통 장(醬) 3종 세트와 서연(瑞蓮) 수제식초 선물상자를 준비했습니다. 회원가입 없이 <b>비회원 주문</b>이 가능하고, 단체·기업 주문은 별도 견적으로 안내드립니다.</p>
+    </div>
+    <div class="prod-grid" id="grid-gift"></div>
+    <!-- 참고: '교육하는 모습' 사진 슬롯은 instructor.html 수료 후 이어지는 길(C-4)에 배치함 -->
+    <div class="card reveal" style="background:var(--main-tint);border:none;text-align:center;padding:32px">
+      <h4 style="margin:0 0 var(--gap-tight)">대량 · 기업 주문</h4>
+      <p class="muted" style="margin:0 0 var(--gap-related);font-size:14px">명절 단체 선물, 답례품은 별도 견적으로 안내드립니다. 선물상자 구성(식초 종류·용량)도 원하시는 대로 맞춰 드립니다.</p>
+      <button class="btn btn-ghost" data-modal="inquiry" data-type="제품 문의"><i data-lucide="message-circle"></i>주문 문의</button>
+    </div>
+  </div>
+</section>
+
 <!-- 장류 -->
-<section class="section band-oat" id="jang">
+<section class="section" id="jang">
   <div class="wrap">
     <div class="section-head reveal"><span class="eyebrow">장류</span><h2 data-text="products.jang.title">정선만장대 전통 장(醬)</h2>
       <p data-text="products.jang.lede" class="lede">황국균·백국균·고초균·낫또균·젓산균·누룩균·효모균 — 7가지 미생물을 증식시켜 만든 기능성 메주로 담급니다.</p>
@@ -113,7 +129,7 @@
 </section>
 
 <!-- 발효식품 -->
-<section class="section" id="ferment">
+<section class="section band-tint" id="ferment">
   <div class="wrap">
     <div class="section-head reveal"><span class="eyebrow">발효식품</span><h2 data-text="products.ferment.title">밥상을 채우는 발효의 맛</h2></div>
     <div class="prod-grid" id="grid-ferment"></div>
@@ -138,20 +154,6 @@
       </div>
     </div>
     <div class="reveal ph tone-oat ratio-43" data-img-slot="prod-seedjang" data-label="장독대 — 씨장 숙성 항아리"><i data-lucide="archive"></i></div>
-  </div>
-</section>
-
-<!-- 선물세트 -->
-<section class="section" id="gift">
-  <div class="wrap">
-    <div class="section-head reveal"><span class="eyebrow">선물세트</span><h2 data-text="products.gift.title">명절 선물세트</h2></div>
-    <div class="prod-grid" id="grid-gift"></div>
-    <!-- 참고: '교육하는 모습' 사진 슬롯은 instructor.html 수료 후 이어지는 길(C-4)에 배치함 -->
-    <div class="card reveal" style="background:var(--main-tint);border:none;text-align:center;padding:32px">
-      <h4 style="margin:0 0 var(--gap-tight)">대량 · 기업 주문</h4>
-      <p class="muted" style="margin:0 0 var(--gap-related);font-size:14px">명절 단체 선물, 답례품은 별도 견적으로 안내드립니다. 선물상자 구성(식초 종류·용량)도 원하시는 대로 맞춰 드립니다.</p>
-      <button class="btn btn-ghost" data-modal="inquiry" data-type="제품 문의"><i data-lucide="message-circle"></i>주문 문의</button>
-    </div>
   </div>
 </section>
 

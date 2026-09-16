@@ -150,6 +150,32 @@
     }
   }
 
+  /* ================= 홈 미리보기의 가격 줄 ================= */
+  /* 정적 카드(index.html)에 가격을 손으로 적지 않는다 — 선물상자가 홈에서는 45,000원,
+     실제 상품은 50,000원이던 일이 있었다. 카드는 `data-price-of="상품id"` 만 적고
+     여기서 상품 데이터로 채운다. 숨긴 상품이면 카드째 감춘다(눌러도 없는 상품이다). */
+  function priceLine(p) {
+    if (p.priceOnRequest) return '가격 문의';
+    var base = p.salePrice != null && p.salePrice !== '' ? Number(p.salePrice) : Number(p.price);
+    var vals = p.option && p.option.values ? p.option.values : [];
+    if (vals.length) {
+      return vals.map(function (v) { return optVolume(v.label) + ' ' + fmtWon(base + (Number(v.add) || 0)) + '원'; }).join(' · ');
+    }
+    return fmtWon(base) + '원' + (p.unit ? ' / ' + p.unit : '');
+  }
+  function fillPriceLines() {
+    document.querySelectorAll('[data-price-of]').forEach(function (elx) {
+      var p = S.getProduct(elx.getAttribute('data-price-of'));
+      if (!p || p.status === '숨김') {
+        // 카드가 인라인 display:block 이라 hidden 속성으로는 안 감춰진다
+        var card = elx.closest('.card');
+        if (card) card.style.display = 'none';
+        return;
+      }
+      elx.textContent = priceLine(p);
+    });
+  }
+
   /* ================= 상품 상세 페이지 ================= */
   /* 식초 섭취 유의사항 — 상품 하나하나의 상세설명에 적어 넣지 않는다.
      같은 글이 식초 품목 수만큼 흩어지면 한 곳만 고쳐지고 나머지는 옛말로 남으며,
@@ -440,6 +466,7 @@
   ready(function () {
     renderLists();
     renderPriceTable();
+    fillPriceLines();
     renderDetail();
   });
 })();

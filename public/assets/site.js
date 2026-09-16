@@ -52,13 +52,14 @@
       { label: '커리큘럼', href: 'nuruk.html#curriculum' },
       { label: '수업 안내', href: 'nuruk.html#notice' },
     ]},
+    // 제품 페이지의 섹션 순서를 그대로 따른다 — 선물세트는 서연 바로 다음(명절 판매 주력)
     { id: 'products', label: '제품', href: 'products.html', dd: [
       { label: '식초 (서연)', href: 'products.html#vinegar' },
+      { label: '선물세트', href: 'products.html#gift' },
       { label: '장류', href: 'products.html#jang' },
       { label: '발효식품', href: 'products.html#ferment' },
-      { label: '선물세트', href: 'products.html#gift' },
-      { label: '가격 안내', href: 'products.html#price' },
       { label: '씨장 분양', href: 'products.html#seedjang' },
+      { label: '가격 안내', href: 'products.html#price' },
       { label: '비회원 주문 조회', href: 'products.html#lookup' },
     ]},
     { id: 'news', label: '소식마당', href: 'news.html', dd: [
@@ -880,12 +881,13 @@
     for (var k in over) g[k] = over[k];
     return g;
   }
-  /* 상품 분류 — 목록 페이지 앵커와 관리자 등록 폼이 함께 참조하는 단일 정의 */
+  /* 상품 분류 — 목록 페이지 앵커와 관리자 등록 폼이 함께 참조하는 단일 정의.
+     순서는 제품 페이지의 섹션 순서와 같다(식초 → 선물세트 → 장류 → 발효식품). */
   var PRODUCT_CATS = [
-    { name: '장류', gridId: 'grid-jang' },
     { name: '식초', gridId: 'grid-vinegar' },
-    { name: '발효식품', gridId: 'grid-ferment' },
     { name: '선물세트', gridId: 'grid-gift' },
+    { name: '장류', gridId: 'grid-jang' },
+    { name: '발효식품', gridId: 'grid-ferment' },
   ];
 
   /* 서연(瑞蓮) 수제식초 — 용량 옵션과 고시 항목이 전 품목 동일하므로 한 곳에서 만든다.
