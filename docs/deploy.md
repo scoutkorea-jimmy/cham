@@ -166,6 +166,32 @@ Pages 프로젝트 > Custom domains > 도메인 추가 → 안내되는 DNS 레�
 
 ---
 
+## 자료를 되돌릴 때 — 자동 백업에서 (복구)
+
+서버가 **하루 한 번** D1 의 표를 행 그대로 떠서 R2 `backups/db-YYYY-MM-DD.json` 에 남긴다
+(`functions/_shared/backup.js` — `/api/bootstrap` 이 부른다 · 30일 보관 · 사진 제외 ·
+빈도 제한 카운터 제외). 관리자 > 시스템 > 데이터 백업 > **자동 백업 (서버)** 에서 내려받는다.
+
+> GitHub Actions 의 SQL 덤프(`.github/workflows/backup.yml`)는 **시크릿이 없어 만들어진 날부터
+> 매일 실패**했다. 그쪽 파일(`backups/cham-*.sql`)이 있다면 `wrangler d1 execute --file` 로 그대로 넣으면 된다.
+
+```bash
+# 1) 백업 JSON → INSERT 문. 표를 골라 쓸 수 있다(안 고르면 전부)
+node scripts/backup-to-sql.mjs ~/Downloads/db-2026-09-17.json orders order_items > restore.sql
+
+# 2) 먼저 로컬 D1 에 넣어 본다 — 문법·행 수를 눈으로 확인한다
+npx wrangler d1 execute cham-db --local --file=restore.sql
+
+# 3) 운영에 넣는다
+npx wrangler d1 execute cham-db --remote --file=restore.sql
+```
+
+- `INSERT OR REPLACE` 라 **백업에 있는 행은 덮고, 백업 뒤에 생긴 행은 남는다.** 한 표를 통째로
+  백업 시점으로 되돌리려면 그 표를 먼저 비운다(`DELETE FROM orders;`) — 그 사이 들어온
+  주문이 사라지므로, 넣기 전에 관리자 > 데이터 백업으로 **지금 자료도 한 번 내려받는다.**
+- 스키마는 만들지 않는다 — 표가 없으면 `db/*.sql` 을 먼저 돌린다.
+- 넣은 뒤 관리자 화면에서 목록이 보이는지, `/api/bootstrap` 이 200 인지 본다.
+
 ## 관리자 계정을 잃었을 때 (복구 경로)
 
 비밀번호를 모두 잊었거나 owner 계정이 사라져 아무도 못 들어가는 상황을 위한 **비상구**다.

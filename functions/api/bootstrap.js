@@ -9,10 +9,16 @@
  */
 import { productRowToObj, postRowToObj, readCollection, readDoc, imageRowToObj } from '../_shared/store.js';
 import { reservedMap, stockLeftMap } from '../_shared/stock.js';
+import { runDailyBackup } from '../_shared/backup.js';
 import { json } from '../_shared/http.js';
 
-export async function onRequestGet({ env }) {
+export async function onRequestGet(context) {
+  const { env } = context;
   if (!env || !env.DB) return json({ error: '데이터베이스가 연결되지 않았습니다.', code: 'server_unavailable' }, 503);
+
+  /* 오늘 백업이 없으면 응답을 보낸 뒤 뜬다 — 손님이 첫 페이지를 여는 이 요청이
+     사이트에서 가장 확실히 매일 오는 신호다(관리자는 며칠씩 안 들어올 수 있다). */
+  context.waitUntil(runDailyBackup(env));
 
   const [products, posts, cohorts, partners, popups, settings, consents, texts, pageImages, productImages, reserved] = await Promise.all([
     env.DB.prepare(

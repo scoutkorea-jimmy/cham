@@ -47,7 +47,7 @@
 | 자리 | 무엇 | 비고 |
 |---|---|---|
 | Cloudflare **D1** (`cham-db`) | 위 표의 모든 자료 | 아시아·태평양 지역에 저장 |
-| Cloudflare **R2** (`cham-media`) | 사진 · 게시글 첨부 · `backups/` 의 D1 덤프 | 밖에서 닿지 않는다(§6) |
+| Cloudflare **R2** (`cham-media`) | 사진 · 게시글 첨부 · `backups/` 의 D1 자동 백업(하루 한 번 · **30일** 보관 · IP 카운터 제외) | 밖에서 닿지 않는다(§6) |
 | 브라우저 **쿠키** | 로그인 상태 표식만 | 회원 14일 · 관리자 12시간 |
 
 **비밀번호는 되돌릴 수 없는 해시(PBKDF2-SHA256)로만** 둔다. 운영자를 포함해 누구도 원래 값을 못 본다.
@@ -91,7 +91,8 @@ Cloudflare 는 미국 사업자이고 자료는 아시아·태평양에 저장�
 | 관리자 화면·API 는 세션 없이 열리지 않음 (401 · 302) | `functions/_middleware.js` |
 | 관리자 영역 색인·수집 거부 (`X-Robots-Tag`) | 같은 파일 |
 | R2 의 `backups/` 는 밖에서 닿지 않음 — 이미지 함수가 `images` 표에 있는 id 만 내준다 | `functions/api/images/[id].js` |
-| 매일 D1 덤프를 R2 에 보관 | `.github/workflows/backup.yml` |
+| 매일 D1 자료를 R2 `backups/db-*.json` 에 보관(30일) — 서버 안에서, 시크릿 없이 | `functions/_shared/backup.js` (`/api/bootstrap` 이 부른다) |
+| ~~GitHub Actions 백업~~ — 시크릿이 없어 **만들어진 날부터 매일 실패** 중. 운영자가 시크릿을 넣거나 걷어낸다(handoff B5) | `.github/workflows/backup.yml` |
 
 **하지 않는 것**(과장하지 않기 위해 적는다): 저장 시 암호화(D1 이 제공하는 것 외에 따로 하지 않는다) ·
 접속기록 별도 보관 및 정기 점검 · 침입탐지 · 망분리.

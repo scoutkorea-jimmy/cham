@@ -1851,15 +1851,66 @@ function blobToDataURL(blob) {
 function dataURLToBlob(durl) { return fetch(durl).then(function (r) { return r.blob(); }); }
 var IDB_STORES = ['files', 'gallery', 'pimg', 'simg'];
 
+/* 서버가 매일 남기는 자동 백업 목록 — 처음 열 때 한 번 받아 둔다(회원 화면과 같은 방식).
+   null 은 '아직 안 받았다', 배열은 받은 것, 오류면 문자열. */
+var autoBackups = null;
+function loadAutoBackups() {
+  S.api('/api/admin/backups').then(function (r) {
+    autoBackups = r.ok ? r.data : (r.data && r.data.error) || '목록을 불러오지 못했습니다.';
+    if (current === 'backup') render();
+  }).catch(function () { autoBackups = '목록을 불러오지 못했습니다.'; if (current === 'backup') render(); });
+}
+function fmtBytes(n) {
+  n = Number(n) || 0;
+  return n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.round(n / 1024) + ' KB';
+}
+function autoBackupPanel() {
+  if (!(S.isServer && S.isServer())) return '';
+  var body;
+  if (autoBackups === null) { loadAutoBackups(); body = '<div class="admin-empty"><i data-lucide="loader"></i><div>불러오는 중…</div></div>'; }
+  else if (typeof autoBackups === 'string') body = '<p class="muted">' + esc(autoBackups) + '</p>';
+  else {
+    var mark = autoBackups.mark || {};
+    var note = mark.lastError
+      ? '<div class="modal-note mb-related"><i data-lucide="alert-triangle"></i><span><b>마지막 시도가 실패했습니다</b>(' + esc(fmtDate(mark.lastErrorAt)) + '): ' + esc(mark.lastError) + ' — 다음 방문 때 다시 시도합니다. 계속 실패하면 담당자에게 알려 주세요.</span></div>'
+      : '';
+    var rows = (autoBackups.items || []).map(function (b) {
+      return '<tr><td><b>' + esc(b.day || '-') + '</b></td><td class="dt">' + esc(fmtDate(b.uploaded)) + '</td><td>' + fmtBytes(b.size) + '</td>' +
+        '<td style="white-space:nowrap"><button class="btn btn-ghost" data-act="backupGet" data-key="' + esc(b.key) + '" style="padding:7px 13px"><i data-lucide="download"></i>내려받기</button></td></tr>';
+    }).join('');
+    body = note + (rows
+      ? '<div class="table-wrap"><table class="table"><thead><tr><th>날짜</th><th>뜬 시각</th><th>크기</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>'
+      : '<p class="muted">아직 남긴 백업이 없습니다. 손님이 홈페이지를 처음 여는 날부터 하루 한 번 쌓입니다.</p>');
+  }
+  return '<div class="panel"><div class="panel-head"><h3>자동 백업 (서버)</h3><span class="ph-sub">하루 한 번 · 최근 30일 보관 · 사진 제외</span></div>' +
+    '<div style="padding:22px var(--gutter-panel)"><p class="muted mb-related">서버가 매일 자료(주문·회원·상품·게시글·설정·동의 이력)를 통째로 떠서 보관합니다. 사진은 담기지 않습니다 — 사진까지 필요하면 위의 내보내기를 쓰세요. 되살리기는 담당자가 합니다(docs/deploy.md 복구).</p>' + body + '</div></div>';
+}
+
 function viewBackup() {
   var orders = gj(K.orders, []).length, posts = gj(K.posts, []).length, prods = S.getProducts().length;
-  return '<div class="modal-note"><i data-lucide="info"></i><span>이 사이트의 데이터(주문·신청·문의·게시글·상품·파트너·팝업·동의문·KMS)와 <b>이미지(게시글 첨부·갤러리·상품 이미지)</b>는 이 브라우저에만 저장됩니다. 기기 변경·캐시 삭제 시 사라지므로, 아래 내보내기로 주기적으로 백업하세요.</span></div>' +
+  var server = S.isServer && S.isServer();
+  var note = server
+    ? '<div class="modal-note"><i data-lucide="info"></i><span>자료는 <b>서버에 저장</b>됩니다. 그래도 실수로 지우거나 잘못 덮어쓴 것을 되돌리려면 백업이 있어야 합니다 — 아래에서 언제든 내려받을 수 있고, 서버도 하루 한 번 자동으로 남깁니다.</span></div>'
+    : '<div class="modal-note"><i data-lucide="info"></i><span>이 사이트의 데이터(주문·신청·문의·게시글·상품·파트너·팝업·동의문·KMS)와 <b>이미지(게시글 첨부·갤러리·상품 이미지)</b>는 이 브라우저에만 저장됩니다. 기기 변경·캐시 삭제 시 사라지므로, 아래 내보내기로 주기적으로 백업하세요.</span></div>';
+  return note +
     '<div class="panel"><div class="panel-head"><h3>전체 내보내기</h3><span class="ph-sub">주문 ' + orders + ' · 게시글 ' + posts + ' · 상품 ' + prods + ' + 전체 이미지</span></div>' +
       '<div style="padding:22px var(--gutter-panel)"><p class="muted mb-related">모든 데이터와 이미지를 JSON 파일 하나로 내려받습니다.</p>' +
       '<button class="btn btn-point" data-act="exportAll"><i data-lucide="download"></i>백업 파일 내려받기</button></div></div>' +
+    autoBackupPanel() +
     '<div class="panel"><div class="panel-head"><h3>가져오기 (복원)</h3><span class="ph-sub">백업 JSON으로 현재 데이터를 덮어씁니다</span></div>' +
       '<div style="padding:22px var(--gutter-panel)"><div class="modal-note mb-related"><i data-lucide="alert-triangle"></i><span>현재 브라우저의 데이터가 백업 내용으로 <b>모두 교체</b>됩니다. 되돌릴 수 없으니 필요하면 먼저 내보내기로 백업하세요.</span></div>' +
       '<button class="btn btn-ghost" data-act="importPick"><i data-lucide="upload"></i>백업 파일 선택</button></div></div>';
+}
+
+function doBackupGet(key) {
+  toast('백업 파일을 받는 중…');
+  fetch('/api/admin/backups?key=' + encodeURIComponent(key), { credentials: 'same-origin' }).then(function (r) {
+    if (!r.ok) throw new Error('download failed');
+    return r.blob();
+  }).then(function (blob) {
+    saveBlob(blob, key.split('/').pop());
+    toast('백업 파일을 내려받았습니다.');
+  }).catch(function () { toast('백업 파일을 받지 못했습니다.'); });
 }
 
 function doExport() {
@@ -3720,6 +3771,8 @@ document.addEventListener('click', function(e){
     dirty = false; render(); toast('설정을 기본값으로 되돌렸습니다.');
   } else if (act === 'exportAll') {
     doExport();
+  } else if (act === 'backupGet') {
+    doBackupGet(b.dataset.key);
   } else if (act === 'importPick') {
     var fin = document.createElement('input');
     fin.type = 'file'; fin.accept = 'application/json,.json';
