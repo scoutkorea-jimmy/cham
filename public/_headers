@@ -10,6 +10,9 @@
 # 스크립트·스타일은 15분만 캐시한다(Pages 기본은 4시간). 배포 직후 새 HTML 이 옛 site.js 와
 # 만나는 창이 4시간이면, 그동안 새 화면이 부르는 함수가 없어 조용히 빈 자리가 생긴다.
 # ETag 가 있어 15분마다 다시 묻는 요청은 304 한 줄이다.
+# **charmjt.org 에서는 아직 4시간으로 나간다**(2026-09-17 실측): 존의 Browser Cache TTL 이 기본값(4시간)이라
+# 엣지가 이 값을 덮는다. pages.dev 주소에서는 15분이 그대로 나간다. 대시보드 Caching > Configuration >
+# Browser Cache TTL 을 'Respect Existing Headers' 로 바꿔야 여기 적은 값이 산다 → docs/handoff.md B6
 /assets/*.js
   Cache-Control: public, max-age=900, must-revalidate
 /assets/*.css
