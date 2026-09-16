@@ -1,0 +1,8 @@
+# 보안 헤더 — Pages 가 정적 응답에 붙이고, 미들웨어는 그 응답을 그대로 내보내므로 HTML 에도 실린다.
+#   X-Frame-Options: 다른 사이트가 이 홈페이지를 프레임에 넣어 클릭을 가로채지 못하게 한다.
+#     관리자 '페이지 문구' 편집기는 같은 출처의 iframe 이라 SAMEORIGIN 으로 계속 동작한다.
+#   Permissions-Policy: 쓰지 않는 브라우저 기능을 문서 단위로 끈다 — 끼워 넣은 스크립트가
+#     카메라·마이크·위치를 요청하지 못한다. 지도(Leaflet)는 위치 권한을 쓰지 않는다.
+/*
+  X-Frame-Options: SAMEORIGIN
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
