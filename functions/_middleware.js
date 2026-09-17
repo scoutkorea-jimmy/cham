@@ -14,6 +14,7 @@ import { readDoc } from './_shared/store.js';
 import { rewriteHead, canonicalFor } from './_shared/seo.js';
 import { loadPostDetail, loadPostListDetail } from './_shared/post-seo.js';
 import { loadProductDetail, loadProductListDetail } from './_shared/product-seo.js';
+import { shipFeeOf } from './_shared/shipping.js';
 
 /* 설명서 본문(assets/manual.html)도 함께 막는다.
    화면은 관리자 콘솔 안에 있지만 본문은 **정적 파일**이라, 주소를 아는 사람은
@@ -59,7 +60,7 @@ async function withSeo(context, url) {
        넷은 **서로 다른 주소에서만** 값을 내므로(각자 경로를 확인한다) 첫 번째로 걸리는
        것 하나만 쓴다 — 한 화면에 둘이 걸리는 일은 없다. */
     const canonical = canonicalFor(url);
-    const opt = { shipFee: st.shipFee };
+    const opt = { shipFee: shipFeeOf(st) };   // '' 이면 기본값 — 0원으로 실리지 않게
     let detail = null;
     for (const load of [loadPostDetail, loadProductDetail, loadPostListDetail, loadProductListDetail]) {
       detail = await load(context.env, url, canonical, opt);

@@ -47,6 +47,22 @@ export async function reservedFor(env, productId, optionLabel) {
 }
 
 /**
+ * 이 주문(created_at·id)까지 **앞선 순서로** 잡힌 수량. 접수 뒤 재확인에 쓴다 —
+ * 동시에 들어온 주문 둘이 서로를 보고 둘 다 물러나면 한 자리가 빈다. 먼저 접수된 쪽이 남고
+ * 뒤 쪽만 물러나도록, 자기보다 앞선(같은 시각이면 id 가 작은) 주문까지만 센다.
+ */
+export async function reservedUpTo(env, productId, optionLabel, at, orderId) {
+  const marks = UNSHIPPED.map(() => '?').join(',');
+  const r = await env.DB.prepare(
+    `SELECT IFNULL(SUM(i.qty), 0) AS n
+       FROM order_items i JOIN orders o ON o.id = i.order_id
+      WHERE i.product_id = ? AND IFNULL(i.option_label, '') = ? AND o.status IN (${marks})
+        AND (o.created_at < ? OR (o.created_at = ? AND o.id <= ?))`
+  ).bind(productId, optionLabel == null ? '' : String(optionLabel), ...UNSHIPPED, at, at, orderId).first();
+  return Number(r && r.n) || 0;
+}
+
+/**
  * 팔 수 있는 수량을 **따로 된 표**로 만든다 — 상품 객체의 stock 은 창고 수량 그대로 둔다.
  *
  * 상품 객체를 고쳐 내보내면 안 된다. 관리자 화면도 같은 응답을 읽는데, 그 상태로

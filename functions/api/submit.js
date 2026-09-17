@@ -13,12 +13,14 @@ import {
   ORDER_INSERT, orderObjToBind, ORDER_ITEM_INSERT, orderItemBind,
   APP_INSERT, INQ_INSERT, appBind, inqBind, parseJSON, readDoc,
 } from '../_shared/store.js';
-import { reservedFor } from '../_shared/stock.js';
+import { optKey, reservedFor, reservedUpTo } from '../_shared/stock.js';
 import { getMemberSession } from '../_shared/auth.js';
 import { json, badRequest, methodNotAllowed, readJson } from '../_shared/http.js';
 import { makeThrottle } from '../_shared/throttle.js';
 import { recordConsents } from '../_shared/consent.js';
 import { kstYmd } from '../_shared/clock.js';
+import { bumpVersion } from '../_shared/store.js';
+import { shipFeeFor } from '../_shared/shipping.js';
 
 const MAX_LEN = 2000;
 const MAX_ITEMS = 20;          // 장바구니 한 번에 담을 수 있는 가짓수
@@ -39,21 +41,6 @@ async function issueOrderNo(env) {
     if (!hit) return no;
   }
   return ymd + Date.now().toString().slice(-5);
-}
-
-/* 택배비 — 원본은 **관리자 > 설정**(shipFee · shipFreeOver)이다.
-   브라우저가 보낸 값은 쓰지 않는다. 총액을 조작하지 못하게 하는 것과 같은 이유로,
-   손님이 입금할 금액은 서버가 처음부터 끝까지 다시 만든다.
-   기본값은 site.js 의 SETTINGS_DEFAULTS 와 같아야 한다(설정을 한 번도 저장하지 않은 상태). */
-const SHIP_FEE_DEFAULT = 5100;
-const SHIP_FREE_OVER_DEFAULT = 50000;
-async function shipFeeFor(env, itemsTotal) {
-  const st = (await readDoc(env, 'settings')) || {};
-  const fee = Number(st.shipFee);
-  const over = Number(st.shipFreeOver);
-  const f = Number.isFinite(fee) && fee >= 0 ? fee : SHIP_FEE_DEFAULT;
-  const o = Number.isFinite(over) && over > 0 ? over : SHIP_FREE_OVER_DEFAULT;
-  return itemsTotal >= o ? 0 : f;
 }
 
 /**
@@ -163,20 +150,27 @@ export async function onRequestPost({ request, env }) {
 
   if (kind === 'apply') {
     if (!clean(d.name) || !clean(d.phone)) return badRequest('이름과 연락처를 입력해 주세요.');
-    await env.DB.prepare(APP_INSERT).bind(...appBind({
-      id, name: clean(d.name, 60), phone: clean(d.phone, 40), region: clean(d.region, 80),
-      course: clean(d.course, 120), memo: clean(d.memo, MAX_LEN), status: '신규', at: now,
-    })).run();
+    /* 목록 버전도 올린다 — 안 올리면 관리자가 목록을 읽은 뒤 들어온 이 건이 '버전이 맞는' 통째 저장에 지워진다 */
+    await env.DB.batch([
+      env.DB.prepare(APP_INSERT).bind(...appBind({
+        id, name: clean(d.name, 60), phone: clean(d.phone, 40), region: clean(d.region, 80),
+        course: clean(d.course, 120), memo: clean(d.memo, MAX_LEN), status: '신규', at: now,
+      })),
+      bumpVersion(env, 'applications', null),
+    ]);
     await logConsent(id);
     return json({ ok: true, id }, 201);
   }
 
   if (kind === 'inquiry') {
     if (!clean(d.name) || !clean(d.memo)) return badRequest('이름과 문의 내용을 입력해 주세요.');
-    await env.DB.prepare(INQ_INSERT).bind(...inqBind({
-      id, name: clean(d.name, 60), phone: clean(d.phone, 40), type: clean(d.type, 40),
-      memo: clean(d.memo, MAX_LEN), status: '신규', at: now,
-    })).run();
+    await env.DB.batch([
+      env.DB.prepare(INQ_INSERT).bind(...inqBind({
+        id, name: clean(d.name, 60), phone: clean(d.phone, 40), type: clean(d.type, 40),
+        memo: clean(d.memo, MAX_LEN), status: '신규', at: now,
+      })),
+      bumpVersion(env, 'inquiries', null),
+    ]);
     await logConsent(id);
     return json({ ok: true, id }, 201);
   }
@@ -198,6 +192,8 @@ export async function onRequestPost({ request, env }) {
   };
 
   const itemStmts = [];
+  const merged = new Map();   // optKey → { productId, item, qty }
+  const items = [];
   if (kind === 'order') {
     if (!clean(d.address)) return badRequest('배송지 주소를 입력해 주세요.');
 
@@ -208,27 +204,28 @@ export async function onRequestPost({ request, env }) {
       : [{ productId: d.productId, optionLabel: d.optionLabel, qty: d.qty }];
     if (raw.length > MAX_ITEMS) return badRequest(`한 번에 ${MAX_ITEMS}가지까지 주문하실 수 있습니다.`);
 
-    /* 같은 상품·같은 옵션이 두 줄로 오면 합쳐서 본다.
-       합치지 않으면 재고 3개짜리를 2개+2개로 나눠 담아 통과시킬 수 있다. */
-    const merged = new Map();
+    /* 먼저 상품표에서 확인한 뒤, **서버가 만든 옵션 표기**로 합친다.
+       같은 상품·같은 옵션이 두 줄로 오면 합쳐서 봐야 재고 3개짜리를 2+2 로 나눠 담아 통과시키지 못한다.
+       브라우저가 보낸 표기로 합치면 '용량: 500ml' 과 '500ml' 이 두 줄이 되고, 옵션 없는 상품은
+       아무 글자나 붙여 두 줄로 나눌 수 있었다(2026-09-17 검토에서 잡힘). */
     for (const r of raw) {
+      if (!r || typeof r !== 'object') return badRequest('주문할 수 없는 상품입니다.');
       const pid = clean(r.productId, 80);
       if (!pid) return badRequest('주문할 수 없는 상품입니다.');
-      const opt = r.optionLabel == null ? '' : String(r.optionLabel);
       const qty = Math.max(1, Math.min(999, Math.floor(Number(r.qty) || 1)));
-      const key = pid + '|' + opt;
-      const hit = merged.get(key);
-      if (hit) hit.qty = Math.min(999, hit.qty + qty);
-      else merged.set(key, { productId: pid, optionLabel: opt || null, qty });
-    }
-
-    const items = [];
-    let itemsTotal = 0;
-    for (const m of merged.values()) {
-      const item = await resolveItem(env, m.productId, m.optionLabel);
+      const item = await resolveItem(env, pid, r.optionLabel == null ? '' : String(r.optionLabel));
       if (!item) {
         return json({ error: '주문할 수 없는 상품이 있습니다. 페이지를 새로고침해 주세요.', code: 'unavailable' }, 409);
       }
+      const key = optKey(pid, item.optionLabel);
+      const hit = merged.get(key);
+      if (hit) hit.qty = Math.min(999, hit.qty + qty);
+      else merged.set(key, { productId: pid, item, qty });
+    }
+
+    let itemsTotal = 0;
+    for (const m of merged.values()) {
+      const item = m.item;
       /* 남은 수량을 **여기서 다시 센다.** 화면이 받아 간 값은 페이지를 연 시점의 것이라,
          그 사이에 다 팔렸을 수 있다. 창고 수량에서 아직 발송하지 않은 주문을 뺀 값이
          실제로 팔 수 있는 수량이다(재고는 발송할 때 줄어든다). */
@@ -254,7 +251,7 @@ export async function onRequestPost({ request, env }) {
     rec.unitPrice = items.length === 1 ? head.unitPrice : null;
     rec.itemCount = items.length;
     // total 은 '손님이 입금할 금액' 이다 — 택배비는 주문 한 건에 **한 번만** 붙는다
-    rec.shipFee = await shipFeeFor(env, itemsTotal);
+    rec.shipFee = shipFeeFor((await readDoc(env, 'settings')) || {}, itemsTotal);
     rec.total = itemsTotal + rec.shipFee;
 
     items.forEach((it, i) => {
@@ -267,7 +264,26 @@ export async function onRequestPost({ request, env }) {
   await env.DB.batch([
     env.DB.prepare(ORDER_INSERT).bind(...orderObjToBind(rec)),
     ...itemStmts,
+    bumpVersion(env, 'orders', null),
   ]);
+
+  /* 접수한 **뒤에** 한 번 더 센다. 확인과 삽입 사이에 다른 주문이 끼어들 수 있다(D1 은 잠금을 주지 않는다).
+     자기보다 **앞서 접수된** 주문까지 더해 창고 수량을 넘으면 방금 넣은 이 주문을 도로 지우고 품절로 답한다.
+     앞선 쪽만 남고 뒤 쪽만 물러나므로 한 자리가 비는 일도, 있지도 않은 물건이 팔리는 일도 없다. */
+  for (const it of items) {
+    const onHand = merged.get(optKey(it.productId, it.optionLabel)).item.onHand;
+    const reserved = await reservedUpTo(env, it.productId, it.optionLabel, now, id);
+    if (reserved > onHand) {
+      await env.DB.batch([
+        env.DB.prepare(`DELETE FROM order_items WHERE order_id = ?`).bind(id),
+        env.DB.prepare(`DELETE FROM orders WHERE id = ?`).bind(id),
+      ]);
+      return json({
+        error: `‘${it.product}’ 이(가) 방금 품절되었습니다. 잠시 후 다시 시도해 주세요.`,
+        code: 'out_of_stock', productId: it.productId, left: 0,
+      }, 409);
+    }
+  }
   // 비회원 주문은 이 기록이 동의를 되짚는 유일한 실마리다 — 주문번호가 아니라 id 로 묶는다
   await logConsent(id);
   return json({

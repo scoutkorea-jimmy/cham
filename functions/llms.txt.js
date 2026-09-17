@@ -12,6 +12,7 @@ import { readDoc } from './_shared/store.js';
 import { loadSellable, priceText } from './_shared/product-seo.js';
 import { SITE_NAME } from './_shared/org-seo.js';
 import { kstDay } from './_shared/clock.js';
+import { shipFeeOf, shipFreeOverOf } from './_shared/shipping.js';
 
 /* 페이지 안내 — 주소 뒤의 설명은 페이지 <title>·description 과 같은 뜻을 짧게. */
 const PAGES = [
@@ -79,8 +80,7 @@ export async function onRequestGet({ request, env }) {
     '',
     '## 제품 (판매 중인 것만 · 부가세 포함 소비자가)',
     '- 주문: 회원가입 없이 비회원 주문 가능 · 무통장입금 · 주문번호로 조회. 단체·기업 명절 선물은 별도 견적.',
-    line('택배비', Number.isFinite(Number(st.shipFee)) && st.shipFee !== '' && st.shipFee != null
-      ? `${Number(st.shipFee).toLocaleString('en-US')}원 (일정 금액 이상 무료 — 기준은 제품 페이지 가격표에 표시)` : null),
+    `- 택배비: ${shipFeeOf(st).toLocaleString('en-US')}원 (${shipFreeOverOf(st).toLocaleString('en-US')}원 이상 주문 시 무료)`,
     '',
     ...productLines(rows),
     '### 씨장 분양',
