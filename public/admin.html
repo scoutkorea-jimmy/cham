@@ -439,7 +439,10 @@
   .icon-btn:hover { border-color: var(--danger); color: var(--danger); background: #fff; }
   .icon-btn i[data-lucide]{ width: 15px; height: 15px; }
 
-  .admin-form { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; padding: 22px var(--gutter-panel); }
+  /* minmax(0, 1fr) — 1fr 만 쓰면 입력칸의 내재 최소폭이 열을 밀어 좁은 화면에서 폼이 오른쪽으로 넘쳤다(팝업 폼 @390px) */
+  .admin-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; padding: 22px var(--gutter-panel); }
+  .admin-form .field { min-width: 0; }
+  .admin-form input, .admin-form select, .admin-form textarea { max-width: 100%; min-width: 0; }
   .admin-form .full { grid-column: 1 / -1; }
   .toggle { position: relative; width: 44px; height: 25px; border-radius: 999px; background: var(--line); border: none; cursor: pointer; transition: background var(--dur-fast); flex-shrink: 0; }
   .toggle.on { background: var(--main); }
@@ -525,6 +528,7 @@
     .admin-side { position: fixed; left: -260px; transition: left .2s; z-index: 50; }
     .admin-side.open { left: 0; box-shadow: var(--sh-lg); }
     .admin-view { padding: 20px 20px 150px; }
+    .admin-form { grid-template-columns: minmax(0, 1fr); }
     .admin-top { padding: 0 16px; }
     .as-toggle { display: grid; }
     .at-manual { padding: 10px 12px; }

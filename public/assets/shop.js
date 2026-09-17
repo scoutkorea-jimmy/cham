@@ -287,7 +287,7 @@
           '<div class="pd-price">' + priceHTML(p) + '</div>' +
           (ask ? '' :
             '<div class="pd-opts">' + optHtml +
-              '<div class="pd-row"><label>수량</label><div class="stepper">' +
+              '<div class="pd-row"><label for="pdQty">수량</label><div class="stepper">' +
                 '<button type="button" id="pdMinus" aria-label="수량 줄이기">−</button>' +
                 '<input id="pdQty" type="number" value="1" min="1" inputmode="numeric">' +
                 '<button type="button" id="pdPlus" aria-label="수량 늘리기">+</button>' +
