@@ -20,8 +20,9 @@ import {
   postRowToObj, POST_INSERT, postBind, bumpVersion,
 } from '../../../../_shared/store.js';
 import { SHIPPED } from '../../../../_shared/stock.js';
-import { json, badRequest, notFound, methodNotAllowed, readJson } from '../../../../_shared/http.js';
+import { json, badRequest, notFound, forbidden, methodNotAllowed, readJson } from '../../../../_shared/http.js';
 import { sanitizeHtml } from '../../../../_shared/sanitize-html.js';
+import { can, WRITE_PERM } from '../../../../_shared/perm.js';
 
 /* 한 건씩 다룰 수 있는 항목. 교육과정·파트너·팝업은 한 덩어리 문서라 여기 없다
    (원래 작고, 통째로 저장해도 오래된 자료를 잃을 일이 없다). */
@@ -35,7 +36,19 @@ const ROW_KINDS = {
 
 function who(data) {
   const s = data && data.session;
-  return (s && (s.displayName || s.username)) || null;
+  return (s && ((s.user && s.user.display_name) || s.username)) || null;
+}
+
+/** 바뀐 목록들의 지금 버전 — 화면이 자기 버전을 맞추게 돌려준다(주문 발송이 상품 버전도 올린다) */
+async function versionsOf(env, kinds) {
+  const out = {};
+  for (const k of kinds) {
+    try {
+      const r = await env.DB.prepare(`SELECT version FROM list_versions WHERE kind = ?`).bind(k).first();
+      if (r) out[k] = r.version;
+    } catch { /* 표가 없으면 비워 둔다 */ }
+  }
+  return out;
 }
 
 /**
@@ -88,6 +101,7 @@ export async function onRequestPatch({ request, params, env, data }) {
   if (!spec) return notFound('한 건씩 고칠 수 없는 항목입니다.');
   if (!id) return badRequest();
 
+  if (!can(data && data.session, WRITE_PERM[kind])) return forbidden('이 자료를 바꿀 권한이 없습니다.');
   const body = await readJson(request);
   if (!body || typeof body.patch !== 'object' || body.patch === null) return badRequest();
 
@@ -98,11 +112,14 @@ export async function onRequestPatch({ request, params, env, data }) {
   const before = spec.toObj(row);
   const merged = { ...before, ...body.patch, id };
   if (kind === 'posts' && body.patch.html != null) merged.html = await sanitizeHtml(merged.html);
+  if (kind === 'products' && body.patch.descHtml != null) merged.descHtml = await sanitizeHtml(merged.descHtml);
 
+  /* 상품은 sort_order 를 함께 넘긴다 — 객체에는 없는 열이라 안 넘기면 0 으로 되돌아가 목록 순서가 흐트러진다 */
   const stmts = [
-    env.DB.prepare(spec.insert).bind(...spec.bind(merged)),
+    env.DB.prepare(spec.insert).bind(...spec.bind(merged, row.sort_order)),
     bumpVersion(env, kind, who(data)),
   ];
+  const bumped = [kind];
   // 발송선을 넘나들 때만 창고 수량을 건드린다. 같은 쪽 안에서의 상태 변경
   // (주문접수 → 결제완료, 배송중 → 배송완료)은 재고와 무관하다.
   if (kind === 'orders') {
@@ -113,12 +130,13 @@ export async function onRequestPatch({ request, params, env, data }) {
       if (shifts.length) {
         stmts.push(...shifts);
         stmts.push(bumpVersion(env, 'products', who(data)));
+        bumped.push('products');
       }
     }
   }
 
   await env.DB.batch(stmts);
-  return json({ ok: true, item: merged });
+  return json({ ok: true, item: merged, versions: await versionsOf(env, bumped) });
 }
 
 export async function onRequestDelete({ params, env, data }) {
@@ -127,6 +145,8 @@ export async function onRequestDelete({ params, env, data }) {
   const spec = ROW_KINDS[kind];
   if (!spec) return notFound('한 건씩 지울 수 없는 항목입니다.');
   if (!id) return badRequest();
+
+  if (!can(data && data.session, WRITE_PERM[kind])) return forbidden('이 자료를 지울 권한이 없습니다.');
 
   const del = [env.DB.prepare(`DELETE FROM ${spec.table} WHERE id = ?`).bind(id)];
   // 주문을 지우면 품목 줄도 함께 지운다 — 남으면 재고 예약이 영영 잡혀 있다

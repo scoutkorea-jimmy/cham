@@ -18,6 +18,7 @@
  */
 
 import { orgJsonLd, siteJsonLd, SITE_NAME } from './org-seo.js';
+import { attr } from './html-text.js';
 
 const ABS = /^(https?:)?\/\//i;
 
@@ -160,7 +161,8 @@ export function rewriteHead(res, url, seo, detail) {
           }
           // 트위터 카드도 같은 그림을 쓴다 — 없으면 링크가 글자만 나온다
           add.push(`<meta name="twitter:card" content="summary_large_image">`);
-          add.push(`<meta name="twitter:image" content="${image}">`);
+          // 설정에서 온 값이 속성 안에 들어간다 — 따옴표·꺾쇠를 막는다(og:image 는 setAttribute 가 알아서 한다)
+          add.push(`<meta name="twitter:image" content="${attr(image)}">`);
           /* 소식마당 글은 RSS 로도 나간다. 이 한 줄이 있어야 브라우저·수집기가
              피드를 스스로 찾는다 — 네이버 서치어드바이저도 여기서 확인한다. */
           add.push(`<link rel="alternate" type="application/rss+xml" title="${siteName} 소식" href="${origin}/rss.xml">`);

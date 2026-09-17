@@ -11,7 +11,7 @@
 import {
   ORDER_INSERT, orderObjToBind, APP_INSERT, INQ_INSERT, appBind, inqBind,
   PRODUCT_INSERT, productObjToBind, POST_INSERT, postBind,
-  writeCollection, writeDoc, IMAGE_INSERT, parseJSON,
+  writeCollection, writeDoc, IMAGE_INSERT, parseJSON, bumpVersion,
 } from '../../_shared/store.js';
 import { getOwnerSession } from '../../_shared/auth.js';
 import { json, badRequest, forbidden, readJson } from '../../_shared/http.js';
@@ -65,6 +65,7 @@ export async function onRequestPost({ request, env, data }) {
 
   // 상품 키는 버전이 올라간 적이 있다(v2 → v3) — 최신 것을 쓰고, 없으면 이전 것을 본다
   const products = get('kach_products_v3') || get('kach_products_v2') || [];
+  for (const p of products) if (p.descHtml != null) p.descHtml = await sanitizeHtml(p.descHtml);
   if (products.length) {
     await env.DB.batch(products.map((p, i) => env.DB.prepare(PRODUCT_INSERT).bind(...productObjToBind(p, i))));
   }
@@ -102,6 +103,12 @@ export async function onRequestPost({ request, env, data }) {
   }
   report.visitDays = vDays.length;
 
+  /* 목록 버전을 올린다 — 안 올리면 가져오기 전에 열려 있던 관리자 화면의 다음 통째 저장이
+     방금 가져온 행을 '없는 것'으로 보고 지운다. */
+  const who = (session.user && session.user.display_name) || session.username || null;
+  await env.DB.batch(['orders', 'applications', 'inquiries', 'products', 'posts', 'cohorts', 'partners', 'popups', 'settings', 'consents', 'kms']
+    .map((k) => bumpVersion(env, k, who)));
+
   /* ── IndexedDB 이미지 → R2 ───────────────────────────── */
   let imported = 0, skipped = 0;
   const idb = dump.idb || {};
@@ -118,7 +125,7 @@ export async function onRequestPost({ request, env, data }) {
         await env.DB.prepare(IMAGE_INSERT).bind(
           id, scope,
           rec.productId ?? rec.postId ?? (scope === 'page' ? id : null),
-          rec.role ?? null, Number(rec.ord) || 0, key, decoded.mime, decoded.bytes.length,
+          ['main', 'extra', 'detail'].includes(rec.role) ? rec.role : null, Number(rec.ord) || 0, key, decoded.mime, decoded.bytes.length,
           rec.name ?? null,
           rec.pcx ?? null, rec.pcy ?? null, rec.mbx ?? null, rec.mby ?? null,
         ).run();

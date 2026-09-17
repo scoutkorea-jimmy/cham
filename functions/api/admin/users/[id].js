@@ -8,7 +8,7 @@
  *   · 자기 자신은 비활성화할 수 없다.
  */
 import { getOwnerSession, hashPassword, checkPasswordStrength } from '../../../_shared/auth.js';
-import { loadById, isLastActiveOwner, publicUser } from '../../../_shared/admin-users.js';
+import { loadById, isLastActiveOwner, publicUser, resolveRoleId } from '../../../_shared/admin-users.js';
 import { json, badRequest, forbidden, notFound, methodNotAllowed, readJson } from '../../../_shared/http.js';
 
 export async function onRequestPatch({ request, env, params }) {
@@ -37,6 +37,12 @@ export async function onRequestPatch({ request, env, params }) {
       return json({ error: '마지막 관리자(owner)의 권한은 내릴 수 없습니다.', code: 'last_owner' }, 409);
     }
     sets.push('role = ?'); binds.push(body.role);
+  }
+
+  if (body.roleId != null) {
+    const rid = await resolveRoleId(env, body.roleId, row.role);
+    if (rid === false) return json({ error: '권한 그룹을 찾을 수 없습니다.', code: 'bad_request' }, 400);
+    sets.push('role_id = ?'); binds.push(rid);
   }
 
   if (body.status === 'active' || body.status === 'disabled') {

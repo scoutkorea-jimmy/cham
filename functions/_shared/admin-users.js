@@ -54,6 +54,26 @@ export function publicUser(row) {
 }
 
 /** 마지막 남은 활성 owner 인가 — 스스로를 잠가버리는 사고를 막는다. */
+/**
+ * 계정에 붙일 권한 그룹 id.
+ *   raw 가 있으면 — 그 그룹이 실제로 있어야 한다(없으면 false)
+ *   없으면       — 역할의 기본 그룹(owner → '최고 관리자', staff → '운영 담당' · 0004 마이그레이션과 같은 규칙)
+ * 그룹 표가 없거나 기본 그룹이 없으면 null(그룹 없음).
+ */
+export async function resolveRoleId(env, raw, role) {
+  try {
+    if (raw != null && raw !== '') {
+      const id = Number(raw);
+      if (!Number.isInteger(id) || id <= 0) return false;
+      const r = await env.DB.prepare(`SELECT id FROM admin_roles WHERE id = ?`).bind(id).first();
+      return r ? id : false;
+    }
+    const name = role === 'owner' ? '최고 관리자' : '운영 담당';
+    const d = await env.DB.prepare(`SELECT id FROM admin_roles WHERE name = ?`).bind(name).first();
+    return d ? d.id : null;
+  } catch { return null; }
+}
+
 export async function isLastActiveOwner(env, userId) {
   try {
     const row = await env.DB.prepare(

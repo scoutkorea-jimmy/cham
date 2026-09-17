@@ -46,6 +46,20 @@ export function can(session, perm) {
   return false;
 }
 
+/* 자료 종류 → 필요한 권한. 관리자 자료 창구(data/[kind])와 사진 창구가 본다.
+   없는 종류(posts·partners·popups·texts·settings·consents·kms 읽기)는 세션만 있으면 읽는다 —
+   공개 화면에도 나가는 자료다. 쓰기는 전부 권한이 있어야 한다. */
+export const READ_PERM = {
+  orders: 'sales.view', products: 'sales.view', visits: 'sales.view',
+  applications: 'customers.view', inquiries: 'customers.view', cohorts: 'customers.view',
+};
+export const WRITE_PERM = {
+  orders: 'sales.manage', products: 'sales.manage',
+  applications: 'customers.manage', inquiries: 'customers.manage', cohorts: 'customers.manage',
+  posts: 'content.manage', partners: 'content.manage', popups: 'content.manage', texts: 'content.manage',
+  settings: 'settings.manage', consents: 'system.manage', kms: 'system.manage',
+};
+
 /** 여러 권한 중 하나라도 있으면 통과 */
 export function canAny(session, list) {
   return list.some((p) => can(session, p));

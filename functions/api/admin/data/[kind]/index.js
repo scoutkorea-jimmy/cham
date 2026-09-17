@@ -33,6 +33,7 @@ import {
 import { json, badRequest, forbidden, notFound, methodNotAllowed, readJson } from '../../../../_shared/http.js';
 import { getOwnerSession } from '../../../../_shared/auth.js';
 import { sanitizeHtml } from '../../../../_shared/sanitize-html.js';
+import { can, READ_PERM, WRITE_PERM } from '../../../../_shared/perm.js';
 
 const COLLECTIONS = new Set(['cohorts', 'partners', 'popups']);
 const DOCS = new Set(['settings', 'consents', 'kms', 'texts']);
@@ -70,8 +71,12 @@ function sinceOf(url) {
   return new Date(t).toISOString();
 }
 
-export async function onRequestGet({ request, params, env }) {
+export async function onRequestGet({ request, params, env, data }) {
   const kind = String(params.kind || '');
+  /* 권한 그룹은 화면의 메뉴만 거르는 게 아니다 — 서버가 같은 키로 막아야 '보기만' 그룹이 주문의
+     이름·연락처·주소를 통째로 받아 가지 못한다(2026-09-17 검토에서 잡힘: 여기와 한 건 창구·사진 창구가
+     세션 유무만 보고 있었다). */
+  if (READ_PERM[kind] && !can(data && data.session, READ_PERM[kind])) return forbidden('이 자료를 볼 권한이 없습니다.');
   // 화면은 이 version 을 들고 있다가 저장할 때 되돌려준다 → 그 사이 남이 바꿨는지 가린다
   const ver = await readVersion(env, kind);
 
@@ -135,10 +140,13 @@ export async function onRequestPut({ request, params, env, data }) {
     return forbidden('설정은 관리자(owner)만 바꿀 수 있습니다.');
   }
 
+  if (WRITE_PERM[kind] && !can(session, WRITE_PERM[kind])) return forbidden('이 자료를 바꿀 권한이 없습니다.');
+
   const body = await readJson(request);
   if (!body) return badRequest();
 
-  const who = (session && (session.displayName || session.username)) || null;
+  // list_versions.updated_by 는 표시 이름 — 세션에 displayName 이라는 칸은 없다(user.display_name 이다)
+  const who = (session && ((session.user && session.user.display_name) || session.username)) || null;
 
   /* 동시 편집 차단 — 읽을 때 준 version 과 지금 버전이 다르면 그 사이 누가 바꾼 것이다.
      그대로 저장하면 그 사람 작업이 조용히 사라진다. version 을 안 보내는 옛 화면은
@@ -205,6 +213,8 @@ export async function onRequestPut({ request, params, env, data }) {
     return json({ ok: true, count: items.length, version: cur.version + 1 });
   }
   if (kind === 'products') {
+    // 상세설명도 글과 같은 여과를 거친다 — 상품 권한만 있는 계정이 심은 스크립트가 소유자 화면에서 돌 수 있다
+    for (const p of items) if (p.descHtml != null) p.descHtml = await sanitizeHtml(p.descHtml);
     await env.DB.batch([
       scoped('products'),
       ...items.map((p, i) => env.DB.prepare(PRODUCT_INSERT).bind(...productObjToBind(p, i))),

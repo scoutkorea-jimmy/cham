@@ -9,7 +9,11 @@
  * localStorage 5MB 한계를 벗어나려고 옮기는 것인데 다시 문자열로 넣으면 의미가 없다.
  */
 import { IMAGE_INSERT, imageRowToObj } from '../../_shared/store.js';
-import { json, badRequest, notFound, readJson } from '../../_shared/http.js';
+import { json, badRequest, notFound, forbidden, readJson } from '../../_shared/http.js';
+import { canAny } from '../../_shared/perm.js';
+
+// 상품 사진은 판매 처리, 나머지(페이지·글·갤러리)는 콘텐츠 관리 권한 — 둘 중 하나면 된다
+const IMAGE_PERMS = ['sales.manage', 'content.manage'];
 
 const SCOPES = new Set(['product', 'page', 'post', 'gallery']);
 // 화면(assets/site.js MAX_IMAGE_BYTES)과 같은 값이어야 한다 — 다르면 그 사이 파일이 조용히 실패한다
@@ -19,7 +23,8 @@ const OK_MIME = /^image\/(jpeg|png|webp|gif|avif)$/;
 const rid = () => 'i' + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36);
 const clampPct = (v) => (v == null ? null : Math.max(0, Math.min(100, Math.round(Number(v)) || 0)));
 
-export async function onRequestPost({ request, env }) {
+export async function onRequestPost({ request, env, data }) {
+  if (!canAny(data && data.session, IMAGE_PERMS)) return forbidden('사진을 올릴 권한이 없습니다.');
   if (!env.MEDIA) return json({ error: '이미지 저장소가 연결되지 않았습니다.', code: 'server_unavailable' }, 503);
 
   let form;
@@ -45,7 +50,9 @@ export async function onRequestPost({ request, env }) {
   // 맞춰 둔 위치가 가운데로 돌아가면 다시 맞춰야 한다.
   let prev = null;
   if (scope === 'page') {
-    prev = await env.DB.prepare(`SELECT pcx, pcy, mbx, mby FROM images WHERE id = ?`).bind(id).first();
+    prev = await env.DB.prepare(`SELECT scope, pcx, pcy, mbx, mby FROM images WHERE id = ?`).bind(id).first();
+    // 슬롯 id 가 다른 scope 의 사진 id 와 겹치면 그 행을 덮어써 원본 파일이 고아가 된다 — 막는다
+    if (prev && prev.scope !== 'page') return badRequest('슬롯 이름이 다른 사진의 id 와 겹칩니다.');
   }
 
   await env.MEDIA.put(key, file.stream(), { httpMetadata: { contentType: file.type } });
@@ -63,7 +70,8 @@ export async function onRequestPost({ request, env }) {
 
 const ROLES = new Set(['main', 'extra', 'detail']);
 
-export async function onRequestPatch({ request, env }) {
+export async function onRequestPatch({ request, env, data }) {
+  if (!canAny(data && data.session, IMAGE_PERMS)) return forbidden('사진을 바꿀 권한이 없습니다.');
   const body = await readJson(request);
   if (!body || !body.id) return badRequest();
 
@@ -90,7 +98,8 @@ export async function onRequestPatch({ request, env }) {
   return json({ ok: true });
 }
 
-export async function onRequestDelete({ request, env }) {
+export async function onRequestDelete({ request, env, data }) {
+  if (!canAny(data && data.session, IMAGE_PERMS)) return forbidden('사진을 지울 권한이 없습니다.');
   const body = await readJson(request);
   if (!body) return badRequest();
 
@@ -107,9 +116,16 @@ export async function onRequestDelete({ request, env }) {
 
   if (!rows.length) return json({ ok: true, deleted: 0 });
 
-  // R2 를 먼저 지운다 — D1 만 지우면 참조 없는 파일이 남아 용량만 먹는다
-  if (env.MEDIA) await Promise.all(rows.map((r) => env.MEDIA.delete(r.r2_key).catch(() => {})));
-  await env.DB.batch(rows.map((r) => env.DB.prepare(`DELETE FROM images WHERE id = ?`).bind(r.id)));
-
-  return json({ ok: true, deleted: rows.length });
+  /* R2 를 먼저 지우고, **지워진 것만** D1 에서 뺀다. 예전에는 R2 실패를 삼키고 행을 지워
+     참조 없는 파일이 신호 없이 남았다. 실패한 것은 행을 남겨 두고 실패를 알린다 — 다시 지우면 된다. */
+  const gone = [];
+  const failed = [];
+  for (const r of rows) {
+    try { if (env.MEDIA) await env.MEDIA.delete(r.r2_key); gone.push(r); } catch { failed.push(r.id); }
+  }
+  if (gone.length) await env.DB.batch(gone.map((r) => env.DB.prepare(`DELETE FROM images WHERE id = ?`).bind(r.id)));
+  if (failed.length) {
+    return json({ error: `사진 ${failed.length}장을 저장소에서 지우지 못했습니다. 잠시 후 다시 시도해 주세요.`, code: 'partial', deleted: gone.length, failed }, 500);
+  }
+  return json({ ok: true, deleted: gone.length });
 }
