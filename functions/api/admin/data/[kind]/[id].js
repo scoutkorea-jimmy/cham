@@ -21,6 +21,7 @@ import {
 } from '../../../../_shared/store.js';
 import { SHIPPED } from '../../../../_shared/stock.js';
 import { json, badRequest, notFound, methodNotAllowed, readJson } from '../../../../_shared/http.js';
+import { sanitizeHtml } from '../../../../_shared/sanitize-html.js';
 
 /* 한 건씩 다룰 수 있는 항목. 교육과정·파트너·팝업은 한 덩어리 문서라 여기 없다
    (원래 작고, 통째로 저장해도 오래된 자료를 잃을 일이 없다). */
@@ -96,6 +97,7 @@ export async function onRequestPatch({ request, params, env, data }) {
   // 읽어서 합친다. id 는 주소가 정하므로 본문이 바꾸지 못한다.
   const before = spec.toObj(row);
   const merged = { ...before, ...body.patch, id };
+  if (kind === 'posts' && body.patch.html != null) merged.html = await sanitizeHtml(merged.html);
 
   const stmts = [
     env.DB.prepare(spec.insert).bind(...spec.bind(merged)),

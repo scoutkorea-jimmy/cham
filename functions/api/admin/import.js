@@ -15,6 +15,7 @@ import {
 } from '../../_shared/store.js';
 import { getOwnerSession } from '../../_shared/auth.js';
 import { json, badRequest, forbidden, readJson } from '../../_shared/http.js';
+import { sanitizeHtml } from '../../_shared/sanitize-html.js';
 
 /** "data:image/jpeg;base64,..." → { bytes, mime } */
 function decodeDataURL(durl) {
@@ -70,6 +71,7 @@ export async function onRequestPost({ request, env, data }) {
   report.products = products.length;
 
   const posts = get('kach_posts_v1') || [];
+  for (const p of posts) p.html = await sanitizeHtml(p.html);   // 백업에서 들어오는 글도 같은 기준
   if (posts.length) await env.DB.batch(posts.map((p) => env.DB.prepare(POST_INSERT).bind(...postBind(p))));
   report.posts = posts.length;
 

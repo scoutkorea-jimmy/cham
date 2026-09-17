@@ -12,6 +12,7 @@
 import { json, badRequest, forbidden, unauthorized, methodNotAllowed, readJson } from '../../_shared/http.js';
 import { POST_INSERT, postBind, bumpVersion } from '../../_shared/store.js';
 import { BOARDS, getPostActor, canWriteBoard } from '../../_shared/boards.js';
+import { sanitizeHtml } from '../../_shared/sanitize-html.js';
 
 /* 제목·본문 상한. 없으면 한 번의 요청으로 DB 를 채울 수 있다. */
 const MAX_TITLE = 200;
@@ -35,8 +36,9 @@ export async function onRequestPost({ request, env }) {
   const title = String(b.title || '').trim();
   if (!title) return badRequest('제목을 입력해 주세요.');
   if (title.length > MAX_TITLE) return badRequest('제목이 너무 깁니다.');
-  const html = b.html == null ? null : String(b.html);
-  if (html && html.length > MAX_HTML) return badRequest('본문이 너무 깁니다.');
+  const raw = b.html == null ? null : String(b.html);
+  if (raw && raw.length > MAX_HTML) return badRequest('본문이 너무 깁니다.');
+  const html = await sanitizeHtml(raw);   // 강사 회원도 쓰는 글이다 — 스크립트가 섞이면 방문자 전원이 위험하다
 
   const post = {
     id: newId(),

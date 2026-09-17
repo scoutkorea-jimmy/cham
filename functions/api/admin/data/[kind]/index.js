@@ -32,6 +32,7 @@ import {
 } from '../../../../_shared/store.js';
 import { json, badRequest, forbidden, notFound, methodNotAllowed, readJson } from '../../../../_shared/http.js';
 import { getOwnerSession } from '../../../../_shared/auth.js';
+import { sanitizeHtml } from '../../../../_shared/sanitize-html.js';
 
 const COLLECTIONS = new Set(['cohorts', 'partners', 'popups']);
 const DOCS = new Set(['settings', 'consents', 'kms', 'texts']);
@@ -212,6 +213,8 @@ export async function onRequestPut({ request, params, env, data }) {
     return json({ ok: true, count: items.length, version: cur.version + 1 });
   }
   if (kind === 'posts') {
+    // 관리자 창구도 같은 여과를 거친다 — 글이 어느 문으로 들어오든 저장된 HTML 은 한 기준이다
+    for (const p of items) p.html = await sanitizeHtml(p.html);
     await env.DB.batch([
       scoped('posts'),
       ...items.map((p) => env.DB.prepare(POST_INSERT).bind(...postBind(p))),

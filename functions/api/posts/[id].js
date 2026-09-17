@@ -12,6 +12,7 @@
 import { json, badRequest, forbidden, notFound, unauthorized, methodNotAllowed, readJson } from '../../_shared/http.js';
 import { postRowToObj, POST_INSERT, postBind, bumpVersion } from '../../_shared/store.js';
 import { BOARDS, getPostActor, canWriteBoard, canEditPost } from '../../_shared/boards.js';
+import { sanitizeHtml } from '../../_shared/sanitize-html.js';
 
 const MAX_TITLE = 200;
 const MAX_HTML = 200_000;
@@ -52,8 +53,9 @@ export async function onRequestPatch({ request, env, params }) {
   const title = b.title != null ? String(b.title).trim() : cur.title;
   if (!title) return badRequest('제목을 입력해 주세요.');
   if (title.length > MAX_TITLE) return badRequest('제목이 너무 깁니다.');
-  const html = b.html != null ? String(b.html) : (cur.html ?? null);
-  if (html && html.length > MAX_HTML) return badRequest('본문이 너무 깁니다.');
+  const raw = b.html != null ? String(b.html) : (cur.html ?? null);
+  if (raw && raw.length > MAX_HTML) return badRequest('본문이 너무 깁니다.');
+  const html = b.html != null ? await sanitizeHtml(raw) : raw;
 
   const next = {
     id: row.id, cat, title, html,
