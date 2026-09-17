@@ -90,6 +90,8 @@ Cloudflare 는 미국 사업자이고 자료는 아시아·태평양에 저장�
 | 권한 10종 · 그룹별 접근 통제 | `_shared/perm.js` · `db/0004_roles.sql` |
 | 관리자 화면·API 는 세션 없이 열리지 않음 (401 · 302) | `functions/_middleware.js` |
 | 관리자 영역 색인·수집 거부 (`X-Robots-Tag`) | 같은 파일 |
+| 소식마당 글 HTML 을 **저장할 때 서버가 여과**(허용 목록 — 스크립트·이벤트 속성·위험한 주소·외부 프레임 제거). 강사 회원도 글을 쓰므로 | `_shared/sanitize-html.js` |
+| 주문 조회·취소/반품 신청도 빈도 제한(못 찾은 시도만 센다) · 카운터 표는 하루 조용한 줄을 지운다 | `_shared/throttle.js` |
 | R2 의 `backups/` 는 밖에서 닿지 않음 — 이미지 함수가 `images` 표에 있는 id 만 내준다 | `functions/api/images/[id].js` |
 | 매일 D1 자료를 R2 `backups/db-*.json` 에 보관(30일) — 서버 안에서, 시크릿 없이 | `functions/_shared/backup.js` (`/api/bootstrap` 이 부른다) |
 | ~~GitHub Actions 백업~~ — 시크릿이 없어 **만들어진 날부터 매일 실패** 중. 운영자가 시크릿을 넣거나 걷어낸다(handoff B5) | `.github/workflows/backup.yml` |
