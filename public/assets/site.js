@@ -200,11 +200,16 @@
           reload(kind).then(function () { emit('data-reloaded', kind); });
           return;
         }
-        toast(r.status === 401 || r.status === 403
-          ? '저장 권한이 없습니다. 다시 로그인해 주세요.'
-          : '저장하지 못했습니다: ' + (r.data.error || '서버 오류'));
-        reload(kind);   // 화면과 서버가 어긋난 채 남지 않게 되돌린다
-      }).catch(function () { toast('저장하지 못했습니다. 인터넷 연결을 확인해 주세요.'); });
+        if (r.status === 401) { sessionLost(); return; }
+        toast(r.status === 403
+          ? '저장 권한이 없습니다: ' + (r.data.error || '')
+          : '저장하지 못했습니다: ' + (r.data.error || '서버 오류'), 5000);
+        // 화면과 서버가 어긋난 채 남지 않게 되돌리고, 화면도 다시 그리게 알린다
+        reload(kind).then(function () { emit('data-reloaded', kind); });
+      }).catch(function () {
+        toast('저장하지 못했습니다. 인터넷 연결을 확인해 주세요.', 5000);
+        reload(kind).then(function () { emit('data-reloaded', kind); });
+      });
       return true;
     }
     try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; }  // false=쿼터 초과 등 실패
@@ -215,9 +220,18 @@
   function loadAdminData() {
     if (!SERVER) return Promise.resolve(true);
     // 버전은 한 번에 받는다 — 항목마다 GET 하면 화면 뜨는 데 그만큼 더 기다린다
+    /* 덮어쓰지 않고 **큰 값**을 남긴다 — 이 응답이 자료보다 늦게 오면 그 사이 저장으로 올라간 버전이
+       되돌아간다. 실패하면 한 번 더 — 조용히 비면 그 세션은 남의 저장을 말없이 덮는다. */
+    var takeVersions = function (r) {
+      if (!(r.ok && r.data && r.data.versions)) return false;
+      Object.keys(r.data.versions).forEach(function (k) {
+        versions[k] = Math.max(Number(versions[k]) || 0, Number(r.data.versions[k]) || 0);
+      });
+      return true;
+    };
     api('/api/admin/versions').then(function (r) {
-      if (r.ok && r.data && r.data.versions) versions = r.data.versions;
-    }).catch(function () {});
+      if (!takeVersions(r)) return api('/api/admin/versions').then(takeVersions);
+    }).catch(function () { toast('저장 충돌 보호를 켜지 못했습니다. 화면을 새로고침해 주세요.', 5000); });
     // 계속 쌓이는 것은 최근 1년만 — 나머지는 운영자가 부를 때 가져온다
     for (var wk in WINDOW_KINDS) windowSince[wk] = defaultSince();
     return Promise.all(['orders', 'applications', 'inquiries', 'kms', 'visits'].map(function (kind) {
@@ -260,6 +274,15 @@
     toast(msg, 5000);
     return reload(kind).then(function () { emit('data-reloaded', kind); return false; });
   }
+  /* 관리자 세션이 풀렸다(12시간). 낙관적으로 바꾼 화면은 서버에 없는 값이므로 그대로 두면 안 된다 —
+     로그인 화면으로 보낸다. 돌아오면 서버 값으로 새로 그려진다. 폼에 적던 내용은 잃는다(알린다). */
+  var sessionLostShown = false;
+  function sessionLost() {
+    if (sessionLostShown) return;
+    sessionLostShown = true;
+    toast('로그인이 풀려 저장되지 않았습니다. 다시 로그인합니다.', 4000);
+    setTimeout(function () { location.href = '/login.html?next=' + encodeURIComponent(location.pathname); }, 1500);
+  }
 
   /** 한 건의 일부만 고친다. patch 는 바꿀 값만 담는다. */
   function patchItem(kind, id, patch) {
@@ -282,7 +305,19 @@
     return api('/api/admin/data/' + kind + '/' + encodeURIComponent(id), {
       method: 'PATCH', body: { patch: patch },
     }).then(function (r) {
-      if (r.ok) { if (r.data && r.data.version != null) versions[kind] = r.data.version; return true; }
+      if (r.ok) {
+        if (r.data && r.data.version != null) versions[kind] = r.data.version;
+        /* 서버가 다른 목록도 올렸으면(주문 발송이 상품 재고·버전을 바꾼다) 그 버전을 받아 두고
+           그 목록을 다시 읽는다. 안 그러면 다음 상품 저장이 반드시 '다른 사람이 먼저 저장' 충돌로 버려졌다. */
+        if (r.data && r.data.versions) {
+          Object.keys(r.data.versions).forEach(function (k) {
+            versions[k] = r.data.versions[k];
+            if (k !== kind) reload(k).then(function () { emit('data-reloaded', k); });
+          });
+        }
+        return true;
+      }
+      if (r.status === 401) { sessionLost(); return false; }
       if (r.status === 404) return itemFail(kind, '이미 지워졌거나 없는 항목입니다. 목록을 새로 불러옵니다.');
       return itemFail(kind, '저장하지 못했습니다: ' + ((r.data && r.data.error) || '서버 오류'));
     }).catch(function () { return itemFail(kind, '저장하지 못했습니다. 인터넷 연결을 확인해 주세요.'); });
@@ -1815,6 +1850,7 @@
     emit('modal-closed');
   }
 
+  var modalBusy = false;   // 접수 요청이 나가 있는 동안 — 닫히면 주문번호를 못 본다
   function submitModal(form) {
     var data = {}; var fd = new FormData(form);
     fd.forEach(function(v, k){ data[k] = v; });
@@ -1863,11 +1899,14 @@
     }
     var btn = form.querySelector('button[type=submit]');
     if (btn) { btn.disabled = true; btn.textContent = '접수 중…'; }
+    modalBusy = true;
 
     submitRecord(type, data).then(function (rec) {
+      modalBusy = false;
       if (isCart) cartClear();          // 접수된 뒤에 비운다 — 실패하면 담긴 것이 남아야 한다
       renderSubmitSuccess(form, type, rec, isOrder);
     }).catch(function (err) {
+      modalBusy = false;
       if (btn) { btn.disabled = false; btn.textContent = MODALS[type].submit; }
       var note = form.querySelector('.submit-error');
       if (!note) {
@@ -1963,6 +2002,10 @@
       '</div>', 600);
     paintCart();
     var root = document.getElementById('modalRoot');
+    /* 리스너는 **한 번만** 단다. 창을 열 때마다 달았더니 두 번째부터 '−' 한 번에 수량이 둘씩 줄고
+       ✕ 한 번에 두 줄이 지워졌다(2026-09-17 검토에서 잡힘). 모달 뿌리는 재사용되므로 표식을 남긴다. */
+    if (root.dataset.cartBound) return;
+    root.dataset.cartBound = '1';
     root.addEventListener('click', function (e) {
       var t = e.target;
       var del = t.closest('[data-cart-del]');
@@ -2265,7 +2308,8 @@
       var pc = e.target.closest('[data-postcode-addr]');
       if (pc) { e.preventDefault(); postcodeFill(pc); return; }
       if (e.target.closest('[data-open-cart]')) { e.preventDefault(); openCart(); return; }
-      if (e.target.closest('[data-modal-close]')) { closeModal(); }
+      // 접수 중에는 닫지 않는다 — 닫히면 서버에는 주문이 생겼는데 손님은 주문번호를 못 본다
+      if (e.target.closest('[data-modal-close]')) { if (modalBusy) return; closeModal(); }
     });
     document.addEventListener('change', function (e) {
       if (e.target.classList && e.target.classList.contains('consent-chk')) {
@@ -2294,7 +2338,7 @@
         submitModal(e.target);
       }
     });
-    document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeModal(); });
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && !modalBusy) closeModal(); });
   }
 
   /* ---------------- Reveal on scroll (최초 1회 애니메이션) ----------------

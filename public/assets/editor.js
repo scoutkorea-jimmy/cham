@@ -10,6 +10,25 @@
      여기 있던 10MB 는 다른 경로(8MB)보다 커서, 그 사이 크기의 사진이
      '삽입은 되는데 저장이 안 되는' 상태를 만들었다.
      게다가 본문 삽입은 사진을 글 안에 통째로(base64) 담으므로 실제로는 더 무겁다. */
+  /* 그림을 캔버스로 줄여 dataURL 로. 읽지 못하면 null. */
+  function shrinkImage(file, maxW, q) {
+    return new Promise(function (resolve) {
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function () {
+        var sc = Math.min(1, maxW / Math.max(img.width, img.height));
+        var c = document.createElement('canvas');
+        c.width = Math.max(1, Math.round(img.width * sc)); c.height = Math.max(1, Math.round(img.height * sc));
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        // PNG(투명) 은 그대로 두면 크다 — 사진은 JPEG 로. 아주 작은 그림(아이콘류)만 원형을 지킨다
+        var keepPng = file.type === 'image/png' && file.size < 200 * 1024;
+        resolve(keepPng ? c.toDataURL('image/png') : c.toDataURL('image/jpeg', q));
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); resolve(null); };
+      img.src = url;
+    });
+  }
   var MAX_IMG = (window.Site && window.Site.MAX_IMAGE_BYTES) || 5 * 1024 * 1024;
 
   /* ---------- 툴바 정의 ---------- */
@@ -184,9 +203,14 @@
                       : '사진이 너무 큽니다. 한 장에 5MB 까지 넣을 수 있습니다.');
                 return;
               }
-              var rd = new FileReader();
-              rd.onload = function () { editor.chain().focus().setImage({ src: rd.result }).run(); };
-              rd.readAsDataURL(f);
+              /* 본문에 박히는 그림은 줄여서 넣는다. 원본을 그대로 base64 로 넣으면 5MB 사진 한 장이
+                 약 6.7MB 글자가 되어 글·상품이 실리는 첫 응답(/api/bootstrap)을 방문자 전원이 받는다.
+                 긴 변 1200px · JPEG 로 줄이면 보통 100~250KB 다. */
+              shrinkImage(f, 1200, 0.82).then(function (src) {
+                if (!src) { alert('사진을 읽을 수 없습니다.'); return; }
+                if (src.length > 800 * 1024) { alert('사진이 너무 큽니다. 더 작은 사진을 넣어 주세요.'); return; }
+                editor.chain().focus().setImage({ src: src }).run();
+              });
             };
             inp.click();
           })(); break;

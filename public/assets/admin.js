@@ -913,8 +913,12 @@ function bindProductForm() {
     var fd = new FormData(form);
     var products = S.getProducts();
     var pid = form.dataset.pid;
-    var rec = pid ? products.filter(function (x) { return x.id === pid; })[0] : null;
-    if (!rec) { rec = { id: 'p_' + uid(), icon: 'package', tone: 'tone-oat', related: [] }; products.push(rec); }
+    /* 캐시(서버 모드에서는 메모리 그 자체)를 검증이 끝나기 **전에** 고치지 않는다. 고쳤다가 검증에서
+       돌아가면 목록에 저장 안 된 값이 남고, 새 상품은 제출할 때마다 하나씩 더 생겼다(2026-09-17 검토). */
+    var existing = pid ? products.filter(function (x) { return x.id === pid; })[0] : null;
+    var rec = {};
+    if (existing) { for (var ek in existing) rec[ek] = existing[ek]; }
+    else { rec = { id: 'p_' + uid(), icon: 'package', tone: 'tone-oat', related: [] }; }
     rec.name = fd.get('name'); rec.cat = fd.get('cat');
     rec.price = Number(fd.get('price')) || 0;
     rec.salePrice = fd.get('salePrice') === '' ? null : Number(fd.get('salePrice'));
@@ -938,7 +942,13 @@ function bindProductForm() {
       rec.option = vals.length ? { name: document.getElementById('optName').value.trim() || '옵션', values: vals } : null;
     } else rec.option = null;
     rec.related = Array.prototype.slice.call(form.querySelectorAll('input[name=rel]:checked')).map(function (c) { return c.value; });
+    // 검증을 다 지났다 — 이제 목록에 넣는다(고침은 제자리에, 새 것은 뒤에)
+    if (existing) products = products.map(function (x) { return x.id === rec.id ? rec : x; });
+    else products = products.concat([rec]);
     if (!S.setProducts(products)) { toast('저장 공간이 부족합니다. 상세 설명의 첨부 이미지를 줄이거나 데이터를 백업·정리해 주세요.'); return; }
+    // 사진이 올라가는 동안 두 번 누르면 사진이 두 번 올라간다 — 끝날 때까지 잠근다
+    var saveBtn = form.querySelector('button[type=submit]');
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '저장 중…'; }
 
     /* 교체(다시 자르기·다른 사진)를 먼저 끝낸다 — 새 사진을 올린 **뒤에** 옛것을 지운다.
        올리기가 실패하면 옛 사진이 그대로 남는다(먼저 지우면 실패했을 때 사진이 없어진다).
@@ -974,7 +984,9 @@ function bindProductForm() {
       return Promise.all(metaJobs).then(function (mres) { return rres.concat(mres); });
     }).then(function (rres) {
       return Promise.all(jobs).then(function (results) { return rres.concat(results); });
-    }).then(function (results) {
+    }).catch(function () { return [{ error: '사진 처리 중 연결이 끊겼습니다.' }]; })
+    .then(function (results) {
+      if (saveBtn) { saveBtn.disabled = false; }
       prodEditing = null;
       pImgState = { main: null, extra: [], detail: [], removed: [], replace: {}, meta: {} };
       render();
@@ -1657,7 +1669,8 @@ function setPos(x, y, persist) {
   if (persist) {
     if (posState.dev === 'mb') { posState.rec.mbx = x; posState.rec.mby = y; }
     else { posState.rec.pcx = x; posState.rec.pcy = y; }
-    S.Media.setPos(posState.rec, { pcx: posState.rec.pcx, pcy: posState.rec.pcy, mbx: posState.rec.mbx, mby: posState.rec.mby });
+    S.Media.setPos(posState.rec, { pcx: posState.rec.pcx, pcy: posState.rec.pcy, mbx: posState.rec.mbx, mby: posState.rec.mby })
+      .then(function (ok) { if (!ok) toast('초점 위치를 저장하지 못했습니다. 잠시 후 다시 옮겨 주세요.'); });
   }
 }
 function nudgePos(dir) {
@@ -1903,7 +1916,8 @@ function markEditable(fr) {
   if (!ctx) {
     if (fr._txWait) return;
     fr._txWait = setInterval(function () {
-      if (!document.getElementById('txFrame')) { clearInterval(fr._txWait); fr._txWait = null; return; }
+      // 같은 id 의 새 iframe 이 생겨도 이 폴링은 옛것을 보고 있다 — 문서에서 떨어졌으면 멈춘다
+      if (!fr.isConnected) { clearInterval(fr._txWait); fr._txWait = null; return; }
       if (frameReady(fr)) { clearInterval(fr._txWait); fr._txWait = null; markEditable(fr); }
     }, 150);
     return;
@@ -2504,8 +2518,9 @@ function viewMembers() {
     return acctTabs() + '<div class="panel"><div class="admin-empty"><i data-lucide="loader"></i><div>불러오는 중…</div></div></div>';
   }
   var live = members.filter(function (m) { return m.status === 'active'; }).length;
-  var pg = paged('members', members); members = pg.rows;
-  var rows = members.length ? members.map(function (m) {
+  // 쪽 나누기 결과를 모듈 변수 members 에 덮어쓰지 않는다 — 덮으면 31명부터 2쪽 이후를 못 본다
+  var pg = paged('members', members); var pageRows = pg.rows;
+  var rows = pageRows.length ? pageRows.map(function (m) {
     var tel = String(m.phone || '').replace(/[^0-9+]/g, '');
     return '<tr' + (m.status !== 'active' ? ' style="opacity:.55"' : '') + '>' +
       '<td><b>' + esc(m.name) + '</b>' + (m.status !== 'active' ? ' <span class="tag">중지</span>' : '') +
@@ -4048,6 +4063,10 @@ function initAuth() {
         if (r.data.roleName) myRole = (r.data.perms || []).indexOf('accounts.manage') > -1 ? 'owner' : 'staff';
       }
       authed = true; unlock();
+      // 만들어 준 비밀번호는 바꾸기 전까지 서버가 다른 요청을 받지 않는다 — 바로 바꾸게 안내한다
+      if (r.ok && r.data.user && r.data.user.mustChangePassword) {
+        setTimeout(function () { toast('먼저 비밀번호를 바꿔 주세요. 바꾸기 전에는 다른 작업이 저장되지 않습니다.', 6000); openMyPassword(); }, 400);
+      }
     });
     document.getElementById('logoutBtn').addEventListener('click', function () {
       fetch('/api/admin/logout', { method: 'POST', credentials: 'same-origin' })

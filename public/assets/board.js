@@ -347,7 +347,8 @@
             return refresh().then(function () {
               editor.destroy();
               S.closeModal();
-              var fail = results.filter(function (x) { return x === null; }).length;
+              // 서버 모드의 Media.put 은 실패를 { error } 로, del 은 false 로 돌려준다 — null 만 세면 놓친다
+              var fail = results.filter(function (x) { return !x || x.error; }).length;
               S.toast((isEdit ? '게시글이 수정되었습니다.' : '게시글이 등록되었습니다.') +
                       (fail ? ' (첨부 ' + fail + '개는 올리지 못했습니다)' : ''));
             });
