@@ -56,7 +56,9 @@ export async function onRequestGet({ request, env }) {
     status: 200,
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
-      'Content-Disposition': `attachment; filename="charmjt-내자료-${day}.json"`,
+      /* 헤더 값은 ASCII 여야 한다 — 한글을 그대로 넣으면 런타임이 경고하고 브라우저마다 다르게 읽는다
+         (운영 로그에서 잡힘). ASCII 이름을 기본으로 두고 한글 이름은 RFC 5987(filename*) 로 함께 준다. */
+      'Content-Disposition': `attachment; filename="charmjt-mydata-${day}.json"; filename*=UTF-8''${encodeURIComponent('charmjt-내자료-' + day + '.json')}`,
       'Cache-Control': 'no-store',
     },
   });
