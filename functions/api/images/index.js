@@ -14,15 +14,17 @@ export async function onRequestGet({ request, env }) {
   const scope = url.searchParams.get('scope') || '';
   const ref = url.searchParams.get('ref');
   if (!SCOPES.has(scope)) return badRequest('scope 가 올바르지 않습니다.');
+  // 상품·게시글 사진은 그 상품·글의 것만 — scope 전체를 훑을 이유가 없다(갤러리·페이지 슬롯만 전체가 필요하다)
+  if (!ref && scope !== 'gallery' && scope !== 'page') return badRequest('ref 가 필요합니다.');
 
   const q = ref
     ? env.DB.prepare(
         `SELECT id, scope, ref, role, ord, mime, name, size, pcx, pcy, mbx, mby, created_at
-           FROM images WHERE scope = ? AND ref = ? ORDER BY ord, id`
+           FROM images WHERE scope = ? AND ref = ? ORDER BY ord, id LIMIT 1000`
       ).bind(scope, ref)
     : env.DB.prepare(
         `SELECT id, scope, ref, role, ord, mime, name, size, pcx, pcy, mbx, mby, created_at
-           FROM images WHERE scope = ? ORDER BY ord, id`
+           FROM images WHERE scope = ? ORDER BY ord, id LIMIT 1000`
       ).bind(scope);
 
   const { results } = await q.all();

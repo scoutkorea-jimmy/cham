@@ -36,7 +36,7 @@ export async function onRequestGet({ request, env, params, data }) {
   } catch { orders = []; }
 
   return json({
-    member: publicMember(row, true),
+    member: publicMember(row, true, { admin: true }),
     orders,
     consents: await memberConsents(env, id, 50),
   });
@@ -93,7 +93,7 @@ export async function onRequestPatch({ request, env, params, data }) {
   binds.push(id);
   await env.DB.prepare(`UPDATE members SET ${sets.join(', ')} WHERE id = ?`).bind(...binds).run();
   const out = await env.DB.prepare(`SELECT * FROM members WHERE id = ?`).bind(id).first();
-  return json({ member: publicMember(out, true) });
+  return json({ member: publicMember(out, true, { admin: true }) });
 }
 
 export async function onRequestDelete({ request, env, params, data }) {

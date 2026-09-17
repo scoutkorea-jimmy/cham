@@ -55,7 +55,9 @@ export async function recordConsents(env, { memberId = null, refKind, refId = nu
        VALUES (?,?,?,?,?,?)`
     ).bind(memberId, refKind || null, refId, r.item, r.granted, CONSENT_DOC_VERSION)));
     return rows.length;
-  } catch {
+  } catch (e) {
+    // 조용히 0 을 돌려주면 '입증용 표'가 비어 가는 것을 아무도 모른다 — 로그에는 남긴다(wrangler tail)
+    console.error('consent_log 기록 실패', refKind, refId, e && e.message);
     return 0;
   }
 }

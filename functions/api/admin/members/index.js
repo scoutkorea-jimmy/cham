@@ -58,7 +58,7 @@ export async function onRequestPost({ request, env, data }) {
            clean(b.postcode, 10), clean(b.address, 200), clean(b.addressDetail, 120),
            clean(b.memo, 500), b.marketingOptin ? 1 : 0).run();
     const row = await env.DB.prepare(`SELECT * FROM members WHERE id = ?`).bind(ins?.meta?.last_row_id).first();
-    return json({ member: publicMember(row, true) }, 201);
+    return json({ member: publicMember(row, true, { admin: true }) }, 201);
   } catch (e) {
     if (String(e && e.message).includes('UNIQUE')) return json({ error: '이미 쓰고 있는 아이디입니다.', code: 'duplicate' }, 409);
     return json({ error: '계정을 만들지 못했습니다.', code: 'server_error' }, 500);

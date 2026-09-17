@@ -28,3 +28,8 @@ export async function onRequestGet({ params, env, request }) {
   }
   return new Response(obj.body, { headers });
 }
+
+/* HEAD 도 받는다 — 링크 검사기·일부 수집기는 그림을 HEAD 로 확인한다. 없으면 정적 자산 404 로 떨어져
+   '그림이 깨졌다'로 보인다(2026-09-17 전수 검사에서 15장 전부 404 로 나와 놀란 적이 있다 — GET 은 200).
+   런타임이 본문을 떼고 머리만 보낸다. */
+export const onRequestHead = onRequestGet;

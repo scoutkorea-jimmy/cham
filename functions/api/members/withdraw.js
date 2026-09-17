@@ -36,27 +36,25 @@ export async function onRequestPost({ request, env }) {
   /* 주문에서 사람을 지우고 → 회원 행을 지운다. 순서가 중요하다.
      회원을 먼저 지우면 member_id 가 NULL 로 풀려(ON DELETE SET NULL) 어느 주문이
      이 사람 것이었는지 찾을 수 없게 된다. */
+  /* 두 문장을 한 batch 로 — 순서는 지켜지고(같은 트랜잭션), 둘 다 되거나 둘 다 안 된다.
+     따로 돌리면 주문은 비웠는데 회원 행이 남는 반쪽 상태가 생길 수 있었다.
+     payload 는 통째로 비우지 않고 금액(씨장 분양의 `amount`)만 남긴다 — 요청사항·메모처럼
+     사람이 적은 글은 지운다. 방침: 주문번호·상품·금액·상태만 남긴다. */
   let cleared = 0;
   try {
-    const res = await env.DB.prepare(
-      `UPDATE orders
-          SET name = NULL, phone = NULL, email = NULL, address = NULL, depositor = NULL,
-              payload = '{}', member_id = NULL, updated_at = datetime('now')
-        WHERE member_id = ?`
-    ).bind(s.mid).run();
-    cleared = (res && res.meta && res.meta.changes) || 0;
+    const res = await env.DB.batch([
+      env.DB.prepare(
+        `UPDATE orders
+            SET name = NULL, phone = NULL, email = NULL, address = NULL, depositor = NULL,
+                payload = json_object('amount', json_extract(COALESCE(payload, '{}'), '$.amount')),
+                member_id = NULL, updated_at = datetime('now')
+          WHERE member_id = ?`
+      ).bind(s.mid),
+      env.DB.prepare(`DELETE FROM members WHERE id = ?`).bind(s.mid),
+    ]);
+    cleared = (res && res[0] && res[0].meta && res[0].meta.changes) || 0;
   } catch {
     return json({ error: '탈퇴를 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.' }, 500);
-  }
-
-  try {
-    await env.DB.prepare(`DELETE FROM members WHERE id = ?`).bind(s.mid).run();
-  } catch {
-    // 주문은 이미 비웠는데 회원 행이 안 지워졌다 — 반쪽 상태를 조용히 넘기지 않는다
-    return json({
-      error: '탈퇴를 끝내지 못했습니다. 02-855-8806 으로 연락해 주시면 확인해 드리겠습니다.',
-      code: 'partial',
-    }, 500);
   }
 
   const headers = new Headers({ 'Content-Type': 'application/json; charset=utf-8' });

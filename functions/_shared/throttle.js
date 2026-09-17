@@ -56,16 +56,16 @@ export function makeThrottle({ prefix, freeAttempts = 5, baseDelay = 30, maxDela
   async function fail(env, key) {
     const now = Math.floor(Date.now() / 1000);
     try {
-      const prev = await read(env, key);
+      /* 증가는 **SQL 이** 한다. 읽어서 +1 을 써 넣으면 같은 IP 의 병렬 요청 200개가 저마다 0~3 을 읽고
+         덮어써 최종 3 이 된다 — 한도가 사실상 없어진다(2026-09-17 검토에서 잡힘). */
       await env.DB.batch([
         env.DB.prepare(
           `INSERT INTO admin_login_attempts (ip, attempt_count, first_attempt_at, last_attempt_at)
-           VALUES (?, ?, ?, ?)
+           VALUES (?, 1, ?, ?)
            ON CONFLICT(ip) DO UPDATE SET
-             attempt_count    = excluded.attempt_count,
-             first_attempt_at = excluded.first_attempt_at,
-             last_attempt_at  = excluded.last_attempt_at`
-        ).bind(key, prev.count + 1, prev.count > 0 && prev.first ? prev.first : now, now),
+             attempt_count   = attempt_count + 1,
+             last_attempt_at = excluded.last_attempt_at`
+        ).bind(key, now, now),
         /* 하루 조용한 줄은 지운다. 전에는 그 IP 가 다시 올 때만 지웠으므로 한 번 오고 만 IP 는
            영영 남았다 — '24시간 조용하면 지워진다'는 개인정보 처리 기록과 어긋나고 표만 자란다. */
         env.DB.prepare(`DELETE FROM admin_login_attempts WHERE last_attempt_at < ?`).bind(now - IDLE_RESET_SECONDS),

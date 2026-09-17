@@ -31,7 +31,7 @@ export function checkMemberId(v) {
  * 화면에 내보낼 모양. password_hash·token_min_iat 은 **절대** 넣지 않는다.
  * full=false 면 목록용으로 주소를 뺀다 — 목록에 주소까지 뿌릴 이유가 없다.
  */
-export function publicMember(r, full) {
+export function publicMember(r, full, opts) {
   if (!r) return null;
   const o = {
     id: r.id, username: r.username, name: r.name,
@@ -47,7 +47,8 @@ export function publicMember(r, full) {
     o.postcode = r.postcode || null;
     o.address = r.address || null;
     o.addressDetail = r.address_detail || null;
-    o.memo = r.memo || null;
+    // 관리자 메모는 본인에게 보이지 않는다(db/0003_members.sql) — 관리자 창구만 받는다
+    if (opts && opts.admin) o.memo = r.memo || null;
   }
   return o;
 }

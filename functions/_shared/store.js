@@ -303,15 +303,19 @@ export async function attachOrderItems(env, orders) {
   const multi = orders.filter((o) => Number(o.itemCount) > 1);
   if (!multi.length) return orders;
   const ids = multi.map((o) => o.id);
-  const marks = ids.map(() => '?').join(',');
-  const { results } = await env.DB.prepare(
-    `SELECT order_id, seq, product_id, product_name, option_label, qty, unit_price
-       FROM order_items WHERE order_id IN (${marks}) ORDER BY order_id, seq`
-  ).bind(...ids).all();
   const byId = new Map();
-  for (const r of results || []) {
-    if (!byId.has(r.order_id)) byId.set(r.order_id, []);
-    byId.get(r.order_id).push(orderItemRowToObj(r));
+  // D1 은 쿼리당 바인딩 100개까지다 — 주문이 많으면 나눠 묻는다
+  for (let i = 0; i < ids.length; i += 90) {
+    const part = ids.slice(i, i + 90);
+    const marks = part.map(() => '?').join(',');
+    const { results } = await env.DB.prepare(
+      `SELECT order_id, seq, product_id, product_name, option_label, qty, unit_price
+         FROM order_items WHERE order_id IN (${marks}) ORDER BY order_id, seq`
+    ).bind(...part).all();
+    for (const r of results || []) {
+      if (!byId.has(r.order_id)) byId.set(r.order_id, []);
+      byId.get(r.order_id).push(orderItemRowToObj(r));
+    }
   }
   for (const o of multi) o.items = byId.get(o.id) || [];
   return orders;
