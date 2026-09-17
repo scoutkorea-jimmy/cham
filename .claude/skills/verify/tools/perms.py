@@ -10,9 +10,12 @@
   ./venv/bin/python .claude/skills/verify/tools/perms.py http://127.0.0.1:8788
 
 owner 계정(admin/admin — 운영자가 바꾸면 여기도 바꾼다)으로 만든 시험 계정은 끝나면 반드시 지운다.
+관리자 API 의 DELETE 는 처리 기록을 남기려고 **사용 중지**로만 바꾸므로, 마지막에 wrangler 로 행을 지운다
+(운영이면 --remote, 로컬이면 --local). 그래서 계정 목록에 '권한 검사' 계정이 남지 않는다.
 """
 import http.cookiejar
 import json
+import subprocess
 import sys
 import urllib.request
 
@@ -98,8 +101,14 @@ def main():
                 if not ok: problems.append('%s %s → %s' % (method, path, code))
     finally:
         code, _ = call(owner, 'DELETE', '/api/admin/users/%s' % uid)
-        print('시험 계정 삭제:', code)
+        print('시험 계정 사용 중지:', code)
         call(owner, 'POST', '/api/admin/logout')
+        # 행 자체를 지운다 — API 는 사용 중지까지만 한다(처리 기록 보존이 목적)
+        where = '--remote' if 'charmjt.org' in B or 'pages.dev' in B else '--local'
+        r = subprocess.run(['npx', 'wrangler', 'd1', 'execute', 'cham-db', where,
+                            '--command', "DELETE FROM admin_users WHERE username = '%s' AND role = 'staff'" % TEST_USER],
+                           capture_output=True, text=True)
+        print('시험 계정 행 삭제:', '완료' if r.returncode == 0 else '실패 — 손으로 지운다: ' + r.stderr[-200:])
     print('\n문제:', len(problems), '건')
     for p in problems: print('  -', p)
     return 1 if problems else 0
