@@ -13,6 +13,10 @@
  */
 import { getMemberSession } from '../_shared/auth.js';
 import { json, badRequest, methodNotAllowed, readJson } from '../_shared/http.js';
+import { makeThrottle } from '../_shared/throttle.js';
+
+// 주문 조회와 같은 이유 — 주문번호·연락처를 훑지 못하게. 못 찾은 것만 센다
+const throttle = makeThrottle({ prefix: 'rq:', freeAttempts: 10, baseDelay: 30 });
 
 const digits = (s) => String(s || '').replace(/\D/g, '');
 const clean = (v, max) => (v == null ? '' : String(v).trim().slice(0, max));
@@ -28,6 +32,12 @@ const ALLOWED = {
 export async function onRequestPost({ request, env }) {
   if (!env || !env.DB) return json({ error: '접수할 수 없습니다.', code: 'server_unavailable' }, 503);
 
+  const blocked = await throttle.check(request, env);
+  if (blocked) {
+    return json({ error: '시도가 너무 잦습니다. 잠시 후 다시 시도해 주세요.', code: 'throttled', retryAfter: blocked.retryAfter },
+      429, { 'Retry-After': String(blocked.retryAfter) });
+  }
+
   const body = await readJson(request);
   if (!body) return badRequest();
   const orderNo = clean(body.orderNo, 40);
@@ -42,7 +52,7 @@ export async function onRequestPost({ request, env }) {
   ).bind(orderNo).first();
 
   // 없을 때와 안 맞을 때를 구분하지 않는다 — 구분해 주면 주문번호를 훑을 수 있다
-  const miss = () => json({ error: '주문을 찾을 수 없습니다. 주문번호와 연락처를 확인해 주세요.', code: 'not_found' }, 404);
+  const miss = async () => { await throttle.fail(request, env); return json({ error: '주문을 찾을 수 없습니다. 주문번호와 연락처를 확인해 주세요.', code: 'not_found' }, 404); };
   if (!row) return miss();
 
   const ms = await getMemberSession(request, env);
@@ -55,6 +65,8 @@ export async function onRequestPost({ request, env }) {
     const mailOk = contact.includes('@') && String(row.email || '').toLowerCase() === contact.toLowerCase();
     if (!phoneOk && !mailOk) return miss();
   }
+
+  await throttle.clear(request, env);
 
   if (!spec.from.includes(row.status)) {
     return json({

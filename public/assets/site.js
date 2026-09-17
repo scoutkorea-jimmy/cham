@@ -2104,7 +2104,8 @@
         // 서버에서 대조한다 — 브라우저가 전체 주문을 훑지 않는다(남의 주문이 읽히면 안 된다)
         box.innerHTML = '<p class="muted" style="margin-top:var(--gap-related)">조회 중…</p>';
         api('/api/order-lookup', { method: 'POST', body: { orderNo: ono, contact: contact } })
-          .then(function (r) { showLookup(box, r.ok && r.data.found ? r.data.order : null); })
+          // 429(너무 잦은 시도)는 '없음'이 아니라 서버가 준 말을 그대로 보여 준다
+          .then(function (r) { showLookup(box, r.ok && r.data.found ? r.data.order : null, r.status === 429 ? r.data.error : undefined); })
           .catch(function () { showLookup(box, null, '조회하지 못했습니다. 인터넷 연결을 확인해 주세요.'); });
         return;
       }

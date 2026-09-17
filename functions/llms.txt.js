@@ -11,6 +11,7 @@
 import { readDoc } from './_shared/store.js';
 import { loadSellable, priceText } from './_shared/product-seo.js';
 import { SITE_NAME } from './_shared/org-seo.js';
+import { kstDay } from './_shared/clock.js';
 
 /* 페이지 안내 — 주소 뒤의 설명은 페이지 <title>·description 과 같은 뜻을 짧게. */
 const PAGES = [
@@ -58,8 +59,7 @@ export async function onRequestGet({ request, env }) {
   if (env && env.DB) {
     try { rows = await loadSellable(env); } catch { rows = []; }   // 상품을 못 읽어도 나머지는 낸다
   }
-  // 한국 시각 기준 날짜 — UTC 로 적으면 밤 아홉 시 뒤로는 어제 날짜가 된다
-  const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
+  const today = kstDay();
 
   const body = [
     `# ${SITE_NAME} (The Authentic Korean Traditional Fermented Foods Cooperative)`,

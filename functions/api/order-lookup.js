@@ -9,11 +9,22 @@
  * 무작위로 맞힐 수 있으므로, 맞혀도 얻을 게 없도록 응답을 최소화한다.
  */
 import { json, badRequest, methodNotAllowed, readJson } from '../_shared/http.js';
+import { makeThrottle } from '../_shared/throttle.js';
+
+/* 주문번호는 날짜 + 다섯 자리, 연락처는 여덟 자리부터다 — 막지 않으면 스크립트가 훑을 수 있다.
+   로그인과 같은 규칙: 못 찾은 것만 세고, 찾으면 지운다. */
+const throttle = makeThrottle({ prefix: 'lk:', freeAttempts: 10, baseDelay: 30 });
 
 const digits = (s) => String(s || '').replace(/\D/g, '');
 
 export async function onRequestPost({ request, env }) {
   if (!env || !env.DB) return json({ error: '조회할 수 없습니다.', code: 'server_unavailable' }, 503);
+
+  const blocked = await throttle.check(request, env);
+  if (blocked) {
+    return json({ error: '조회 시도가 너무 잦습니다. 잠시 후 다시 시도해 주세요.', code: 'throttled', retryAfter: blocked.retryAfter },
+      429, { 'Retry-After': String(blocked.retryAfter) });
+  }
 
   const body = await readJson(request);
   if (!body) return badRequest();
@@ -29,13 +40,14 @@ export async function onRequestPost({ request, env }) {
 
   // 주문이 없을 때와 연락처가 다를 때를 **구분하지 않는다** —
   // 구분해 주면 주문번호만으로 존재 여부를 훑을 수 있다.
-  const miss = () => json({ found: false }, 200);
+  const miss = async () => { await throttle.fail(request, env); return json({ found: false }, 200); };
   if (!row) return miss();
 
   const d = digits(contact);
   const phoneOk = d.length >= 8 && digits(row.phone) === d;
   const mailOk = contact.includes('@') && String(row.email || '').toLowerCase() === contact.toLowerCase();
   if (!phoneOk && !mailOk) return miss();
+  await throttle.clear(request, env);
 
   let amount = null, custRequest = null;
   try {

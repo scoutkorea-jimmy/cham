@@ -5,6 +5,7 @@
  * 90일이 지난 날짜는 지운다(대시보드가 최근 7일만 쓴다).
  */
 import { json, methodNotAllowed, readJson } from '../_shared/http.js';
+import { kstDay } from '../_shared/clock.js';
 
 const SOURCES = new Set(['직접 방문', '검색엔진', '소셜·블로그', '기타 사이트']);
 
@@ -17,7 +18,7 @@ export async function onRequestPost({ request, env }) {
   if (BOT_UA.test(request.headers.get('user-agent') || '')) return json({ ok: true, counted: false });
   const body = await readJson(request) || {};
   if (body.automated) return json({ ok: true, counted: false });
-  const day = new Date().toISOString().slice(0, 10);
+  const day = kstDay();   // 대시보드의 '오늘'은 한국 날짜다
   const isNew = !!body.newVisitor;
 
   try {

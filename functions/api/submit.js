@@ -18,6 +18,7 @@ import { getMemberSession } from '../_shared/auth.js';
 import { json, badRequest, methodNotAllowed, readJson } from '../_shared/http.js';
 import { makeThrottle } from '../_shared/throttle.js';
 import { recordConsents } from '../_shared/consent.js';
+import { kstYmd } from '../_shared/clock.js';
 
 const MAX_LEN = 2000;
 const MAX_ITEMS = 20;          // 장바구니 한 번에 담을 수 있는 가짓수
@@ -30,9 +31,8 @@ function uid() {
 
 /** 주문번호 = YYYYMMDD + 5자리. 충돌하면 다시 뽑는다(유니크 인덱스가 최종 방어선). */
 async function issueOrderNo(env) {
-  const d = new Date();
-  const p = (n) => String(n).padStart(2, '0');
-  const ymd = `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}`;
+  // 앞자리는 한국 날짜 — 워커 시계(UTC)로 만들면 밤 아홉 시 뒤 주문이 '어제' 번호를 받는다
+  const ymd = kstYmd();
   for (let i = 0; i < 6; i += 1) {
     const no = ymd + String(Math.floor(Math.random() * 100000)).padStart(5, '0');
     const hit = await env.DB.prepare(`SELECT 1 FROM orders WHERE order_no = ?`).bind(no).first();

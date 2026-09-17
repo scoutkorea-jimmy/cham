@@ -19,6 +19,7 @@
  * **보관.** 최근 30일. 그보다 오래된 것은 새 백업을 남길 때 지운다.
  */
 import { readDoc, writeDoc } from './store.js';
+import { kstDay } from './clock.js';
 
 export const BACKUP_PREFIX = 'backups/';
 const KEY_PREFIX = 'backups/db-';           // 이 함수가 남기는 것. Actions 의 SQL 덤프(cham-*.sql)와 구분
@@ -31,9 +32,6 @@ const RETRY_AFTER_MS = 10 * 60 * 1000;      // 실패하면 이만큼 뒤에 다
    isolate 가 여럿이면 각자 한 번씩 묻는다 — 같은 날 두 번 떠도 같은 키에 덮어쓸 뿐이다. */
 let checkedDay = '';
 let nextTryAt = 0;
-
-/** 한국 시각 기준 날짜. UTC 로 나누면 밤 아홉 시 뒤로는 '어제' 백업이 된다. */
-export const kstDay = () => new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
 
 async function listTables(env) {
   const { results } = await env.DB.prepare(

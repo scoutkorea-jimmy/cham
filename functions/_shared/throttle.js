@@ -57,14 +57,19 @@ export function makeThrottle({ prefix, freeAttempts = 5, baseDelay = 30, maxDela
     const now = Math.floor(Date.now() / 1000);
     try {
       const prev = await read(env, key);
-      await env.DB.prepare(
-        `INSERT INTO admin_login_attempts (ip, attempt_count, first_attempt_at, last_attempt_at)
-         VALUES (?, ?, ?, ?)
-         ON CONFLICT(ip) DO UPDATE SET
-           attempt_count    = excluded.attempt_count,
-           first_attempt_at = excluded.first_attempt_at,
-           last_attempt_at  = excluded.last_attempt_at`
-      ).bind(key, prev.count + 1, prev.count > 0 && prev.first ? prev.first : now, now).run();
+      await env.DB.batch([
+        env.DB.prepare(
+          `INSERT INTO admin_login_attempts (ip, attempt_count, first_attempt_at, last_attempt_at)
+           VALUES (?, ?, ?, ?)
+           ON CONFLICT(ip) DO UPDATE SET
+             attempt_count    = excluded.attempt_count,
+             first_attempt_at = excluded.first_attempt_at,
+             last_attempt_at  = excluded.last_attempt_at`
+        ).bind(key, prev.count + 1, prev.count > 0 && prev.first ? prev.first : now, now),
+        /* 하루 조용한 줄은 지운다. 전에는 그 IP 가 다시 올 때만 지웠으므로 한 번 오고 만 IP 는
+           영영 남았다 — '24시간 조용하면 지워진다'는 개인정보 처리 기록과 어긋나고 표만 자란다. */
+        env.DB.prepare(`DELETE FROM admin_login_attempts WHERE last_attempt_at < ?`).bind(now - IDLE_RESET_SECONDS),
+      ]);
     } catch { /* 카운터를 못 적었다고 요청 자체를 막지는 않는다 */ }
   }
 
