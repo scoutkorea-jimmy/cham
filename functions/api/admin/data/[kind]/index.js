@@ -34,6 +34,7 @@ import { json, badRequest, forbidden, notFound, methodNotAllowed, readJson } fro
 import { getOwnerSession } from '../../../../_shared/auth.js';
 import { sanitizeHtml } from '../../../../_shared/sanitize-html.js';
 import { can, READ_PERM, WRITE_PERM } from '../../../../_shared/perm.js';
+import { pruneOrphanImages } from '../../../../_shared/media.js';
 
 const COLLECTIONS = new Set(['cohorts', 'partners', 'popups']);
 const DOCS = new Set(['settings', 'consents', 'kms', 'texts']);
@@ -220,6 +221,8 @@ export async function onRequestPut({ request, params, env, data }) {
       ...items.map((p, i) => env.DB.prepare(PRODUCT_INSERT).bind(...productObjToBind(p, i))),
       bumpVersion(env, kind, who),
     ]);
+    // 통째 저장은 무엇이 지워졌는지 모른다 — 주인 없는 사진을 뒤에서 정리한다
+    try { await pruneOrphanImages(env, 'product'); } catch { /* 정리 실패가 저장을 되돌리진 않는다 */ }
     return json({ ok: true, count: items.length, version: cur.version + 1 });
   }
   if (kind === 'posts') {
@@ -230,6 +233,7 @@ export async function onRequestPut({ request, params, env, data }) {
       ...items.map((p) => env.DB.prepare(POST_INSERT).bind(...postBind(p))),
       bumpVersion(env, kind, who),
     ]);
+    try { await pruneOrphanImages(env, 'post'); } catch { /* 정리 실패가 저장을 되돌리진 않는다 */ }
     return json({ ok: true, count: items.length, version: cur.version + 1 });
   }
 

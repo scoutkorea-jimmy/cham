@@ -23,6 +23,7 @@ import { SHIPPED } from '../../../../_shared/stock.js';
 import { json, badRequest, notFound, forbidden, methodNotAllowed, readJson } from '../../../../_shared/http.js';
 import { sanitizeHtml } from '../../../../_shared/sanitize-html.js';
 import { can, WRITE_PERM } from '../../../../_shared/perm.js';
+import { deleteImagesFor } from '../../../../_shared/media.js';
 
 /* 한 건씩 다룰 수 있는 항목. 교육과정·파트너·팝업은 한 덩어리 문서라 여기 없다
    (원래 작고, 통째로 저장해도 오래된 자료를 잃을 일이 없다). */
@@ -154,6 +155,10 @@ export async function onRequestDelete({ params, env, data }) {
   del.push(bumpVersion(env, kind, who(data)));
   const res = await env.DB.batch(del);
   const changed = (res && res[0] && res[0].meta && res[0].meta.changes) || 0;
+  // 글·상품을 지우면 그 사진(R2 실물 + D1 행)도 함께 — 화면에만 맡기면 창구를 직접 부를 때 남는다
+  if (kind === 'posts' || kind === 'products') {
+    try { await deleteImagesFor(env, kind === 'posts' ? 'post' : 'product', id); } catch { /* 사진 정리 실패가 삭제를 되돌리진 않는다 */ }
+  }
   // 이미 없어도 오류로 보지 않는다 — 지우려던 결과는 같다(두 번 눌러도 안전하다)
   return json({ ok: true, deleted: changed });
 }

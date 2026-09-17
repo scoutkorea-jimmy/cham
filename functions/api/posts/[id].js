@@ -13,6 +13,7 @@ import { json, badRequest, forbidden, notFound, unauthorized, methodNotAllowed, 
 import { postRowToObj, POST_INSERT, postBind, bumpVersion } from '../../_shared/store.js';
 import { BOARDS, getPostActor, canWriteBoard, canEditPost } from '../../_shared/boards.js';
 import { sanitizeHtml } from '../../_shared/sanitize-html.js';
+import { deleteImagesFor } from '../../_shared/media.js';
 
 const MAX_TITLE = 200;
 const MAX_HTML = 200_000;
@@ -92,7 +93,11 @@ export async function onRequestDelete({ request, env, params }) {
   } catch {
     return json({ error: '글을 지우지 못했습니다.' }, 500);
   }
-  return json({ ok: true });
+  /* 첨부 사진도 서버가 지운다. 화면(board.js)도 지우지만 창구를 직접 부르거나 화면이 중간에 닫히면
+     R2 에 참조 없는 파일이 남는다(2026-09-18 검토에서 잡힘). */
+  let media = { deleted: 0, failed: [] };
+  try { media = await deleteImagesFor(env, 'post', String(params.id)); } catch { /* 사진 정리 실패가 글 삭제를 되돌리진 않는다 */ }
+  return json({ ok: true, imagesDeleted: media.deleted, imagesFailed: media.failed.length });
 }
 
 export const onRequest = async (ctx) => {

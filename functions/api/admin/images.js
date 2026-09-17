@@ -11,6 +11,7 @@
 import { IMAGE_INSERT, imageRowToObj } from '../../_shared/store.js';
 import { json, badRequest, notFound, forbidden, readJson } from '../../_shared/http.js';
 import { canAny } from '../../_shared/perm.js';
+import { deleteImageRows } from '../../_shared/media.js';
 
 // 상품 사진은 판매 처리, 나머지(페이지·글·갤러리)는 콘텐츠 관리 권한 — 둘 중 하나면 된다
 const IMAGE_PERMS = ['sales.manage', 'content.manage'];
@@ -116,16 +117,10 @@ export async function onRequestDelete({ request, env, data }) {
 
   if (!rows.length) return json({ ok: true, deleted: 0 });
 
-  /* R2 를 먼저 지우고, **지워진 것만** D1 에서 뺀다. 예전에는 R2 실패를 삼키고 행을 지워
-     참조 없는 파일이 신호 없이 남았다. 실패한 것은 행을 남겨 두고 실패를 알린다 — 다시 지우면 된다. */
-  const gone = [];
-  const failed = [];
-  for (const r of rows) {
-    try { if (env.MEDIA) await env.MEDIA.delete(r.r2_key); gone.push(r); } catch { failed.push(r.id); }
-  }
-  if (gone.length) await env.DB.batch(gone.map((r) => env.DB.prepare(`DELETE FROM images WHERE id = ?`).bind(r.id)));
+  /* R2 를 먼저 지우고, **지워진 것만** D1 에서 뺀다(_shared/media.js). 실패한 것은 행을 남겨 두고 알린다. */
+  const { deleted, failed } = await deleteImageRows(env, rows);
   if (failed.length) {
-    return json({ error: `사진 ${failed.length}장을 저장소에서 지우지 못했습니다. 잠시 후 다시 시도해 주세요.`, code: 'partial', deleted: gone.length, failed }, 500);
+    return json({ error: `사진 ${failed.length}장을 저장소에서 지우지 못했습니다. 잠시 후 다시 시도해 주세요.`, code: 'partial', deleted, failed }, 500);
   }
-  return json({ ok: true, deleted: gone.length });
+  return json({ ok: true, deleted });
 }

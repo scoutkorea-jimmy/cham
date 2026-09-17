@@ -66,9 +66,15 @@ async function withSeo(context, url) {
       detail = await load(context.env, url, canonical, opt);
       if (detail) break;
     }
-    return rewriteHead(res, url, {
+    const out = rewriteHead(res, url, {
       google: st.seoGoogle, naver: st.seoNaver, image: st.seoImage, settings: st,
     }, detail);
+    /* 없는 상품·글의 주소는 **404 로** 답한다(본문은 같은 HTML — 화면이 '찾을 수 없습니다'를 그린다).
+       200 이면 검색엔진이 '내용 없는 문서'(soft 404)로 보고, 지운 상품 주소가 색인에 남는다. */
+    const askedItem = /^\/(product|news)(?:\.html)?$/.test(url.pathname) && url.searchParams.get('id');
+    const gotItem = detail && (detail.slot === 'pd-ssr' || (detail.slot === 'post-ssr' && detail.title));
+    if (askedItem && !gotItem) return new Response(out.body, { status: 404, headers: out.headers });
+    return out;
   } catch {
     return res;     // 설정을 못 읽는다고 페이지를 못 보게 만들지 않는다
   }
