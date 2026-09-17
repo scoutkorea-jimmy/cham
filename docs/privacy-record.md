@@ -90,6 +90,8 @@ Cloudflare 는 미국 사업자이고 자료는 아시아·태평양에 저장�
 | 권한 10종 · 그룹별 접근 통제 | `_shared/perm.js` · `db/0004_roles.sql` |
 | 관리자 화면·API 는 세션 없이 열리지 않음 (401 · 302) | `functions/_middleware.js` |
 | 관리자 영역 색인·수집 거부 (`X-Robots-Tag`) | 같은 파일 |
+| 관리자 메모(`members.memo`)는 **관리자 창구에만** 실린다 — 회원 본인 응답(로그인·정보수정)에서 뺐다(2026-09-17) | `_shared/members.js` |
+| 권한 그룹을 **서버가 강제** — 자료·사진 창구가 같은 키로 막는다(전에는 화면 메뉴만 감췄다) | `_shared/perm.js` |
 | 소식마당 글 HTML 을 **저장할 때 서버가 여과**(허용 목록 — 스크립트·이벤트 속성·위험한 주소·외부 프레임 제거). 강사 회원도 글을 쓰므로 | `_shared/sanitize-html.js` |
 | 주문 조회·취소/반품 신청도 빈도 제한(못 찾은 시도만 센다) · 카운터 표는 하루 조용한 줄을 지운다 | `_shared/throttle.js` |
 | R2 의 `backups/` 는 밖에서 닿지 않음 — 이미지 함수가 `images` 표에 있는 id 만 내준다 | `functions/api/images/[id].js` |
