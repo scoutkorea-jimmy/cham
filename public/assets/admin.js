@@ -2499,6 +2499,7 @@ var POST_BOARDS = ['공지', '교육'];
 var acctTab = 'admin';    // admin | member | role
 var ROLE_LABEL = { owner: '관리자(owner)', staff: '직원(staff)' };
 var myPerms = null;       // 세션에서 받은 내 권한 목록
+var myRoleName = '';      // 권한 그룹 이름 — 도움말이 '누구로 들어와 있는가'에 답할 때 쓴다
 function iCan(k) { return !myPerms || myPerms.indexOf(k) > -1; }
 
 function acctTabs() {
@@ -4018,16 +4019,22 @@ document.addEventListener('click', function (e) {
   window.scrollTo(0, 0);
 });
 
-document.addEventListener('click', function(e){
-  var nav = e.target.closest('[data-nav]'); if (!nav) return;
-  if (!confirmLeave()) return;
-  current = nav.dataset.nav;
+/* 화면 이동 — 사이드 메뉴·대시보드 바로가기·도움말 챗봇이 모두 이 길을 쓴다.
+   편집 중이면 confirmLeave 가 묻고, 거절하면 false 를 돌려준다. */
+function goView(id, otab) {
+  if (!confirmLeave()) return false;
+  current = id;
   navOpen = groupOf(current);        // 고른 화면이 속한 그룹을 열어 둔다
-  if (nav.dataset.otab) orderTab = nav.dataset.otab;
+  if (otab) orderTab = otab;
   prodEditing = null; kmsMode = 'view'; consentMode = 'view';
   render();
   setSide(false);          // 좁은 화면에서 메뉴를 고르면 사이드바를 닫는다
   window.scrollTo(0, 0);
+  return true;
+}
+document.addEventListener('click', function(e){
+  var nav = e.target.closest('[data-nav]'); if (!nav) return;
+  goView(nav.dataset.nav, nav.dataset.otab);
 });
 
 // 편집 중인 폼에 입력이 생기면 '변경 있음'으로 표시
@@ -4060,6 +4067,7 @@ function initAuth() {
         myRole = r.data.user.role || 'staff';
         myName = r.data.user.displayName || r.data.user.username || '';
         myPerms = r.data.perms || null;
+        myRoleName = r.data.roleName || '';
         if (r.data.roleName) myRole = (r.data.perms || []).indexOf('accounts.manage') > -1 ? 'owner' : 'staff';
       }
       authed = true; unlock();
@@ -4111,11 +4119,44 @@ function initAuth() {
    · 문장 다듬기는 서버의 Workers AI 에서
    · 모델이 없거나 실패하면 찾은 절을 그대로 안내한다 — 아무것도 못 주는 상황을 만들지 않는다
    ============================================================ */
-var cbSections = null;   // [{id, title, text}]
+var cbSections = null;   // [{id, title, text, html}] — 설명서 절 단위
+var cbItems = null;      // [{kind, title, body, text, sec}] — 낱개 항목: 자주 묻는 질문 카드 · 용어 줄 · 문제 해결 줄
 var cbBusy = false;
 
-var CB_QUICK = ['입금 확인은 어떻게 하나요?', '택배 보낸 뒤엔 뭘 눌러요?',
-                '홈페이지 사진 바꾸려면?', '계좌번호는 어디서 바꿔요?', '백업은 왜 해야 하나요?'];
+var CB_QUICK = ['입금 확인은 어떻게 하나요?', '택배 보낸 뒤엔 뭘 눌러요?', '오늘 주문 몇 건이에요?',
+                '홈페이지 사진 바꾸려면?', '계좌번호는 어디서 바꿔요?', '재고는 언제 줄어요?'];
+
+/* 운영자가 쓰는 말과 설명서의 말이 다르다 — 한 묶음 안의 낱말은 서로를 대신한다.
+   낱말 하나짜리만 둔다(검색은 띄어쓰기로 자른 조각을 본다). 동의어는 낱말 전체가
+   들어맞을 때만 세고 조각으로 쪼개지 않는다 — '이미지'를 '이미'로 쪼개면 「이미 올린」에 붙는다. */
+var CB_SYN = [
+  ['사진', '이미지', '그림', '썸네일'],
+  ['주문', '결제', '구매'],
+  ['입금', '송금', '계좌이체'],
+  ['회원', '손님', '고객', '가입자'],
+  ['비밀번호', '암호', '패스워드'],
+  ['백업', '복원', '되살리기', '복구'],
+  ['권한', '그룹'],
+  ['재고', '수량', '품절'],
+  ['발송', '배송', '택배', '운송장'],
+  ['취소', '반품', '교환', '환불'],
+  ['계좌', '통장', '계좌번호', '무통장'],
+  ['공지', '소식', '게시글'],
+  ['팝업', '알림창'],
+  ['문구', '글귀', '문장'],
+  ['가격', '판매가', '할인가'],
+  ['검색', '구글', '네이버', '서치콘솔', '노출'],
+  ['로그인', '접속'],
+  ['삭제', '지우기'],
+  ['신청', '지도사', '기수', '교육과정'],
+  ['문의', '상담'],
+  ['카카오톡', '카톡'],
+  ['휴대폰', '핸드폰', '모바일', '스마트폰'],
+  ['새로고침', '갱신'],
+  ['옵션', '용량'],
+  ['직원', '계정', '스태프'],
+  ['엑셀', 'csv', '내보내기'],
+];
 
 function cbEl(id) { return document.getElementById(id); }
 function cbSay(who, html) {
@@ -4150,7 +4191,12 @@ function cbClean(root) {
   return root;
 }
 
-// 설명서 본문을 절 단위로 쪼갠다(한 번만). text 는 검색·모델용, html 은 화면에 그대로 보여 주는 용도
+function cbText(el) { return (el.textContent || '').replace(/\s+/g, ' ').trim(); }
+
+/* 설명서 본문을 쪼갠다(한 번만).
+   · 절(section) — 검색·모델용 text 와 화면에 그대로 보여 주는 html
+   · 낱개 항목 — 자주 묻는 질문 카드([data-faq]) · 용어 줄 · 문제 해결 줄.
+     질문 하나에 절 하나를 통째로 보여 주면 읽을 것이 너무 많다. 항목이 맞으면 그것만 준다. */
 function cbIndex() {
   if (cbSections) return Promise.resolve(cbSections);
   var build = function (htmlText) {
@@ -4158,9 +4204,22 @@ function cbIndex() {
     box.innerHTML = htmlText;
     cbSections = [].slice.call(box.querySelectorAll('section[id]')).map(function (sec) {
       var h = sec.querySelector('h2');
-      return { id: sec.id, title: (h ? h.textContent : sec.id).trim(),
-               text: (sec.textContent || '').replace(/\s+/g, ' ').trim(),
+      return { id: sec.id, title: (h ? h.textContent : sec.id).trim(), text: cbText(sec),
                html: cbClean(sec.cloneNode(true)).innerHTML };
+    });
+    cbItems = [];
+    [].slice.call(box.querySelectorAll('#faq [data-faq]')).forEach(function (card) {
+      var h = card.querySelector('h5'); if (!h) return;
+      var body = cbClean(card.cloneNode(true));
+      var hh = body.querySelector('h5'); if (hh) hh.remove();
+      cbItems.push({ kind: 'faq', title: cbText(h), body: body.innerHTML, text: cbText(card), sec: 'faq', at: cbItems.length });
+    });
+    ['terms', 'trouble'].forEach(function (id) {
+      [].slice.call(box.querySelectorAll('#' + id + ' tbody tr')).forEach(function (tr, i) {
+        var tds = tr.querySelectorAll('td'); if (tds.length < 2) return;
+        cbItems.push({ kind: id === 'terms' ? 'term' : 'trouble', title: cbText(tds[0]),
+                       body: '<p>' + cbClean(tds[1].cloneNode(true)).innerHTML + '</p>', text: cbText(tr), sec: id, at: i });
+      });
     });
     return cbSections;
   };
@@ -4168,39 +4227,111 @@ function cbIndex() {
   return fetch('assets/manual.html', { credentials: 'same-origin' })
     .then(function (r) { return r.text(); })
     .then(function (t) { manualHTML = t; return build(t); })
-    .catch(function () { cbSections = []; return cbSections; });
+    .catch(function () { cbSections = []; cbItems = []; return cbSections; });
 }
 
-/* 질문과 겹치는 낱말이 많은 절을 고른다.
-   한국어는 조사가 붙어 그대로 비교하면 잘 안 맞으므로, 2글자 이상 조각으로 나눠 센다. */
-function cbSearch(q, secs) {
-  var terms = String(q).toLowerCase().replace(/[^가-힣a-z0-9\s]/g, ' ').split(/\s+/)
+/* 질문을 낱말 조각으로 — 한국어는 조사가 붙어 그대로 비교하면 잘 안 맞으므로 2글자 이상 조각으로 나눠 센다 */
+function cbTerms(q) {
+  return String(q).toLowerCase().replace(/[^가-힣a-z0-9\s]/g, ' ').split(/\s+/)
     .filter(function (w) { return w.length >= 2; });
-  if (!terms.length) return [];
+}
+function cbSynonyms(terms) {
+  var out = [];
+  CB_SYN.forEach(function (group) {
+    var hit = group.some(function (w) { return terms.some(function (t) { return t.indexOf(w) > -1; }); });
+    if (hit) group.forEach(function (w) { if (out.indexOf(w) < 0 && !terms.some(function (t) { return t.indexOf(w) > -1; })) out.push(w); });
+  });
+  return out;
+}
+/* 점수 — 질문 조각이 본문에 얼마나 겹치는가. 제목에 낱말이 들어 있으면 크게 더한다.
+   titleHit 는 '제목이 질문에 답한다'는 신호라 항목을 고를 때 문턱으로 쓴다. */
+function cbScore(terms, syn, title, text) {
+  var hay = (title + ' ' + text).toLowerCase(), tl = title.toLowerCase();
   var grams = [];
   terms.forEach(function (w) {
     grams.push(w);
     for (var i = 0; i + 2 <= w.length; i++) grams.push(w.slice(i, i + 2));
   });
-  return secs.map(function (sec) {
-    var hay = (sec.title + ' ' + sec.text).toLowerCase();
-    var score = 0;
-    grams.forEach(function (g) {
-      var k = hay.split(g).length - 1;
-      if (k) score += Math.min(k, 6) * (g.length >= 3 ? 3 : 1);
-    });
-    if (terms.some(function (t) { return sec.title.toLowerCase().indexOf(t) > -1; })) score += 25;
-    return { sec: sec, score: score };
-  }).filter(function (x) { return x.score > 0; })
+  var score = 0;
+  grams.forEach(function (g) {
+    var k = hay.split(g).length - 1;
+    if (k) score += Math.min(k, 6) * (g.length >= 3 ? 3 : 1);
+  });
+  syn.forEach(function (w) { var k = hay.split(w).length - 1; if (k) score += Math.min(k, 3) * 2; });
+  var hits = 0;
+  terms.forEach(function (t) { if (CB_STOP.indexOf(t) < 0) hits += cbInTitle(t, tl); });
+  if (syn.some(function (w) { return tl.indexOf(w) > -1; })) hits += 0.5;
+  score += 25 * Math.min(hits, 3);
+  return { score: score, hits: hits, titleHit: hits > 0 };
+}
+/* 어느 제목에나 있는 말 — 제목이 맞았다는 신호가 못 된다 */
+var CB_STOP = ['관리자', '화면', '어떻게', '하나요', '되나요', '있나요', '인가요', '할까요', '해요', '있어요', '방법',
+               '어디서', '어디', '뭐예요', '뭐야', '뭘', '하는', '하면', '있는', '없는', '홈페이지', '손님이', '싶은데', '싶어요'];
+/* 조사가 붙은 낱말(휴대폰으로)은 앞부분(휴대폰)으로 제목과 맞춘다. 3글자 이상 맞으면 1, 2글자면 0.5 */
+function cbInTitle(term, tl) {
+  for (var L = term.length; L >= 2; L--) {
+    if (tl.indexOf(term.slice(0, L)) > -1) return L >= 3 ? 1 : 0.5;
+  }
+  return 0;
+}
+
+function cbSearch(q, secs) {
+  var terms = cbTerms(q);
+  if (!terms.length) return [];
+  var syn = cbSynonyms(terms);
+  return secs.map(function (sec) { return { sec: sec, score: cbScore(terms, syn, sec.title, sec.text).score }; })
+    .filter(function (x) { return x.score >= 8; })
     .sort(function (a, b) { return b.score - a.score; })
     .slice(0, 3).map(function (x) { return x.sec; });
 }
 
-function cbGoto(id) {
+/* 낱개 항목 중 질문에 답하는 것 하나. 제목이 맞아야 고른다 — 본문 겹침만으로 고르면
+   「사진」이 든 아무 카드나 나온다. 제목이 안 맞아도 겹침이 아주 크면 받는다. */
+function cbBestItem(q) {
+  var terms = cbTerms(q);
+  if (!terms.length || !cbItems) return null;
+  var syn = cbSynonyms(terms);
+  var best = null;
+  cbItems.forEach(function (it) {
+    var r = cbScore(terms, syn, it.title, it.text);
+    // 같은 점수면 답이 바로 나오는 카드·문제 해결 줄이 용어 줄보다 낫다
+    var s = r.score + (it.kind === 'term' ? -3 : 0);
+    if (!best || r.hits > best.hits || (r.hits === best.hits && s > best.s)) best = { it: it, s: s, hits: r.hits, titleHit: r.titleHit };
+  });
+  if (!best) return null;
+  if (best.it.kind === 'term' && /(등록|바꾸|고치|올리|하는법|방법|어떻게|하려면|추가|삭제|지우|넣)/.test(String(q).replace(/\s+/g, ''))) return null;
+  if (best.titleHit && best.s >= 34) return best.it;
+  if (best.s >= 60) return best.it;
+  return null;
+}
+
+/* 「○○이 뭐예요」 — 용어 풀이 표에서 그 말을 찾는다 */
+var CB_WHAT = /(이란|란|이|가|은|는|의|을|를)?(뭐야|뭐예요|뭐에요|뭔가요|뭐죠|뭐임|무엇|무슨뜻|뜻이|뜻은|뜻|의미|설명해)/;
+function cbTermIntent(q) {
+  var s = String(q).replace(/\s+/g, '');
+  var m = s.match(CB_WHAT);
+  if (!m || m.index < 2 || !cbItems) return null;
+  var key = s.slice(0, m.index).replace(/[^가-힣a-z0-9]/gi, '').toLowerCase();
+  if (key.length < 2) return null;
+  var best = null;
+  cbItems.forEach(function (it) {
+    if (it.kind !== 'term') return;
+    var parts = it.title.toLowerCase().split(/[·,(]/).map(function (p) { return p.replace(/[^가-힣a-z0-9]/g, ''); }).filter(Boolean);
+    var hit = parts.some(function (p) { return p.indexOf(key) > -1 || key.indexOf(p) > -1; });
+    if (hit && (!best || it.title.length < best.title.length)) best = it;
+  });
+  return best;
+}
+
+/* 설명서의 절로 — at 이 있으면 그 절 안의 카드(자주 묻는 질문)나 줄(용어·문제 해결)까지 */
+var CB_AT = { faq: '#faq [data-faq]', terms: '#terms tbody tr', trouble: '#trouble tbody tr' };
+function cbGoto(id, at) {
   if (current !== 'manual') { current = 'manual'; navOpen = null; render(); }
   setTimeout(function () {
     var el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    var row = at != null && CB_AT[id] ? document.querySelectorAll(CB_AT[id])[Number(at)] : null;
+    if (row) { row.scrollIntoView({ behavior: 'smooth', block: 'center' }); row.classList.add('cb-hit'); setTimeout(function () { row.classList.remove('cb-hit'); }, 4500); }   // 먼 거리는 부드러운 스크롤에 2초쯤 걸린다 — 닿은 뒤에도 보여야 한다
+    else if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, 400);
 }
 
@@ -4249,6 +4380,223 @@ function cbDocHTML(hits) {
     '</div>';
 }
 
+/* 답 아래 붙는 것들 — 화면 이동 단추와 '이어서 물어보기' 알약 */
+function cbNavBtn(id, label, otab) {
+  return '<button data-nav="' + id + '"' + (otab ? ' data-otab="' + esc(otab) + '"' : '') +
+    '><i data-lucide="arrow-right"></i>' + esc(label) + '</button>';
+}
+function cbChips(list) {
+  if (!list || !list.length) return '';
+  return '<div class="cb-src"><span>이어서</span>' + list.map(function (t) {
+    return '<button data-cbq="' + esc(t) + '">' + esc(t) + '</button>';
+  }).join('') + '</div>';
+}
+function cbNavLabel(id) { var n = NAV.filter(function (x) { return x.id === id; })[0]; return n ? n.label : id; }
+function cbNavPath(id) {
+  var g = groupOf(id);
+  return (g ? cbNavLabel(g) + ' › ' : '') + cbNavLabel(id);
+}
+/* 항목 본문에 화면 이름이 있으면 그리로 가는 단추를 붙인다 — 설명을 읽고 바로 갈 수 있게 */
+function cbNavFor(it) {
+  var box = document.createElement('div'); box.innerHTML = it.body;
+  var last = box.querySelector('.mpath .last');
+  var want = last ? cbText(last) : '';
+  var s = (it.title + ' ' + it.text).replace(/\s+/g, '');
+  var hit = null;
+  NAV.forEach(function (n) {
+    if (hit || n.id.slice(0, 2) === 'g_' || n.id === 'manual') return;
+    if (n.ownerOnly && myRole !== 'owner') return;
+    var lab = n.label.replace(/\s+/g, '');
+    if (want ? want.replace(/\s+/g, '') === lab : (lab.length >= 4 || n.id === 'kms') && s.indexOf(lab) > -1) hit = n;
+  });
+  return hit ? cbNavBtn(hit.id, hit.label + ' 열기') : '';
+}
+
+function cbItemHTML(it) {
+  return '<p><b>' + esc(it.title) + '</b></p>' + it.body;
+}
+function cbItemActs(it) {
+  return cbNavFor(it) +
+    '<button data-cbgo="' + it.sec + '" data-cbat="' + it.at + '"><i data-lucide="book-open"></i>설명서에서 열기</button>';
+}
+/* 같은 절의 다른 카드 제목 — 다음 질문을 고르게 한다 */
+function cbRelated(it) {
+  var same = (cbItems || []).filter(function (x) { return x !== it && x.kind === 'faq' && x.sec === it.sec; });
+  if (it.kind !== 'faq') same = (cbItems || []).filter(function (x) { return x !== it && x.kind === it.kind; });
+  // 제목 낱말이 겹치는 것부터
+  var terms = cbTerms(it.title);
+  same.sort(function (a, b) { return cbScore(terms, [], b.title, '').score - cbScore(terms, [], a.title, '').score; });
+  return same.slice(0, 3).map(function (x) { return it.kind === 'term' ? '「' + x.title + '」 뜻' : x.title; });
+}
+
+/* ---------- 지금 상황 — 화면이 이미 들고 있는 자료로 바로 답한다 ---------- */
+function cbDeny(what) {
+  return { html: '<p>이 계정에는 <b>' + what + '</b> 자료를 볼 권한이 없습니다. 관리자(owner)에게 권한 그룹을 요청하세요.</p>' };
+}
+function cbNames(list) {
+  var names = list.slice(0, 8).map(function (p) { return esc(p.name || p.id); });
+  return names.join(' · ') + (list.length > 8 ? ' 외 ' + (list.length - 8) + '개' : '');
+}
+function cbLive(q) {
+  var s = String(q).replace(/\s+/g, '');
+  var has = function (re) { return re.test(s); };
+  var today = S.todayStr();
+  var orders = gj(K.orders, []), apps = gj(K.apps, []), inq = gj(K.inq, []);
+  var done = function (r) { return Promise.resolve(r); };
+
+  if (has(/오늘.*(주문|매출|판매|팔렸|들어온)|(주문|매출).*오늘/)) {
+    if (!iCan('sales.view')) return done(cbDeny('주문'));
+    var todays = orders.filter(function (o) { return (o.at || '').slice(0, 10) === today; });
+    var sum = todays.reduce(function (a, o) { return a + (Number(o.total) || 0); }, 0);
+    var wait = orders.filter(function (o) { return o.status === '주문접수'; }).length;
+    return done({ html: '<p>오늘 들어온 주문은 <b>' + todays.length + '건</b>, 금액은 <b>' + fmtWon(sum) + '원</b>입니다.</p>' +
+      '<p>입금 확인을 기다리는 주문은 전체 <b>' + wait + '건</b>입니다.</p>',
+      acts: cbNavBtn('orders', '주문 관리 열기', wait ? '주문접수' : ''), chips: ['입금 확인은 어떻게 하나요?', '발송할 주문 있어요?'] });
+  }
+  if (has(/(입금|결제).*(대기|기다|확인할|안된|안됐|몇|얼마나|있)|미입금/)) {
+    if (!iCan('sales.view')) return done(cbDeny('주문'));
+    var pend = orders.filter(function (o) { return o.status === '주문접수'; });
+    return done({ html: pend.length
+      ? '<p>입금 확인을 기다리는 주문이 <b>' + pend.length + '건</b> 있습니다. 통장에서 입금자명과 금액을 확인한 뒤 <span class="ui">입금확인</span> 을 누르세요.</p>'
+      : '<p>입금 확인을 기다리는 주문이 <b>없습니다.</b></p>',
+      acts: cbNavBtn('orders', '결제(입금) 확인 탭 열기', '주문접수'), chips: ['입금 확인은 어떻게 하나요?', '오늘 주문 몇 건이에요?'] });
+  }
+  if (has(/(발송|배송|택배).*(할|해야|대기|준비|몇|남|있)/)) {
+    if (!iCan('sales.view')) return done(cbDeny('주문'));
+    var paid = orders.filter(function (o) { return o.status === '결제완료'; }).length;
+    var prep = orders.filter(function (o) { return o.status === '배송준비중'; }).length;
+    return done({ html: '<p>포장을 시작할 주문(결제완료) <b>' + paid + '건</b>, 택배를 보낼 주문(배송준비중) <b>' + prep + '건</b>입니다.</p>' +
+      (paid + prep ? '<p>보낸 뒤에는 <span class="ui">발송처리</span> 로 운송장번호를 넣어 주세요.</p>' : ''),
+      acts: cbNavBtn('orders', '발송 처리 탭 열기', '결제완료'), chips: ['택배 보낸 뒤엔 뭘 눌러요?', '재고는 언제 줄어요?'] });
+  }
+  if (has(/(취소|반품|교환).*(요청|대기|몇|있|들어온)/)) {
+    if (!iCan('sales.view')) return done(cbDeny('주문'));
+    var rma = orders.filter(function (o) { return o.status === '반품요청' || o.status === '교환요청'; }).length;
+    var cust = orders.filter(function (o) { return o.custRequest && ['취소', '반품완료', '교환완료'].indexOf(o.status) < 0; }).length;
+    return done({ html: '<p>반품·교환 접수 중인 주문 <b>' + rma + '건</b>, 손님이 직접 취소·반품을 신청해 둔 주문 <b>' + cust + '건</b>입니다.</p>',
+      acts: cbNavBtn('orders', '취소·반품·교환 탭 열기', 'crx'), chips: ['손님이 취소를 원해요.'] });
+  }
+  if (has(/(신청|문의|지도사).*(신규|새로|안본|안읽|처리|몇|기다|대기|있)/)) {
+    if (!iCan('customers.view')) return done(cbDeny('신청·문의'));
+    var na = apps.filter(function (r) { return r.status === '신규'; }).length;
+    var ni = inq.filter(function (r) { return r.status === '신규'; }).length;
+    return done({ html: '<p>아직 처리하지 않은 지도사 신청 <b>' + na + '건</b>, 문의 <b>' + ni + '건</b>입니다.</p>',
+      acts: cbNavBtn('apps', '신청자 관리 열기') + cbNavBtn('inq', '문의 내역 열기') });
+  }
+  if (has(/(재고|품절).*(부족|없|적|얼마|몇|확인|어떤|뭐|상품|목록)|^(재고|품절)(상황|현황)?$/)) {
+    if (!iCan('sales.view')) return done(cbDeny('상품'));
+    var prods = S.getProducts();
+    var stockOf = function (p) {
+      return p.option && p.option.values ? p.option.values.reduce(function (a, v) { return a + (Number(v.stock) || 0); }, 0) : Number(p.stock) || 0;
+    };
+    var sold = prods.filter(function (p) { return p.status === '품절'; });
+    var low = prods.filter(function (p) { return p.status === '판매중' && stockOf(p) <= 5; });
+    return done({ html: (sold.length ? '<p>판매 상태가 <b>품절</b>인 상품: ' + cbNames(sold) + '</p>' : '<p>판매 상태가 품절인 상품은 없습니다.</p>') +
+      (low.length ? '<p>재고가 <b>5개 이하</b>인 판매중 상품: ' + cbNames(low) + '</p>' : '<p>재고가 5개 이하인 판매중 상품은 없습니다.</p>') +
+      '<p>손님 화면의 남은 수량은 여기서 아직 발송하지 않은 주문 수량을 뺀 값입니다.</p>',
+      acts: cbNavBtn('products', '상품 관리 열기'), chips: ['재고는 언제 줄어요?', '손님 화면에 「품절」로 나오는데 왜 그런가요?'] });
+  }
+  if (has(/(상품|제품).*(몇|개수|수는|얼마나)/)) {
+    if (!iCan('sales.view')) return done(cbDeny('상품'));
+    var all = S.getProducts();
+    var by = {}; all.forEach(function (p) { by[p.status || '판매중'] = (by[p.status || '판매중'] || 0) + 1; });
+    return done({ html: '<p>등록된 상품은 <b>' + all.length + '개</b>입니다 — ' + Object.keys(by).map(function (k) { return esc(k) + ' ' + by[k]; }).join(' · ') + '.</p>',
+      acts: cbNavBtn('products', '상품 관리 열기') });
+  }
+  if (has(/(회원|가입자).*(몇|수는|명|얼마나)/)) {
+    if (!iCan('members.view')) return done(cbDeny('회원'));
+    if (!(S.isServer && S.isServer())) return done({ html: '<p>지금은 검증용 로컬 화면이라 회원 자료가 없습니다. 운영 화면에서 물어보세요.</p>' });
+    return S.api('/api/admin/members').then(function (r) {
+      var list = (r.ok && r.data.members) || [];
+      var active = list.filter(function (m) { return m.status !== 'disabled' && m.status !== '정지'; }).length;
+      return { html: r.ok ? '<p>가입한 회원은 <b>' + list.length + '명</b>' + (active !== list.length ? ' (사용 중 ' + active + '명)' : '') + '입니다.</p>' : '<p>회원 목록을 불러오지 못했습니다.</p>',
+        acts: cbNavBtn('accounts', '계정 관리 열기') };
+    });
+  }
+  if (has(/백업.*(언제|마지막|최근|됐|되고|잘|있|상태|확인)/)) {
+    if (!iCan('system.manage')) return done(cbDeny('백업'));
+    if (!(S.isServer && S.isServer())) return done({ html: '<p>지금은 검증용 로컬 화면이라 자동 백업이 없습니다. 운영 화면에서 물어보세요.</p>' });
+    return S.api('/api/admin/backups').then(function (r) {
+      if (!r.ok) return { html: '<p>백업 목록을 불러오지 못했습니다.</p>' };
+      var items = r.data.items || [], mark = r.data.mark || {};
+      var last = items[0];
+      return { html: (last ? '<p>서버 자동 백업은 <b>' + esc(last.day || '') + '</b> 것이 가장 최근이고, 모두 <b>' + items.length + '개</b>(30일 보관) 있습니다.</p>'
+                             : '<p>아직 서버 자동 백업 파일이 없습니다. 손님이 홈페이지를 여는 날 만들어집니다.</p>') +
+        (mark.lastError ? '<p><b>마지막 시도가 실패했습니다</b>(' + esc(fmtDate(mark.lastErrorAt)) + '). 계속 실패하면 담당자에게 알려 주세요.</p>' : '') +
+        '<p>사진까지 든 백업은 <span class="ui">백업 파일 내려받기</span> 로 직접 받아 두세요.</p>',
+        acts: cbNavBtn('backup', '데이터 백업 열기'), chips: ['백업은 얼마나 자주 해야 하나요?'] };
+    });
+  }
+  if (has(/(방문자|방문|접속자|조회수).*(오늘|몇|수는|얼마)/)) {
+    var visits = gj(S.VISITS_KEY, {}), tv = visits[today] || { pv: 0, uv: 0 };
+    var total = 0; Object.keys(visits).forEach(function (d) { total += (visits[d].uv || 0); });
+    return done({ html: '<p>오늘 방문자는 <b>' + (tv.uv || 0) + '명</b>(페이지뷰 ' + (tv.pv || 0) + '), 누적 방문은 <b>' + total + '명</b>입니다.</p>',
+      acts: cbNavBtn('dashboard', '대시보드 열기') });
+  }
+  if (has(/(내|나의|제|저의)(권한|계정|아이디)|(내가|제가).*(권한|할수있)|누구로(로그인|들어)/)) {
+    var who = (myName ? esc(myName) + '님, ' : '') + (myRole === 'owner' ? '<b>관리자(owner)</b>' : '<b>직원(staff)</b>');
+    var grp = myRoleName ? ' — 권한 그룹 <b>' + esc(myRoleName) + '</b>' : '';
+    var can = myPerms === null ? '모든 화면을 쓸 수 있습니다.' : (myPerms.length ? '가진 권한은 ' + myPerms.length + '가지입니다. 왼쪽 메뉴에 보이는 화면이 쓸 수 있는 전부입니다.' : '아직 권한이 없습니다. 관리자에게 권한 그룹을 요청하세요.');
+    return done({ html: '<p>' + who + grp + ' 계정으로 들어와 있습니다.</p><p>' + can + '</p>',
+      acts: myRole === 'owner' ? cbNavBtn('accounts', '계정 관리 열기') : '', chips: ['내 비밀번호는 어디서 바꾸나요?'] });
+  }
+  return null;
+}
+
+/* ---------- 화면 이동 — 「주문 관리 열어줘」「설정은 어디야」 ---------- */
+var CB_GO = /(열어|열기|보여줘|가자|가줘|갈래|이동|띄워|켜줘|들어가|보러)/;
+var CB_ALIAS = { '주문': 'orders', '상품': 'products', '매출': 'sales', '정산': 'sales', '신청': 'apps', '문의': 'inq',
+                 '게시글': 'posts', '공지': 'posts', '소식': 'posts', '문구': 'texts', '이미지': 'images', '사진': 'images', '파트너': 'partners',
+                 '팝업': 'popups', '계정': 'accounts', '회원': 'accounts', '설정': 'settings', '검색': 'seo', '백업': 'backup',
+                 '설명서': 'manual', '대시보드': 'dashboard', '기수': 'cohorts', '교육과정': 'cohorts', '동의문': 'consents' };
+function cbNavIntent(q) {
+  var s = String(q).replace(/\s+/g, '');
+  var go = CB_GO.test(s), where = /어디/.test(s);
+  if (!go && !where) return null;
+  var hit = null;
+  NAV.forEach(function (n) {
+    if (hit || n.id.slice(0, 2) === 'g_') return;
+    if (s.indexOf(n.label.replace(/[\s·]+/g, '')) > -1 || s.indexOf(n.label.replace(/\s+/g, '')) > -1) hit = n;
+  });
+  // 별칭은 '열어줘'처럼 뜻이 분명할 때만 — 「사진은 어디서 올려요」를 페이지 이미지로 보내면 안 된다
+  if (!hit && go) {
+    Object.keys(CB_ALIAS).some(function (k) {
+      if (s.indexOf(k) < 0) return false;
+      hit = NAV.filter(function (n) { return n.id === CB_ALIAS[k]; })[0];
+      return !!hit;
+    });
+  }
+  if (!hit) return null;
+  var name = '「' + esc(hit.label) + '」';
+  if (hit.ownerOnly && myRole !== 'owner') return { html: '<p>' + name + ' 화면은 관리자(owner)만 들어갈 수 있습니다.</p>' };
+  if (where && !go) {
+    return { html: '<p>' + name + ' 화면은 왼쪽 메뉴의 <b>' + esc(cbNavPath(hit.id)) + '</b> 에 있습니다.</p>', acts: cbNavBtn(hit.id, hit.label + ' 열기') };
+  }
+  var ok = goView(hit.id);
+  return { html: ok ? '<p>' + name + ' 화면을 열었습니다. (왼쪽 메뉴 ' + esc(cbNavPath(hit.id)) + ')</p>'
+                    : '<p>편집 중인 내용이 있어 이동하지 않았습니다. 먼저 저장하거나 취소해 주세요.</p>' };
+}
+
+/* ---------- 인사·잡담 — 설명서를 뒤지지 않고 바로 ---------- */
+function cbSmallTalk(q) {
+  var s = String(q).replace(/\s+/g, '');
+  if (/^(안녕|하이|헬로|반가|좋은아침|수고|하세요)/.test(s)) {
+    return { html: '<p>안녕하세요. 관리 화면에서 막히는 것을 물어보세요. 「오늘 주문 몇 건이에요?」처럼 지금 상황도 답해 드립니다.</p>', chips: CB_QUICK.slice(0, 4) };
+  }
+  if (/(고마|고맙|감사|땡큐|잘했|최고)/.test(s) && s.length < 16) {
+    return { html: '<p>도움이 되었다니 다행입니다. 또 막히면 언제든 물어보세요.</p>', chips: CB_QUICK.slice(2, 5) };
+  }
+  if (/^(너|넌|너는|당신|당신은)?(누구|뭐야|뭐하는|뭘할수|무엇을할수|어떤걸할수|뭐할수|무슨일을|기능이|도움말|help)/i.test(s) ||
+      /(뭘|무엇을|뭐를)(물어|질문)/.test(s)) {
+    return { html: '<p>이 도움말은 세 가지를 합니다.</p><ol class="cb-steps">' +
+      '<li><b>사용법</b> — 「택배 보낸 뒤엔 뭘 눌러요?」처럼 물으면 사용 설명서에서 찾아 답합니다.</li>' +
+      '<li><b>지금 상황</b> — 오늘 주문, 입금 대기, 발송할 주문, 신규 신청·문의, 품절·재고, 회원 수, 마지막 백업을 바로 알려 줍니다.</li>' +
+      '<li><b>화면 이동</b> — 「주문 관리 열어줘」「설정은 어디야」에 답하고 그 화면을 엽니다.</li></ol>' +
+      '<p>「○○이 뭐예요?」라고 물으면 용어 풀이도 해 드립니다.</p>', chips: ['오늘 주문 몇 건이에요?', '대표 사진이 뭐예요?', '주문 관리 열어줘'] };
+  }
+  return null;
+}
+
 /* 물어본 자리로 올린다. 맨 아래로 내리면 답 대신 버튼이 보인다 —
    답에 설명서 본문이 딸려 와 한 화면보다 길기 때문이다. */
 function cbScrollTo(el) {
@@ -4257,6 +4605,11 @@ function cbScrollTo(el) {
   b.scrollTop += el.getBoundingClientRect().top - b.getBoundingClientRect().top - 8;
 }
 
+/* 답을 정하는 순서 — 값이 싼 것부터, 확실한 것부터.
+     1 인사·잡담          2 용어 풀이(「○○이 뭐예요」)     3 지금 상황(들고 있는 자료)
+     4 화면 이동          5 낱개 항목(자주 묻는 질문·문제 해결)
+     6 절 찾기 + 모델     7 못 찾음 — 다시 묻는 길을 준다
+   1~5 는 설명서에 적힌 글을 그대로 주므로 모델을 부르지 않는다. */
 function cbAsk(q) {
   if (cbBusy) return;
   cbBusy = true;
@@ -4265,12 +4618,34 @@ function cbAsk(q) {
   if (quick) quick.classList.add('hide');
   var mine = cbSay('me', esc(q));
   var wait = cbSay('bot', '<span class="cb-dots"><span></span><span></span><span></span></span>');
+  var finish = function (r) {
+    wait.innerHTML = '<div class="cb-ans">' + r.html + '</div>' +
+      (r.acts ? '<div class="cb-acts">' + r.acts + '</div>' : '') + cbChips(r.chips);
+    icons(); cbBusy = false;
+    cbScrollTo(mine);
+  };
+  var talk = cbSmallTalk(q);
+  if (talk) { finish(talk); return; }
+
   cbIndex().then(function (secs) {
-    var hits = cbSearch(q, secs);
+    // 「재고 뜻이 뭐야」는 용어다 — '재고'가 든 지금-상황 질문보다 먼저 본다
+    var item = cbTermIntent(q);
+    var live = item ? null : cbLive(q);
+    if (live) return live.then(finish, function () { finish({ html: '<p>자료를 불러오지 못했습니다. 잠시 뒤 다시 물어보세요.</p>' }); });
+    var nav = item ? null : cbNavIntent(q);
+    if (nav) { finish(nav); return; }
+    item = item || cbBestItem(q);
+    if (item) { finish({ html: cbItemHTML(item), acts: cbItemActs(item), chips: cbRelated(item) }); return; }
+
+    // 자주 묻는 질문·용어 절은 항목으로 이미 봤다 — 절 통째로는 너무 길다
+    var hits = cbSearch(q, secs.filter(function (s) { return s.id !== 'faq' && s.id !== 'terms'; }));
     if (!hits.length) {
-      wait.innerHTML = '설명서에서 관련 내용을 찾지 못했습니다.<br>다른 낱말로 다시 물어보시거나, ' +
-        '<b>사용 설명서</b>를 직접 훑어봐 주세요.';
-      cbBusy = false; return;
+      finish({ html: '<p>설명서에서 딱 맞는 내용을 찾지 못했습니다.</p>' +
+        '<p>화면 이름이나 버튼 이름을 넣어 다시 물어보세요. 예) 「발송처리 누르면 어떻게 돼요?」</p>',
+        acts: '<button data-cbgo="faq"><i data-lucide="help-circle"></i>자주 묻는 질문</button>' +
+              '<button data-cbgo="trouble"><i data-lucide="life-buoy"></i>문제 해결</button>',
+        chips: CB_QUICK.slice(0, 4) });
+      return;
     }
 
     /* 모델을 기다리는 동안 빈 화면을 두지 않는다 — 근거는 이미 찾았으니 먼저 펼쳐 준다.
@@ -4288,9 +4663,15 @@ function cbAsk(q) {
       cbScrollTo(mine);
     };
 
+    // 문턱에 못 미친 항목도 모델에는 근거로 준다 — 짧고 정확한 글이라 답이 좋아진다
+    var terms = cbTerms(q), syn = cbSynonyms(terms);
+    var near = (cbItems || []).map(function (it) { return { it: it, s: cbScore(terms, syn, it.title, it.text).score }; })
+      .filter(function (x) { return x.s >= 12; }).sort(function (a, b) { return b.s - a.s; }).slice(0, 2)
+      .map(function (x) { return { title: x.it.title, text: x.it.text }; });
+
     S.api('/api/admin/assist', { method: 'POST', body: {
       question: q,
-      context: hits.map(function (h) { return { title: h.title, text: h.text.slice(0, 2200) }; }),
+      context: near.concat(hits.map(function (h) { return { title: h.title, text: h.text.slice(0, 2200) }; })),
     } }).then(function (r) {
       var ans = r.ok && r.data && r.data.answer;
       // 모델을 못 쓰는 상황이어도 아래에 절이 펼쳐져 있다 — 한 줄만 바꿔 준다
@@ -4371,7 +4752,8 @@ function cbOpen(open) {
   if (open) {
     var body = cbEl('cbBody');
     if (body && !body.children.length) {
-      cbSay('bot', '안녕하세요. 관리 화면에서 막히는 것을 물어보시면 <b>사용 설명서</b>에서 찾아 알려 드립니다.<br>아래 예시를 눌러 보셔도 됩니다.');
+      cbSay('bot', '안녕하세요. 관리 화면에서 막히는 것을 물어보시면 <b>사용 설명서</b>에서 찾아 알려 드립니다.<br>' +
+        '「오늘 주문 몇 건이에요?」「주문 관리 열어줘」「대표 사진이 뭐예요?」처럼 물어보셔도 됩니다.');
       var q = cbEl('cbQuick');
       if (q) q.innerHTML = CB_QUICK.map(function (t) { return '<button data-cbq="' + esc(t) + '">' + esc(t) + '</button>'; }).join('');
     }
@@ -4382,6 +4764,8 @@ function cbOpen(open) {
 document.addEventListener('click', function (e) {
   if (e.target.closest('#cbFab')) { cbOpen(true); return; }
   if (e.target.closest('#cbClose')) { cbOpen(false); return; }
+  // 답에 붙은 '○○ 열기' — 화면 이동은 공통 [data-nav] 처리가 이미 했다. 여기서는 패널만 닫는다
+  if (e.target.closest('#cbPanel [data-nav]')) { cbOpen(false); return; }
 
   // 사진은 어디에 있든(설명서 본문·챗봇·크게 보기) 눌러서 키운다
   var img = e.target.closest('.man-body img, .cb-doc img, #cbZoomBody img');
@@ -4395,7 +4779,7 @@ document.addEventListener('click', function (e) {
   var q = e.target.closest('[data-cbq]');
   if (q) { cbAsk(q.dataset.cbq); return; }
   var g = e.target.closest('[data-cbgo]');
-  if (g && g.dataset.cbgo) { cbZoomClose(); cbGoto(g.dataset.cbgo); cbOpen(false); return; }
+  if (g && g.dataset.cbgo) { cbZoomClose(); cbGoto(g.dataset.cbgo, g.dataset.cbat); cbOpen(false); return; }
   var z = e.target.closest('[data-cbzoom]');
   if (z) { cbZoomOpen(z.dataset.cbzoom); return; }
 });
