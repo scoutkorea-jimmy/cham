@@ -936,7 +936,9 @@
   /* 상품 분류 — 목록 페이지 앵커와 관리자 등록 폼이 함께 참조하는 단일 정의.
      순서는 제품 페이지의 섹션 순서와 같다(선물세트 → 식초 → 장류 → 발효식품). */
   var PRODUCT_CATS = [
-    { name: '선물세트', gridId: 'grid-gift' },
+    /* showcase: 사진이 있는 상품만 큰 카드 하나씩 — 사진 없는 자리표시 카드가 선물세트 옆에 서면
+       전체가 미완성으로 보인다(2026-09-18). 사진이 하나도 없으면 보통 격자로 돌아간다 */
+    { name: '선물세트', gridId: 'grid-gift', showcase: true },
     { name: '식초', gridId: 'grid-vinegar' },
     { name: '장류', gridId: 'grid-jang' },
     { name: '발효식품', gridId: 'grid-ferment' },

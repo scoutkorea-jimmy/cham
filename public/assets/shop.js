@@ -71,6 +71,30 @@
       '</div></a>';
   }
 
+  /* 보여 줄 사진이 있는가 — 관리자가 올린 대표 이미지(bootstrap 캐시) 또는 정적 사진.
+     로컬 모드는 캐시가 없어(undefined) 정적 사진만 센다. */
+  function hasVisual(p) {
+    return !!p.photo || !!S.Media.mainOf(p.id);
+  }
+
+  /* 큰 카드 — 사진을 왼쪽에 크게, 이름·설명·가격을 오른쪽에. 선물세트처럼 한두 품목을
+     앞세우는 분류에 쓴다. 사진이 없는 상품은 이 카드로 만들지 않는다(hasVisual). */
+  function showcaseHTML(p) {
+    var soldout = S.isSoldOut(p);
+    return '<a class="card card-hover prod-link prod-showcase reveal" href="product.html?id=' + p.id + '" aria-label="' + esc(p.name) + ' 상세보기">' +
+      '<div class="prod-img" data-pimg="' + p.id + '">' +
+        fallbackVisual(p) +
+        (soldout ? '<div class="prod-soldout-veil">품절</div>' : '') +
+      '</div>' +
+      '<div class="prod-showcase-body">' +
+        '<span class="tag' + (p.cat === '선물세트' ? ' point' : '') + '">' + esc(p.cat) + '</span>' +
+        '<h3>' + esc(p.name) + '</h3>' +
+        '<p class="muted">' + esc(p.summary || '') + '</p>' +
+        '<div class="prod-showcase-price">' + priceHTML(p, true) + '</div>' +
+        '<span class="prod-showcase-cta">자세히 보기 <i data-lucide="arrow-right"></i></span>' +
+      '</div></a>';
+  }
+
   function fillCardImages(scope) {
     (scope || document).querySelectorAll('[data-pimg]').forEach(function (box) {
       mainImage(box.dataset.pimg).then(function (url) {
@@ -94,7 +118,14 @@
       if (!box) return;
       any = true;
       var list = products.filter(function (p) { return p.cat === cat.name; });
-      box.innerHTML = list.length ? list.map(cardHTML).join('') : '<p class="muted">등록된 상품이 없습니다.</p>';
+      var pick = cat.showcase ? list.filter(hasVisual) : [];
+      if (pick.length) {
+        box.classList.add('prod-grid-showcase');
+        box.innerHTML = pick.map(showcaseHTML).join('');
+      } else {
+        box.classList.remove('prod-grid-showcase');
+        box.innerHTML = list.length ? list.map(cardHTML).join('') : '<p class="muted">등록된 상품이 없습니다.</p>';
+      }
     });
     if (any) { icons(); fillCardImages(); if (S.revealScan) S.revealScan(); }
   }
