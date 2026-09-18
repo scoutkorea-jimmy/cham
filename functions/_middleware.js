@@ -14,6 +14,7 @@ import { readDoc } from './_shared/store.js';
 import { rewriteHead, canonicalFor } from './_shared/seo.js';
 import { loadPostDetail, loadPostListDetail } from './_shared/post-seo.js';
 import { loadProductDetail, loadProductListDetail } from './_shared/product-seo.js';
+import { loadHomeDetail } from './_shared/home-seo.js';
 import { shipFeeOf } from './_shared/shipping.js';
 
 /* 설명서 본문(assets/manual.html)도 함께 막는다.
@@ -57,12 +58,12 @@ async function withSeo(context, url) {
   try {
     const st = (await readDoc(context.env, 'settings')) || {};
     /* 자바스크립트로 그리는 화면은 크롤러에게 빈 문서다. 서버가 내용을 실어 보낸다.
-       넷은 **서로 다른 주소에서만** 값을 내므로(각자 경로를 확인한다) 첫 번째로 걸리는
+       다섯은 **서로 다른 주소에서만** 값을 내므로(각자 경로를 확인한다) 첫 번째로 걸리는
        것 하나만 쓴다 — 한 화면에 둘이 걸리는 일은 없다. */
     const canonical = canonicalFor(url);
     const opt = { shipFee: shipFeeOf(st) };   // '' 이면 기본값 — 0원으로 실리지 않게
     let detail = null;
-    for (const load of [loadPostDetail, loadProductDetail, loadPostListDetail, loadProductListDetail]) {
+    for (const load of [loadPostDetail, loadProductDetail, loadPostListDetail, loadProductListDetail, loadHomeDetail]) {
       detail = await load(context.env, url, canonical, opt);
       if (detail) break;
     }

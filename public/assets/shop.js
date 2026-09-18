@@ -181,30 +181,33 @@
     }
   }
 
-  /* ================= 홈 미리보기의 가격 줄 ================= */
-  /* 정적 카드(index.html)에 가격을 손으로 적지 않는다 — 선물상자가 홈에서는 45,000원,
-     실제 상품은 50,000원이던 일이 있었다. 카드는 `data-price-of="상품id"` 만 적고
-     여기서 상품 데이터로 채운다. 숨긴 상품이면 카드째 감춘다(눌러도 없는 상품이다). */
-  function priceLine(p) {
-    if (p.priceOnRequest) return '가격 문의';
-    var base = p.salePrice != null && p.salePrice !== '' ? Number(p.salePrice) : Number(p.price);
-    var vals = p.option && p.option.values ? p.option.values : [];
-    if (vals.length) {
-      return vals.map(function (v) { return optVolume(v.label) + ' ' + fmtWon(base + (Number(v.add) || 0)) + '원'; }).join(' · ');
-    }
-    return fmtWon(base) + '원' + (p.unit ? ' / ' + p.unit : '');
-  }
-  function fillPriceLines() {
-    document.querySelectorAll('[data-price-of]').forEach(function (elx) {
-      var p = S.getProduct(elx.getAttribute('data-price-of'));
-      if (!p || p.status === '숨김') {
-        // 카드가 인라인 display:block 이라 hidden 속성으로는 안 감춰진다
-        var card = elx.closest('.card');
-        if (card) card.style.display = 'none';
-        return;
-      }
-      elx.textContent = priceLine(p);
-    });
+  /* ================= 홈 — 제품 칸 ================= */
+  /* 이름·사진·가격을 홈 HTML 에 적어 두지 않는다. 적어 두었더니 선물상자가 홈에서는
+     45,000원(실제 50,000원)이었고, 관리자가 사진을 바꿔도 홈만 옛 사진이 남았다.
+     카드는 목록과 **같은 함수**(cardHTML)로 만든다 — 사진은 fillCardImages 가
+     관리자가 올린 대표 이미지로 갈아 끼운다.
+
+     무엇을 어느 차례로 세울지는 **서버가 정한다**(주문 많은 순 — _shared/home-seo.js).
+     그 차례가 크롤러용 목록(#home-ssr)에 data-pid 로 함께 실려 오므로 읽어서 따른다.
+     같은 규칙을 화면에도 적어 두면 언젠가 한쪽만 고쳐져 둘이 어긋난다.
+     /api 가 없는 로컬 검증 화면에는 그 목록이 없다 — 그때는 상품이 실려 온 차례를 쓴다
+     (주문 자료는 공개 응답에 없으므로 화면 혼자서는 주문량을 알 수 없다). */
+  function renderHomePicks() {
+    var box = document.getElementById('home-picks');
+    if (!box) return;
+    var ssr = document.getElementById('home-ssr');
+    var ids = ssr ? [].map.call(ssr.querySelectorAll('[data-pid]'), function (el) { return el.dataset.pid; }) : [];
+    var list = ids.length
+      ? ids.map(S.getProduct).filter(Boolean)
+      : S.getProducts().filter(function (p) {
+          return p.status !== '숨김' && p.status !== '품절';
+        }).slice(0, 4);
+    if (!list.length) return;
+    box.innerHTML = list.map(cardHTML).join('');
+    if (ssr) ssr.innerHTML = '';        // 크롤러 몫은 끝났다 — 사람에게는 카드를 보인다
+    icons();
+    fillCardImages(box);
+    if (S.revealScan) S.revealScan(box);
   }
 
   /* ================= 상품 상세 페이지 ================= */
@@ -501,7 +504,7 @@
   ready(function () {
     renderLists();
     renderPriceTable();
-    fillPriceLines();
+    renderHomePicks();
     renderDetail();
   });
 })();

@@ -157,27 +157,12 @@
       </div>
       <a class="btn-text reveal" href="products.html" style="padding-bottom:8px">전체 상품 보기 <i data-lucide="arrow-right"></i></a>
     </div>
-    <!-- 가격은 여기 적지 않는다 — shop.js 가 상품 데이터에서 채운다(data-price-of).
-         손으로 적어 두었더니 선물상자가 여기서는 45,000원, 실제 상품은 50,000원이었다.
-         숨긴 상품(예: 와인)은 카드째 감춘다. 명절 주력인 선물세트를 앞에 둔다. -->
-    <div class="grid g-4">
-      <a class="card card-hover reveal" href="product.html?id=p_set_vinegar" style="overflow:hidden;display:block">
-        <img class="prod-photo" src="assets/product-giftbox.jpg" alt="서연 수제식초 선물상자">
-        <div class="prod-card-body"><span class="tag point">선물세트</span><h3>서연 수제식초 선물상자</h3><p class="muted" data-price-of="p_set_vinegar"></p></div>
-      </a>
-      <a class="card card-hover reveal" href="product.html?id=p_set3" style="overflow:hidden;display:block">
-        <div class="prod-img"><div class="ph tone-point ratio-1" data-label="제품 사진 — 명절 장(醬) 3종 세트" style="border-radius:0;height:100%"><i data-lucide="gift"></i></div></div>
-        <div class="prod-card-body"><span class="tag point">선물세트</span><h3>명절 장(醬) 3종 세트</h3><p class="muted" data-price-of="p_set3"></p></div>
-      </a>
-      <a class="card card-hover reveal" href="product.html?id=p_vin_omija" style="overflow:hidden;display:block">
-        <img class="prod-photo" src="assets/product-vinegar-omija.jpg" alt="서연 오미자 식초">
-        <div class="prod-card-body"><span class="tag olive">식초</span><h3>오미자 식초</h3><p class="muted" data-price-of="p_vin_omija"></p></div>
-      </a>
-      <a class="card card-hover reveal" href="product.html?id=p_vin_citrus" style="overflow:hidden;display:block">
-        <img class="prod-photo" src="assets/product-vinegar-citrus.jpg" alt="서연 감귤 식초">
-        <div class="prod-card-body"><span class="tag olive">식초</span><h3>감귤 식초</h3><p class="muted" data-price-of="p_vin_citrus"></p></div>
-      </a>
-    </div>
+    <!-- 이름·사진·가격을 여기에 적지 않는다 — 카드는 상품 데이터에서 만든다(shop.js).
+         손으로 적어 두었더니 선물상자가 여기서는 45,000원, 실제 상품은 50,000원이었고,
+         관리자가 상품 사진을 바꿔도 홈만 저장소에 든 옛 사진을 계속 내보냈다.
+         무엇을 어느 차례로 세울지는 서버가 정한다 — 주문이 많은 순
+         (functions/_shared/home-seo.js). 숨김·품절은 서버가 뺀다. -->
+    <div class="grid g-4" id="home-picks"></div>
   </div>
 </section>
 
@@ -251,6 +236,11 @@
     </div>
   </div>
 </section>
+
+<!-- 서버가 위 제품 칸과 **같은 상품을 같은 차례로** 여기에 글로 싣는다(크롤러용).
+     JS 가 뜨면 shop.js 가 이 차례를 읽어 카드를 그리고 여기를 걷어낸다
+     → functions/_shared/home-seo.js -->
+<div id="home-ssr"></div>
 
 <footer id="site-footer"></footer>
 
