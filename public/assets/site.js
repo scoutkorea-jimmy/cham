@@ -1191,11 +1191,16 @@
   function showPopup() {
     if (currentPage() !== 'index') return;
     var p = activePopup(); if (!p) return;
-    var linkBtn = p.link
-      ? '<a class="btn btn-point" href="' + esc(p.link) + '" style="margin-top:var(--gap-related)"><i data-lucide="arrow-right"></i>' + esc(p.linkLabel || '자세히 보기') + '</a>'
-      : '';
+    /* 사진 팝업의 버튼은 **사진 폭을 꽉 채워 가운데**로 둔다. 왼쪽에 제 폭만큼만 놓으면
+       사진과 따로 노는 조각처럼 보인다. 글 팝업에서는 글줄을 따라 왼쪽에 둔다. */
+    function linkBtnHTML(full) {
+      if (!p.link) return '';
+      return '<a class="btn btn-point" href="' + esc(p.link) + '" style="' +
+        (full ? 'display:flex;justify-content:center;width:100%' : 'margin-top:var(--gap-related)') +
+        '"><i data-lucide="arrow-right"></i>' + esc(p.linkLabel || '자세히 보기') + '</a>';
+    }
     var foot =
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:var(--gap-block);border-top:1px solid var(--line-soft);padding-top:14px">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:var(--gap-related);border-top:1px solid var(--line-soft);padding-top:14px">' +
         '<button type="button" class="btn-text" id="popDismiss" style="color:var(--ink-mute)">오늘 하루 보지 않기</button>' +
         '<button type="button" class="btn btn-ghost" data-modal-close style="padding:9px 18px">닫기</button>' +
       '</div>';
@@ -1205,13 +1210,13 @@
        사진이 없는 팝업까지 글을 감추면 빈 상자만 뜬다 — 그때는 종전대로 글을 낸다. */
     var body = p.img
       ? '<img src="' + esc(p.img) + '" alt="' + esc(p.title) + '" style="display:block;width:100%;height:auto;max-height:72vh;object-fit:contain;background:var(--surface-2)">' +
-        '<div style="padding:16px 20px 18px">' + linkBtn + foot + '</div>'
+        '<div style="padding:16px 20px 18px">' + linkBtnHTML(true) + foot + '</div>'
       : '<div class="ph tone-deep ratio-169" data-label="" style="border-radius:0"><i data-lucide="bell"></i></div>' +
         '<div style="padding:26px 28px 24px">' +
           '<div class="eyebrow">공지</div>' +
           '<h3 style="margin:var(--gap-tight) 0 var(--gap-tight);font-size:22px">' + esc(p.title) + '</h3>' +
           '<p class="muted" style="margin:0;white-space:pre-line">' + esc(p.body || '') + '</p>' +
-          linkBtn + foot +
+          linkBtnHTML(false) + foot +
         '</div>';
     var root = rawModal(body, POPUP_W[p.size] || POPUP_W['중']);
     var dz = document.getElementById('popDismiss');
