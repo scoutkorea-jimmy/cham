@@ -35,6 +35,9 @@ export async function onRequestGet({ request, env, data }) {
   const items = (listed.objects || []).map((o) => {
     const m = o.key.match(/(\d{4}-\d{2}-\d{2})/);
     return { key: o.key, day: m ? m[1] : null, size: o.size, uploaded: o.uploaded };
-  }).sort((a, b) => (String(b.uploaded) > String(a.uploaded) ? 1 : -1));
+  /* 키에 날짜가 있으므로 키로 정렬한다. 전에는 String(uploaded) 를 비교했는데 R2 의 uploaded 는
+     Date 라 "Thu Sep 17…" 이 "Fri Sep 18…" 보다 뒤로 가서 **가장 최근 백업이 둘째 줄**에 있었다
+     (2026-09-18, 챗봇이 '마지막 백업'을 답하다 드러남). */
+  }).sort((a, b) => b.key.localeCompare(a.key));
   return json({ items, mark: await readDoc(env, 'backup') });
 }
