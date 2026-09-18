@@ -59,6 +59,7 @@ a.evaluate("""(id)=>{const g=document.querySelector(`[data-navgroup="${id}"]`);
 | `./venv/bin/python .claude/skills/verify/tools/payload_size.py` | 시작 적재량·저장 1회 전송량 실측 |
 | `./venv/bin/python .claude/skills/verify/tools/crawler_view.py` | **크롤러가 받는 문서** — 본문 글자 수 · 제목 중복 · JSON-LD. 사이트맵이 실은 상세 주소까지 |
 | `./venv/bin/python .claude/skills/verify/tools/perms.py` | **권한 그룹이 서버에서 막히는가** — '조회 전용' 계정을 잠깐 만들어 창구마다 200/403 을 두드리고 지운다. 무세션 401 검사(인증)로는 못 잡는다(2026-09-17: 권한 그룹이 서버에서 장식이었다) |
+| `./venv/bin/python .claude/skills/verify/tools/chatbot.py` | **도움말 챗봇이 어떤 종류의 답을 내는가** — 질문 55개(잡담·지금 상황·화면 이동·용어·FAQ·문제 해결·절·못 찾음)를 화면에 넣고 [답]/[단추]/[절] 을 본다. 설명서나 `cb*` 를 고치면 돌린다 |
 
 ## 재는 도구가 먼저 틀린다
 
