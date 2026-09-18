@@ -138,7 +138,12 @@ export function rewriteHead(res, url, seo, detail) {
        따로 놀므로 여기 한 곳에서 붙인다.
        한때 여기서 `assets/logo.png` 를 가리켰는데, 404 는 사라졌지만 방문마다
        120KB 로고를 받아 16px 로 줄이고 있었다 — 붓질이 뭉개져 알아볼 수도 없었다.
-       지금은 전용 마크(assets/favicon.svg · 951B)를 쓴다 → docs/failures.md */
+       → docs/failures.md
+       2026-09-19: 조합 로고가 씨장 마크로 바뀌면서, 옛 로고를 단순화해 그린
+       전용 SVG 마크는 더 이상 같은 로고가 아니게 되어 걷어냈다. 대신 **아이콘 전용
+       파일**을 쓴다 — `.ico` 는 16·32·48 을 한 파일에 담아 6.6KB 다(로고를 그대로
+       줄여 쓰던 옛 실수와 다르다). 16px 에서는 옹기가 덩어리로 뭉친다 — 그건
+       로고 자체가 붓질이라 그렇고, 32px 부터는 형태가 산다. */
     .on('link[rel~="icon"]', { element() { sawIcon = true; } })
     .on('head', {
       element(el) {
@@ -153,10 +158,10 @@ export function rewriteHead(res, url, seo, detail) {
              언어를 모르고, 네이버는 이 값을 국내 문서 판정에 함께 본다. */
           if (!sawLocale) add.push(`<meta property="og:locale" content="ko_KR">`);
           if (!sawIcon) {
-            /* SVG 를 먼저 두고 .ico 를 뒤에 둔다 — SVG 를 모르는 브라우저만 뒤엣것을 쓴다.
-               apple-touch-icon 은 홈 화면에 담을 때 iOS 가 찾는 이름이라 별도로 붙인다. */
-            add.push(`<link rel="icon" type="image/svg+xml" href="${absolute(origin, 'assets/favicon.svg')}">`);
+            /* .ico 가 탭 아이콘(16·32·48 한 파일), 192 는 안드로이드가 홈 화면에 담을 때,
+               apple-touch-icon 은 iOS 가 같은 일에 찾는 이름이라 셋을 함께 붙인다. */
             add.push(`<link rel="icon" sizes="32x32" href="${absolute(origin, 'favicon.ico')}">`);
+            add.push(`<link rel="icon" type="image/png" sizes="192x192" href="${absolute(origin, 'assets/icon-192.png')}">`);
             add.push(`<link rel="apple-touch-icon" href="${absolute(origin, 'assets/apple-touch-icon.png')}">`);
           }
           // 트위터 카드도 같은 그림을 쓴다 — 없으면 링크가 글자만 나온다
