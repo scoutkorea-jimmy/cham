@@ -485,6 +485,10 @@
       relBox.innerHTML = rel.slice(0, 4).map(cardHTML).join('');
       icons();
       fillCardImages(relBox);
+      /* 등장 연출 등록 — 빠뜨리면 카드가 투명한 채로 남아 손님 눈에는 빈 칸이 된다.
+         부팅 때 한 번 훑는 revealScan() 은 그 뒤에 넣은 이 카드들을 알지 못한다.
+         목록(renderLists)이 같은 이유로 이미 이것을 부른다 */
+      if (S.revealScan) S.revealScan(relBox);
     }
   }
 
