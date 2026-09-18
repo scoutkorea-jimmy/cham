@@ -1512,12 +1512,16 @@ function viewPosts() {
   var a = gj(K.posts, []).slice().sort(function (x, y) { return (y.at || '').localeCompare(x.at || ''); });
   var pg = paged('posts', a); a = pg.rows;
   var rows = a.length ? a.map(function (p) {
+    /* 수정은 소식마당의 글 화면에서 연다 — 에디터(Tiptap)와 첨부 처리가 거기 하나뿐이라
+       관리자 안에 또 만들면 같은 기능이 둘이 된다. 새 탭으로 열어 관리자 화면은 그대로 둔다. */
     return '<tr><td><b>' + esc(p.title) + '</b></td>' +
       '<td><span class="tag' + (p.important ? ' point' : '') + '">' + esc(p.cat) + '</span></td>' +
-      '<td class="dt">' + fmtDate(p.at) + '</td><td>' + delBtn(K.posts, p.id) + '</td></tr>';
+      '<td class="dt">' + fmtDate(p.at) + '</td>' +
+      '<td style="white-space:nowrap"><a class="btn btn-ghost" href="news.html?id=' + encodeURIComponent(p.id) + '" target="_blank" rel="noopener" style="padding:7px 12px"><i data-lucide="pen-line"></i>수정</a> ' +
+      delBtn(K.posts, p.id) + '</td></tr>';
   }).join('') : emptyRow(4, '등록된 게시글이 없습니다.');
   return '<div class="panel"><div class="panel-head"><h3>게시글 관리</h3><a class="btn btn-point" href="news.html" target="_blank" style="padding:10px 18px"><i data-lucide="pen-line"></i>소식마당에서 글쓰기</a></div>' +
-    '<div class="modal-note gap-related"><i data-lucide="info"></i><span>글 작성·수정(Tiptap 에디터, 첨부파일)은 소식마당의 ‘글쓰기’ 버튼에서 진행합니다.</span></div>' +
+    '<div class="modal-note gap-related"><i data-lucide="info"></i><span>목록의 <b>수정</b>을 누르면 그 글이 소식마당에서 새 탭으로 열립니다 — 거기서 바로 고치실 수 있습니다. 새 글쓰기도 소식마당에서 합니다.</span></div>' +
     '<div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>제목</th><th>분류</th><th>등록일</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>' + pager(pg) + '</div>';
 }
 
@@ -1542,26 +1546,44 @@ function viewPartners() {
     '</form></div>';
 }
 
+/* 팝업 — null 이면 새로 추가, 팝업 id 면 그것을 고치는 중(상품의 prodEditing 과 같은 방식) */
+var popEditing = null;
+var POPUP_SIZES = ['소', '중', '대'];
+
 function viewPopups() {
   var a = gj(K.popups, []);
+  var cur = popEditing ? a.filter(function (p) { return p.id === popEditing; })[0] : null;
+  if (popEditing && !cur) popEditing = null;         // 고치던 팝업이 지워졌다
+  var v = cur || {};
   var rows = a.length ? a.map(function(p){
-    return '<tr><td style="width:74px">' + (p.img ? '<img src="' + esc(p.img) + '" style="width:64px;height:44px;object-fit:cover;border-radius:7px">' : '<span class="pc-sub">없음</span>') + '</td>' +
-      '<td><b>' + esc(p.title) + '</b><div class="pc-sub">' + esc((p.body||'').replace(/\n/g,' ')).slice(0,50) + '</div></td>' +
+    return '<tr' + (popEditing === p.id ? ' class="row-editing"' : '') + '>' +
+      '<td style="width:74px">' + (p.img ? '<img src="' + esc(p.img) + '" style="width:64px;height:44px;object-fit:cover;border-radius:7px">' : '<span class="pc-sub">없음</span>') + '</td>' +
+      '<td><b>' + esc(p.title) + '</b><div class="pc-sub">' + (p.img ? '이미지 · 크기 ' + esc(p.size || '중') : esc((p.body||'').replace(/\n/g,' ')).slice(0,50)) + '</div></td>' +
       '<td class="dt">' + (p.startsAt||'상시') + (p.endsAt?(' ~ '+p.endsAt):'') + '</td>' +
       '<td><button class="toggle ' + (p.active?'on':'') + '" data-act="poptoggle" data-id="' + p.id + '"><i></i></button></td>' +
-      '<td>' + delBtn(K.popups, p.id) + '</td></tr>';
+      '<td style="white-space:nowrap"><button class="btn btn-ghost" data-act="popedit" data-id="' + p.id + '" style="padding:7px 12px"><i data-lucide="pen-line"></i>수정</button> ' +
+        delBtn(K.popups, p.id) + '</td></tr>';
   }).join('') : emptyRow(5, '등록된 팝업이 없습니다.');
   return '<div class="panel"><div class="panel-head"><h3>팝업 관리</h3><span class="ph-sub">활성 팝업은 홈 첫 화면에 노출됩니다</span></div>' +
     '<div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>이미지</th><th>제목 · 내용</th><th>노출 기간</th><th>활성</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
     '<form class="admin-form" id="popupForm" style="border-top:1px solid var(--line-soft)">' +
-      '<div class="field full"><label>제목</label><input name="title" required placeholder="예) 2026 봄학기 지도사 과정 모집"></div>' +
-      '<div class="field full"><label>내용</label><textarea name="body" placeholder="팝업에 표시할 안내 문구"></textarea></div>' +
-      '<div class="field full"><label>팝업 이미지 (선택 — 상단 표시, 가로 900px 이하 자동 최적화)</label><input name="img" type="file" accept="image/*" id="popImgInput"></div>' +
-      '<div class="field"><label>링크 (선택)</label><input name="link" placeholder="instructor.html"></div>' +
-      '<div class="field"><label>버튼 문구</label><input name="linkLabel" placeholder="자세히 보기"></div>' +
-      '<div class="field"><label>시작일 (선택)</label><input name="startsAt" type="date"></div>' +
-      '<div class="field"><label>종료일 (선택)</label><input name="endsAt" type="date"></div>' +
-      '<div class="full"><button class="btn btn-point" type="submit"><i data-lucide="plus"></i>팝업 추가</button></div>' +
+      '<div class="modal-note full"><i data-lucide="info"></i><span>이미지를 올리면 <b>팝업에는 이미지만</b> 나갑니다. 제목·내용은 이 목록에서 어떤 팝업인지 알아보기 위한 것입니다.' +
+        ' 이미지가 없는 팝업은 지금처럼 제목·내용이 나갑니다.</span></div>' +
+      '<div class="field full"><label>제목 (관리용)</label><input name="title" required placeholder="예) 2026 봄학기 지도사 과정 모집" value="' + esc(v.title || '') + '"></div>' +
+      '<div class="field full"><label>내용 (이미지가 없을 때만 표시)</label><textarea name="body" placeholder="팝업에 표시할 안내 문구">' + esc(v.body || '') + '</textarea></div>' +
+      '<div class="field full"><label>팝업 이미지' + (cur && cur.img ? ' — 지금 올라간 사진이 있습니다. 비워 두면 그대로 둡니다' : ' (선택 — 가로 900px 이하 자동 최적화)') + '</label><input name="img" type="file" accept="image/*" id="popImgInput"></div>' +
+      '<div class="field"><label>팝업 크기</label><select name="size">' +
+        POPUP_SIZES.map(function (s) {
+          return '<option value="' + s + '"' + ((v.size || '중') === s ? ' selected' : '') + '>' + s + '</option>';
+        }).join('') + '</select></div>' +
+      '<div class="field"><label>링크 (선택)</label><input name="link" placeholder="instructor.html" value="' + esc(v.link || '') + '"></div>' +
+      '<div class="field"><label>버튼 문구</label><input name="linkLabel" placeholder="자세히 보기" value="' + esc(v.linkLabel || '') + '"></div>' +
+      '<div class="field"><label>시작일 (선택)</label><input name="startsAt" type="date" value="' + esc(v.startsAt || '') + '"></div>' +
+      '<div class="field"><label>종료일 (선택)</label><input name="endsAt" type="date" value="' + esc(v.endsAt || '') + '"></div>' +
+      '<div class="full" style="display:flex;gap:10px;flex-wrap:wrap">' +
+        '<button class="btn btn-point" type="submit"><i data-lucide="' + (cur ? 'check' : 'plus') + '"></i>' + (cur ? '수정 내용 저장' : '팝업 추가') + '</button>' +
+        (cur ? '<button class="btn btn-ghost" type="button" data-act="popcancel"><i data-lucide="x"></i>수정 취소</button>' : '') +
+      '</div>' +
     '</form></div>';
 }
 
@@ -3586,11 +3608,22 @@ function bindForms() {
     pop.addEventListener('submit', function(e){
       e.preventDefault();
       var d = {}; new FormData(pop).forEach(function(v,k){ if(k!=='img') d[k]=v; });
-      d.id = uid(); d.active = true; d.img = pendingPopImg;
-      var a = gj(K.popups, []); a.unshift(d);
+      var a = gj(K.popups, []);
+      var editing = popEditing;
+      if (editing) {
+        /* 고치는 중이면 그 자리에서 바꾼다 — 새 사진을 고르지 않았으면 올라가 있던 사진을 둔다.
+           지운 적 없는 사진을 빈 값으로 덮으면 팝업이 글만 남는다. */
+        var i = a.findIndex(function (p) { return p.id === editing; });
+        if (i < 0) { popEditing = null; toast('고치려던 팝업을 찾을 수 없습니다.'); render(); return; }
+        a[i] = Object.assign({}, a[i], d, { img: pendingPopImg || a[i].img });
+      } else {
+        d.id = uid(); d.active = true; d.img = pendingPopImg;
+        a.unshift(d);
+      }
       if (!sj(K.popups, a)) { toast('저장 공간이 부족합니다. 이미지 용량을 줄이거나 데이터를 백업·정리해 주세요.'); return; }
+      popEditing = null;
       render();
-      toast('팝업이 추가되었습니다.');
+      toast(editing ? '팝업이 수정되었습니다.' : '팝업이 추가되었습니다.');
     });
   }
 
@@ -3844,6 +3877,12 @@ document.addEventListener('click', function(e){
   } else if (act === 'poptoggle') {
     var a = gj(K.popups, []); a.forEach(function(p){ if(p.id===b.dataset.id) p.active = !p.active; }); sj(K.popups, a); render();
     toast('팝업이 ' + (a.some(function(p){ return p.id===b.dataset.id && p.active; }) ? '게시' : '중지') + '되었습니다.');
+  } else if (act === 'popedit') {
+    popEditing = b.dataset.id; render();
+    var pf = document.getElementById('popupForm');
+    if (pf) pf.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  } else if (act === 'popcancel') {
+    popEditing = null; render();
   } else if (act === 'simgdel') {
     if (!confirm('이 자리의 사진을 내릴까요? 페이지는 기본 자리표시로 돌아갑니다.')) return;
     if (imgSel === b.dataset.id) imgSel = null;
@@ -4011,7 +4050,7 @@ document.addEventListener('click', function (e) {
   // 이미 열려 있는 그룹의 이름을 다시 누르면 접는다
   navOpen = (navOpen === gid && current === gid) ? '' : gid;
   current = gid;
-  prodEditing = null; kmsMode = 'view'; consentMode = 'view';
+  prodEditing = null; popEditing = null; kmsMode = 'view'; consentMode = 'view';
   render();
   // 좁은 화면에서는 여기서도 닫아야 한다 — 안 닫으면 덮개가 화면을 막는다.
   // 그룹 요약 화면 자체가 하위 바로가기를 담고 있어 메뉴를 열어 둘 이유도 없다.
@@ -4026,7 +4065,7 @@ function goView(id, otab) {
   current = id;
   navOpen = groupOf(current);        // 고른 화면이 속한 그룹을 열어 둔다
   if (otab) orderTab = otab;
-  prodEditing = null; kmsMode = 'view'; consentMode = 'view';
+  prodEditing = null; popEditing = null; kmsMode = 'view'; consentMode = 'view';
   render();
   setSide(false);          // 좁은 화면에서 메뉴를 고르면 사이드바를 닫는다
   window.scrollTo(0, 0);

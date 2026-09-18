@@ -1186,24 +1186,34 @@
     }
     return null;
   }
+  /* 팝업 너비 — 관리자에서 대·중·소로 고른다. 값이 없는 옛 팝업은 '중'(종전 440 자리). */
+  var POPUP_W = { '소': 360, '중': 480, '대': 760 };
   function showPopup() {
     if (currentPage() !== 'index') return;
     var p = activePopup(); if (!p) return;
-    var visual = p.img
-      ? '<img src="' + esc(p.img) + '" alt="' + esc(p.title) + '" style="display:block;width:100%;max-height:46vh;object-fit:cover">'
-      : '<div class="ph tone-deep ratio-169" data-label="" style="border-radius:0"><i data-lucide="bell"></i></div>';
-    var root = rawModal(
-      visual +
-      '<div style="padding:26px 28px 24px">' +
-        '<div class="eyebrow">공지</div>' +
-        '<h3 style="margin:var(--gap-tight) 0 var(--gap-tight);font-size:22px">' + esc(p.title) + '</h3>' +
-        '<p class="muted" style="margin:0;white-space:pre-line">' + esc(p.body || '') + '</p>' +
-        (p.link ? '<a class="btn btn-point" href="' + esc(p.link) + '" style="margin-top:var(--gap-related)"><i data-lucide="arrow-right"></i>' + esc(p.linkLabel || '자세히 보기') + '</a>' : '') +
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:var(--gap-block);border-top:1px solid var(--line-soft);padding-top:14px">' +
-          '<button type="button" class="btn-text" id="popDismiss" style="color:var(--ink-mute)">오늘 하루 보지 않기</button>' +
-          '<button type="button" class="btn btn-ghost" data-modal-close style="padding:9px 18px">닫기</button>' +
-        '</div>' +
-      '</div>', 440);
+    var linkBtn = p.link
+      ? '<a class="btn btn-point" href="' + esc(p.link) + '" style="margin-top:var(--gap-related)"><i data-lucide="arrow-right"></i>' + esc(p.linkLabel || '자세히 보기') + '</a>'
+      : '';
+    var foot =
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:var(--gap-block);border-top:1px solid var(--line-soft);padding-top:14px">' +
+        '<button type="button" class="btn-text" id="popDismiss" style="color:var(--ink-mute)">오늘 하루 보지 않기</button>' +
+        '<button type="button" class="btn btn-ghost" data-modal-close style="padding:9px 18px">닫기</button>' +
+      '</div>';
+    /* 사진이 있으면 **사진만** 내보낸다 — 제목·내용은 관리자가 목록에서 어떤 팝업인지
+       알아보려고 적는 이름이지 손님에게 보일 글이 아니다.
+       잘라내지 않는다(contain) — 알림 사진에는 글자가 들어 있어 잘리면 뜻이 깨진다.
+       사진이 없는 팝업까지 글을 감추면 빈 상자만 뜬다 — 그때는 종전대로 글을 낸다. */
+    var body = p.img
+      ? '<img src="' + esc(p.img) + '" alt="' + esc(p.title) + '" style="display:block;width:100%;height:auto;max-height:72vh;object-fit:contain;background:var(--surface-2)">' +
+        '<div style="padding:16px 20px 18px">' + linkBtn + foot + '</div>'
+      : '<div class="ph tone-deep ratio-169" data-label="" style="border-radius:0"><i data-lucide="bell"></i></div>' +
+        '<div style="padding:26px 28px 24px">' +
+          '<div class="eyebrow">공지</div>' +
+          '<h3 style="margin:var(--gap-tight) 0 var(--gap-tight);font-size:22px">' + esc(p.title) + '</h3>' +
+          '<p class="muted" style="margin:0;white-space:pre-line">' + esc(p.body || '') + '</p>' +
+          linkBtn + foot +
+        '</div>';
+    var root = rawModal(body, POPUP_W[p.size] || POPUP_W['중']);
     var dz = document.getElementById('popDismiss');
     if (dz) dz.addEventListener('click', function () {
       try { localStorage.setItem('kach_popdismiss_' + p.id, todayStr()); } catch (e) {}
