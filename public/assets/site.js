@@ -954,7 +954,8 @@
       option: { name: '용량', values: [ { label: '300ml (소)', add: 0, stock: 20 }, { label: '500ml (대)', add: 10000, stock: 20 } ] },
       summary: o.summary, icon: 'wine', tone: 'tone-point',
       descHtml: '<h3>' + o.name + '</h3><p>' + o.body + '</p>' +
-        '<h3>이렇게 만듭니다</h3><p>과일을 설탕과 섞어 청을 담아 3개월 숙성하고, 숙성한 청을 물과 섞어 16브릭스를 맞춥니다. 여기에 이스트를 넣어 25~30℃ 발효실에서 2~3주 발효시키면 와인이 됩니다. 이 와인을 6브릭스로 맞춘 뒤 초산균(종초)을 섞어 33℃에서 3주 정도 두면 초막이 끼면서 식초가 됩니다.</p>' +
+        /* material 은 받침 있는 말만 온다(과일·솔잎) — 뒤의 조사 '을' 이 그대로 붙는다 */
+        '<h3>이렇게 만듭니다</h3><p>' + (o.material || '과일') + '을 설탕과 섞어 청을 담아 3개월 숙성하고, 숙성한 청을 물과 섞어 16브릭스를 맞춥니다. 여기에 이스트를 넣어 25~30℃ 발효실에서 2~3주 발효시키면 와인이 됩니다. 이 와인을 6브릭스로 맞춘 뒤 초산균(종초)을 섞어 33℃에서 3주 정도 두면 초막이 끼면서 식초가 됩니다.</p>' +
         '<h3>이렇게 드세요</h3><p>식초는 신맛이 강하므로 물이나 다른 음료에 희석해 드십시오. 식초 50㎖(소주잔 한 컵)에 물 6배를 희석하면 적당합니다. 단기간 많이 드시기보다 <b>꾸준히</b> 드시는 것이 효과적이며, 섭취 후에는 물을 충분히 마셔 주세요.</p>',
       gosi: gosiBase({ pname: o.name, volume: '300ml / 500ml', ingredients: o.ingredients,
         maker: '한국참전통발효식품협동조합 (제조: 정선다문화가정영농조합법인)',
@@ -986,6 +987,11 @@
       summary: '여름 수박을 발효시킨 연한 빛깔의 순한 수제 식초.',
       body: '수박 과육으로 청을 담가 발효시킨 식초입니다. 산미가 순해 식초를 처음 접하는 분께 권합니다.',
       ingredients: '수박, 정제수, 설탕, 초산균', related: ['p_vin_plum', 'p_vin_omija', 'p_set_vinegar'] }),
+    /* 사진(photo)은 두지 않는다 — 운영자가 관리자 > 상품에서 직접 올린다(2026-09-19) */
+    vinegarProduct({ id: 'p_vin_pine', name: '솔잎 식초', material: '솔잎',
+      summary: '솔잎의 맑고 싱그러운 향을 담아 발효시킨 수제 식초.',
+      body: '솔잎으로 청을 담가 숙성한 뒤 발효시킨 식초입니다. 솔 향이 은은하게 남아 물에 희석해 마시면 뒷맛이 개운합니다.',
+      ingredients: '솔잎, 정제수, 설탕, 초산균', related: ['p_set_vinegar', 'p_vin_omija', 'p_vin_plum'] }),
     { id: 'p_wine_grape', name: '수제 포도 와인', cat: '식초', price: 35000, salePrice: null, unit: '370ml',
       status: '판매중', stock: 15, option: null, photo: 'assets/product-wine-grape.jpg',
       summary: '전통 발효 기법으로 빚은 수제 포도 와인. 낱개 상자 포장.', icon: 'wine', tone: 'tone-point',
