@@ -39,16 +39,32 @@ async function orderedQty(env) {
 }
 
 /**
+ * 대표 사진이 올라가 있는 상품 id. 코드에 적힌 정적 사진(`doc.photo`)은 상품 쪽에서 본다.
+ * @returns {Promise<Set<string>>}
+ */
+async function withMainImage(env) {
+  const { results } = await env.DB.prepare(
+    `SELECT DISTINCT ref FROM images WHERE scope = 'product' AND role = 'main'`
+  ).all();
+  return new Set((results || []).map((r) => r.ref).filter(Boolean));
+}
+
+/**
  * 홈에 세울 상품 — 주문 많은 순, 같으면 관리자가 정한 차례(`sort_order`).
  *
  * 품절은 뺀다. 자리가 넷뿐이라 지금 살 수 없는 물건에 한 칸을 주면 그만큼 덜 팔린다
  * (제품 목록은 품절도 '품절' 표시와 함께 그대로 보여 준다 — 거기는 전부를 보이는 자리다).
  * 숨김은 `loadSellable` 이 이미 걸러 온다.
+ *
+ * **사진 없는 상품도 뺀다.** 첫 화면에 자리표시 카드가 서면 사이트 전체가 미완성으로 보인다
+ * — 제품 목록의 선물세트 칸을 같은 이유로 그렇게 했다(2026-09-18 · S10).
+ * 다만 사진 있는 상품이 하나도 없으면 홈의 제품 칸이 통째로 비어 버리므로, 그때는 거르지 않는다.
  */
 export async function homePicks(env) {
-  const [rows, qty] = await Promise.all([loadSellable(env), orderedQty(env)]);
-  return rows
-    .filter((p) => p.status !== '품절')
+  const [rows, qty, shot] = await Promise.all([loadSellable(env), orderedQty(env), withMainImage(env)]);
+  const sellable = rows.filter((p) => p.status !== '품절');
+  const shown = sellable.filter((p) => p.photo || shot.has(p.id));
+  return (shown.length ? shown : sellable)
     .map((p, i) => ({ p, ord: i, q: qty.get(p.id) || 0 }))
     .sort((a, b) => (b.q - a.q) || (a.ord - b.ord))
     .slice(0, PICK)

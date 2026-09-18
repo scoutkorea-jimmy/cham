@@ -197,11 +197,14 @@
     if (!box) return;
     var ssr = document.getElementById('home-ssr');
     var ids = ssr ? [].map.call(ssr.querySelectorAll('[data-pid]'), function (el) { return el.dataset.pid; }) : [];
+    var sellable = S.getProducts().filter(function (p) {
+      return p.status !== '숨김' && p.status !== '품절';
+    });
+    // 서버와 같은 기준 — 사진 없는 상품은 세우지 않는다. 하나도 없으면 거르지 않는다
+    var shown = sellable.filter(hasVisual);
     var list = ids.length
       ? ids.map(S.getProduct).filter(Boolean)
-      : S.getProducts().filter(function (p) {
-          return p.status !== '숨김' && p.status !== '품절';
-        }).slice(0, 4);
+      : (shown.length ? shown : sellable).slice(0, 4);
     if (!list.length) return;
     box.innerHTML = list.map(cardHTML).join('');
     if (ssr) ssr.innerHTML = '';        // 크롤러 몫은 끝났다 — 사람에게는 카드를 보인다
