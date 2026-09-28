@@ -384,9 +384,12 @@
       if (galPage > pages) galPage = pages;
       var slice = items.slice((galPage - 1) * GAL_PER_PAGE, galPage * GAL_PER_PAGE);
       grid.innerHTML = slice.map(function (g) {
-        return '<figure class="gal-item"><img src="' + g.url + '" alt="' + esc(g.name) + '" loading="lazy">' +
+        // 서버는 파일 이름을 그대로 저장한다 — 확장자는 보일 때 뗀다
+        var name = esc((g.name || '').replace(/\.[^.]+$/, ''));
+        return '<figure class="gal-item"><button type="button" class="gal-open" data-gview="' + esc(g.url) + '" data-gname="' + name + '" aria-label="' + name + ' 크게 보기">' +
+          '<img src="' + g.url + '" alt="' + name + '" loading="lazy"></button>' +
           (isAdmin() ? '<button class="gal-del" data-gdel="' + g.id + '" title="삭제 (관리자)"><i data-lucide="x"></i></button>' : '') +
-          '<figcaption>' + esc(g.name) + '</figcaption></figure>';
+          '<figcaption>' + name + '</figcaption></figure>';
       }).join('');
       pager.innerHTML = pages > 1
         ? '<button data-gpage="' + (galPage - 1) + '"' + (galPage <= 1 ? ' disabled' : '') + ' aria-label="이전"><i data-lucide="chevron-left"></i></button>' +
@@ -410,6 +413,16 @@
     });
     var grid = document.getElementById('gallery-grid');
     if (grid) grid.addEventListener('click', function (e) {
+      // 썸네일은 4:3 로 잘린 작은 그림이다 — 글자가 든 안내문은 원본 비율로 크게 봐야 읽힌다
+      var v = e.target.closest('[data-gview]');
+      if (v) {
+        var vn = esc(v.dataset.gname), vu = esc(v.dataset.gview);
+        S.rawModal('<div class="modal-head"><h3>' + vn + '</h3>' +
+          '<button class="modal-close" data-modal-close aria-label="닫기"><i data-lucide="x"></i></button></div>' +
+          '<div class="modal-body gal-view"><img src="' + vu + '" alt="' + vn + '">' +
+          '<a class="btn btn-ghost" href="' + vu + '" target="_blank" rel="noopener">원본 크기로 열기</a></div>', 1200);
+        return;
+      }
       var b = e.target.closest('[data-gdel]');
       if (!b) return;
       S.requireAdmin(function () {

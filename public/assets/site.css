@@ -1236,6 +1236,9 @@ button[type=submit]:disabled, .btn:disabled { opacity: 0.45; cursor: not-allowed
 /* 갤러리 아이템 */
 .gal-item { position: relative; border-radius: var(--r-md); overflow: hidden; background: var(--surface-2); border: 1px solid var(--line-soft); margin: 0; }
 .gal-item img { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; }
+.gal-open { display: block; width: 100%; padding: 0; border: none; background: none; cursor: zoom-in; }
+.gal-view { display: flex; flex-direction: column; align-items: center; gap: var(--gap-related); }
+.gal-view img { display: block; max-width: 100%; max-height: 72vh; width: auto; height: auto; object-fit: contain; border-radius: var(--r-md); }
 .gal-item figcaption { padding: 9px 12px; font-size: var(--fs-caption); color: var(--ink-soft); background: var(--surface); border-top: 1px solid var(--line-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gal-item .gal-del { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border-radius: 50%; border: none; background: rgba(42,39,35,0.55); color: #fff; cursor: pointer; display: grid; place-items: center; }
 .gal-item .gal-del:hover { background: var(--danger); }
