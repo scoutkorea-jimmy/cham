@@ -35,3 +35,12 @@ npx wrangler pages dev public --port 8788                      # 함수까지 (�
 계좌 · 연락처 · 사업자 정보 · 검색엔진 인증 코드는 **관리자 > 설정**이 원본이고, `site.js` 의
 `SETTINGS_DEFAULTS` 는 저장된 값이 없을 때의 기본값이다. 상품·가격은 관리자 > 상품(D1)이 원본이다 —
 HTML 에 값을 손으로 적지 않는다(적으면 반드시 어긋난다 → [docs/failures.md](docs/failures.md)).
+
+
+## 재현 환경 · 백업 검사
+
+Node.js 20 이상, npm과 `package-lock.json`을 사용한다. `npm ci`로 설치하고
+`npm run dev`로 로컬 Pages Functions를 실행한다. 정적 사이트라 빌드 명령은 없다.
+안전한 변수 이름은 `.env.example`, 실제 값은 gitignored `.dev.vars`에만 둔다.
+`python3 scripts/check-backup-workflow.py`는 인증값이나 네트워크 없이 워크플로를 검사한다.
+SQL 정기 백업 설정·실제 확인 절차는 [docs/deploy.md](docs/deploy.md)의 해당 절을 읽는다.
