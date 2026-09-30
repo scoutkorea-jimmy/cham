@@ -889,6 +889,8 @@ npx wrangler ai models | grep "Text Generation"     # 지금 쓸 수 있는 것
 - Actions: 47회 모두 실패, Secrets 0개. 최신 실패 [36637505505](https://github.com/scoutkorea-jimmy/cham/actions/runs/36637505505).
 - 서버 JSON: 최신 `backups/db-2026-09-30.json` 실제 파싱 성공, 365,241바이트·16표·178행.
   D1 성공 표식과 일치. r2.dev 공개 접근 비활성 및 custom domains 0개.
+- 복원 검사: 기존 변환 도구 + 스키마 10개 + 격리된 메모리 SQLite에서 모든 행 값 일치,
+  외래키 위반 0·무결성 ok. 임시 개인정보 파일 제거. 운영 D1 복원 없음.
 - 변경: SQL 업로드 후 다운로드·빈 파일 검사·바이트 비교, 설정/검증 절차 문서화.
 - 남은 것: 운영자 승인과 직접 Secrets 입력 → 수동 Actions 실행 → SQL 원본 검증.
 - 이어받기: `docs/deploy.md` SQL 정기 백업 절, `.github/workflows/backup.yml`.

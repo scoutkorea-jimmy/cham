@@ -174,6 +174,11 @@ Pages 프로젝트 > Custom domains > 도메인 추가 → 안내되는 DNS 레�
 `backups/db-2026-09-30.json`까지 14개가 존재했다. 최신 파일은 365,241바이트,
 16개 표·178행이며 D1 `documents`의 `backup` 표식과 일치했다.
 버킷의 r2.dev 공개 접근은 비활성, 사용자 도메인은 없었다.
+최신 JSON을 기존 `backup-to-sql.mjs`로 변환하여 스키마 10개를 적용한 격리된
+메모리 SQLite에 복원했다. 16개 표·178행 전체 값이 원본과 일치했고,
+`foreign_key_check` 위반 0개·`integrity_check` ok였다. 운영 D1 복원은 하지 않았다.
+이 검사는 JSON 데이터 복구 경로를 확인하며, 이미지 본문 복구·Workers 실행·동시 쓰기 중
+일관된 스냅샷 보장까지 검증한 것은 아니다.
 
 SQL 자동화를 켜려면 운영자가 별도 승인 후 아래 값을 저장소
 [Settings → Actions Secrets](https://github.com/scoutkorea-jimmy/cham/settings/secrets/actions)에
