@@ -69,3 +69,16 @@ jobs:
             --file="cham-${DAY}.sql" --remote \
             --content-type "application/sql"
           echo "올림: backups/cham-${DAY}.sql"
+
+      - name: R2 원본을 다시 받아 검증한다
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4 r2 object get \
+            "cham-media/backups/cham-${DAY}.sql" \
+            --file="verified-${DAY}.sql" --remote
+          test -s "verified-${DAY}.sql"
+          cmp "cham-${DAY}.sql" "verified-${DAY}.sql"
+          echo "R2 원본과 D1 덤프가 일치합니다."

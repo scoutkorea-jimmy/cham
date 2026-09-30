@@ -166,6 +166,30 @@ Pages 프로젝트 > Custom domains > 도메인 추가 → 안내되는 DNS 레�
 
 ---
 
+## SQL 정기 백업 설정과 검증
+
+2026-09-30 확인: Actions 백업은 2026-08-14~09-29 총 47회 모두 실패했고,
+저장소 Actions Secrets는 0개다. 실패는 export/upload 전 인증 확인 단계에서 발생한다.
+서버 JSON 백업과는 별개다. R2에는 `backups/db-2026-09-17.json`부터
+`backups/db-2026-09-30.json`까지 14개가 존재했다. 최신 파일은 365,241바이트,
+16개 표·178행이며 D1 `documents`의 `backup` 표식과 일치했다.
+버킷의 r2.dev 공개 접근은 비활성, 사용자 도메인은 없었다.
+
+SQL 자동화를 켜려면 운영자가 별도 승인 후 아래 값을 저장소
+[Settings → Actions Secrets](https://github.com/scoutkorea-jimmy/cham/settings/secrets/actions)에
+직접 입력한다. 토큰 원문을 채팅·소스·로그로 전달하지 않는다.
+
+- `CLOUDFLARE_API_TOKEN`: 해당 계정의 D1 export 및 R2 object put/get이 가능한 토큰.
+  새 토큰 생성·권한 확대·기존 로컬 OAuth 토큰의 GitHub 전송은 운영자 판단 사항이다.
+- `CLOUDFLARE_ACCOUNT_ID`: Cloudflare 대시보드에서 확인한 해당 계정 ID.
+
+입력 후 Actions의 **백업 — D1 → R2 → Run workflow**로 1회 실행한다.
+export, upload, R2 다운로드 및 `cmp` 검증까지 모두 성공해야 완료다.
+워크플로는 private R2 파일을 다시 받아 덤프와 바이트 비교한다.
+SQL 덤프는 공개 저장소·Actions artifact에 올리지 않는다.
+실제 운영 DB 복원 검증은 별도 승인 없이 실행하지 않는다.
+서버 JSON 백업은 첫 `/api/bootstrap` 요청에 의존하므로 방문이 없는 날에는 생성되지 않는다.
+
 ## 자료를 되돌릴 때 — 자동 백업에서 (복구)
 
 서버가 **하루 한 번** D1 의 표를 행 그대로 떠서 R2 `backups/db-YYYY-MM-DD.json` 에 남긴다
