@@ -25,7 +25,10 @@
   .admin-nav button:hover { background: rgba(255,255,255,.08); color: #fff; }
   .admin-nav button.on { background: var(--point); color: #fff; }
   .admin-nav button i[data-lucide] { width: 18px; height: 18px; }
-  .admin-nav .badge { margin-left: auto; background: rgba(255,255,255,.18); border-radius: 999px; font-size: 11px; font-weight: 700; padding: 1px 8px; }
+  .admin-nav .badge { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center;
+    min-width: 1.6em; height: 1.6em; box-sizing: border-box; margin-left: auto; padding: 0 .4em;
+    background: rgba(255,255,255,.18); border-radius: var(--r-pill);
+    font-size: 11px; font-weight: 700; line-height: 1; text-align: center; white-space: nowrap; }
   .admin-nav button.on .badge { background: rgba(255,255,255,.25); }
   /* ── 사이드바 그룹 ──
      평평한 목록 15개는 눈으로 훑기 어렵다. 하는 일이 같은 것끼리 묶는다. */
@@ -204,7 +207,7 @@
   .nav-gh.on { background: var(--point); color: var(--point-ink); }
   .nav-gh.on > i[data-lucide]:first-child { background: rgba(0,0,0,.12); color: var(--point-ink); }
   .nav-gh.on .nav-caret { opacity: .8; }
-  .nav-gh > span { flex: 1; min-width: 0; }
+  .nav-gh > span:not(.badge) { flex: 1; min-width: 0; }
   .nav-gh i[data-lucide] { width: 18px; height: 18px; }
   .nav-caret { transition: transform var(--dur-fast) var(--ease); opacity: .6; width: 15px !important; height: 15px !important; }
   .nav-group.open .nav-caret { transform: rotate(180deg); }
@@ -543,7 +546,7 @@
   .admin-top .at-meta { font-size: 14px; }
   .admin-nav button { font-size: 16px; padding: 13px 15px; }
   .admin-nav button i[data-lucide] { width: 20px; height: 20px; }
-  .admin-nav .badge { font-size: 12.5px; padding: 2px 9px; }
+  .admin-nav .badge { font-size: 12.5px; }
   .as-foot a, .as-foot button { font-size: 14.5px; padding: 11px 12px; }
   .panel-head h3 { font-size: 18px; }
   .panel-head .ph-sub { font-size: 13.5px; }
