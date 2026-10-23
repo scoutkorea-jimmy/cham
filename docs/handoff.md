@@ -48,6 +48,7 @@ Pages 기본 주소 https://cham-3ef.pages.dev 도 계속 응답한다 — 커�
 검증: node --test scripts/product-seo.test.mjs 3개 통과(가격문의·숨김·품절·할인가·카테고리·출고 안내·배송비 경계 포함), Functions 컴파일 성공, git diff --check 통과. 설치된 Chrome 격리 세션에서 공개 bootstrap 응답을 fixture로 주입해 390·1280px 배송 안내·가로 넘침 없음·페이지 오류 0건 확인. 운영 데이터는 읽기만 했으며 이미지 API는 로고 fixture로 대체했다.
 잔여: 현재 한글 category는 최신 Google 문서상 유효하므로 메일의 정확한 영향 URL·크롤링 시각 확인과 Google Rich Results Test/서치콘솔 재검증이 필요. 코드 변경만으로 category 경고 해소를 확정하지 않음. 출고 시간은 상품 안내와 같은 입금 확인 기준이며 주문 후 입금 대기기간은 포함하지 않음.
 상태: 2026-10-23 사용자 “푸시 배포 반영해줘”로 커밋·푸시·운영 배포 승인. 배포 전 백업 확인 및 릴리스 진행. 상품 상세의 shop.js URL에 버전을 붙여 기존 브라우저 캐시에서도 배송 문구가 갱신되게 함. 배포·운영 검증과 Search Console의 Google 재검증을 구분함.
+운영 반영 완료: 코드 커밋 `cec5579`, Pages 배포 `ebdcd7ee-a135-4a9b-b908-3a27e7fae8a0` production success(2026-10-23 19:09 KST). charmjt.org 공개 상품 15개 HTML의 Product 단일 출력·분류 코드·버전 URL·배송 문구 확인. Offer가 있는 7개는 배송기간·반품 7일·무료배송 경계 계산 모두 통과, 가격문의 8개는 Offer 없음 유지. 운영 Chrome 390·1280px에서 새 배송 문구·가로 넘침 없음·페이지 JS 오류 0건 확인. Google 재수집·Rich Results/서치콘솔 경고 해소는 별도 대기.
 배포 전 백업: `/Volumes/무제 2/Project_Server_Backups/cham/20261023T100711Z.tar.enc` 검증 완료. D1 17표·214행 격리 복원 및 R2 57개 원문 해시·외장 readback/복호화 검증 성공. 운영 복원·데이터 변경 없음.
 재개: 본 항목과 functions/_shared/product-seo.js 확인 → node --test scripts/product-seo.test.mjs → 승인 후 지정 파일 커밋·푸시 및 운영 HTML/브라우저·구글 재검증. 릴리스 전 서버 백업 확인은 공통 개발 지침에 따름.
 

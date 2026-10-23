@@ -195,4 +195,5 @@
 - 관찰: 첫 패치는 shop.js의 불완전한 문맥 때문에 적용 거부됨. 변경이 적용되지 않은 것을 확인한 뒤 실제 줄로 다시 적용해 해결.
 - 도구 경로: 검증 보조 파일 client.py·common.py는 현재 저장소에 없음. 목록 확인 후 기존 venv의 Playwright 직접 사용으로 전환.
 - 배포 상태 도구: Cloudflare search에 query 인자를 보내 스키마 검증 거부. 도구 선언을 확인해 code 인자로 수정했고 Pages 배포 목록 조회 성공. 변경 API 호출 전의 읽기 도구 오류이며 운영 영향 없음.
+- 운영 HTTP 검증: Python urllib 기본 클라이언트로 공개 bootstrap 조회 시 403. 동일 경로를 curl로 확인하고 브라우저 검증과 구분해 재확인함. 403만으로 서버 장애로 판정하지 않음.
 - 브라우저: venv Playwright의 기본 Chromium headless shell이 미설치여서 실행 실패. 유사 기록 gpt-2026-10-18-nepal-browser-runtime-path.md 확인 후 설치된 Chrome 채널로 전환. 390·1280px에서 배송 문구·가로 넘침 없음·페이지 JS 오류 0건 검증 완료. 새 패키지·브라우저 설치는 하지 않음. 다음 검증에서도 실행 파일 존재 여부부터 확인.
