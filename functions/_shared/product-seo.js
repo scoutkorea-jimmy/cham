@@ -17,6 +17,7 @@
 import { productRowToObj } from './store.js';
 import { plainText, attr, wonText } from './html-text.js';
 import { SITE_NAME } from './org-seo.js';
+import { shipFeeFor } from './shipping.js';
 
 /** 확정 판매가. `shop.js` 의 규칙과 같아야 한다 — 화면과 구조화 데이터가 어긋나면 안 된다. */
 function realPrice(p) {
@@ -103,6 +104,10 @@ function bodyHTML(p) {
       (p.summary ? `<p>${attr(p.summary)}</p>` : '') +
       (p.descHtml ? `<div class="rich">${p.descHtml}</div>` : '') +
       gosiHTML(p.gosi) +
+      '<h2>배송 안내</h2>' + (p.ship ? `<p>${attr(p.ship)}</p>` : '') +
+      '<p>택배사 인계 후 통상 1~2영업일 소요됩니다. 제주·도서산간 및 택배사 사정에 따라 지연될 수 있습니다.</p>' +
+      (p.refund ? `<h2>교환·반품·환불 안내</h2><p>${attr(p.refund)}</p>` : '') +
+      '<p><a href="/terms#refund">교환·반품·환불 정책</a></p>' +
       '<p><a class="btn btn-ghost" href="/products">제품 목록으로</a></p>' +
     '</article>' +
   '</div>';
@@ -126,7 +131,13 @@ function jsonLd(p, canonical, image, shipFee) {
     description: plainText(p.descHtml, 300) || p.summary || p.name,
     brand: { '@type': 'Brand', name: /식초|와인/.test(p.cat || '') ? '서연(瑞蓮)' : SITE_NAME },
   };
-  if (p.cat) ld.category = p.cat;
+  // 사이트 분류명과 Google Product Taxonomy 코드를 함께 제공한다.
+  const categoryCode = { '식초': '2140', '선물세트': '136', '장류': '427', '발효식품': '422' }[p.cat];
+  if (p.cat) ld.category = categoryCode ? [p.cat, {
+    '@type': 'CategoryCode',
+    inCodeSet: 'https://www.google.com/basepages/producttype/taxonomy-with-ids.en-US.txt',
+    codeValue: categoryCode,
+  }] : p.cat;
 
   if (!p.priceOnRequest) {
     const inStock = p.status === '판매중' && Number(p.stock) > 0;
@@ -138,6 +149,15 @@ function jsonLd(p, canonical, image, shipFee) {
       itemCondition: 'https://schema.org/NewCondition',
       availability: inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
       seller: { '@type': 'Organization', name: SITE_NAME },
+      hasMerchantReturnPolicy: {
+        '@type': 'MerchantReturnPolicy',
+        applicableCountry: 'KR',
+        returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
+        merchantReturnDays: 7,
+        returnMethod: 'https://schema.org/ReturnByMail',
+        returnFees: 'https://schema.org/ReturnShippingFees',
+        merchantReturnLink: new URL('/terms#refund', canonical).href,
+      },
     };
     /* 배송비는 운영 설정에서 온다. 이것이 있으면 구글이 '무료 리스팅'에 실을 때
        배송비를 따로 묻지 않는다 — 없으면 상품이 후순위로 밀린다. */
@@ -146,7 +166,18 @@ function jsonLd(p, canonical, image, shipFee) {
         '@type': 'OfferShippingDetails',
         shippingRate: { '@type': 'MonetaryAmount', value: String(Number(shipFee)), currency: 'KRW' },
         shippingDestination: { '@type': 'DefinedRegion', addressCountry: 'KR' },
+        deliveryTime: {
+          '@type': 'ShippingDeliveryTime',
+          transitTime: { '@type': 'QuantitativeValue', minValue: 1, maxValue: 2, unitCode: 'DAY' },
+        },
       };
+      // 상품별 출고 안내를 읽는다. 다른 정책을 임의로 2~3일로 덮지 않는다.
+      const handling = /출고: 결제\(입금\) 확인 후 (\d+)~(\d+) 영업일 이내/.exec(p.ship || '');
+      if (handling && Number(handling[1]) <= Number(handling[2])) {
+        offer.shippingDetails.deliveryTime.handlingTime = {
+          '@type': 'QuantitativeValue', minValue: Number(handling[1]), maxValue: Number(handling[2]), unitCode: 'DAY',
+        };
+      }
     }
     ld.offers = offer;
   }
@@ -184,7 +215,7 @@ export async function loadProductDetail(env, url, canonical, opt) {
       desc,
       image,
       bodyHTML: bodyHTML(p),
-      jsonLd: [jsonLd(p, canonical, image || `${url.origin}/assets/logo.png`, opt && opt.shipFee)],
+      jsonLd: [jsonLd(p, canonical, image || `${url.origin}/assets/logo.png`, shipFeeFor(opt, realPrice(p)))],
     };
   } catch {
     return null;                                // 못 읽어도 제품 페이지는 그대로 나간다

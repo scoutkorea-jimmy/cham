@@ -39,6 +39,18 @@ Pages 기본 주소 https://cham-3ef.pages.dev 도 계속 응답한다 — 커�
 
 ## 진행 — 작업 중
 
+### Search Console 상품 구조화 데이터 경고 (2026-10-23)
+
+요청: Product의 review·aggregateRating 누락, 판매자 목록의 category 값·deliveryTime·hasMerchantReturnPolicy 경고 개선.
+사용자 확인: 택배사 인계 후 통상 1~2영업일. 기존 출고 안내는 입금 확인 후 2~3영업일.
+범위: 상품 JSON-LD, 배송 안내, 회귀 검사. 운영 DB·회원·주문 변경 없음.
+구현: Google Product Taxonomy 코드 병기, 출고 안내에서 handlingTime 추출, 확인된 transitTime 1~2일, 기존 약관의 7일 반품·구매자 배송비 부담 표시. 상품별 안내와 약관 링크를 SSR에도 제공. 무료배송 기준은 기존 shipFeeFor로 계산하도록 수정. review·aggregateRating은 실제 후기 데이터가 없어 생성하지 않음.
+검증: node --test scripts/product-seo.test.mjs 3개 통과(가격문의·숨김·품절·할인가·카테고리·출고 안내·배송비 경계 포함), Functions 컴파일 성공, git diff --check 통과. 설치된 Chrome 격리 세션에서 공개 bootstrap 응답을 fixture로 주입해 390·1280px 배송 안내·가로 넘침 없음·페이지 오류 0건 확인. 운영 데이터는 읽기만 했으며 이미지 API는 로고 fixture로 대체했다.
+잔여: 현재 한글 category는 최신 Google 문서상 유효하므로 메일의 정확한 영향 URL·크롤링 시각 확인과 Google Rich Results Test/서치콘솔 재검증이 필요. 코드 변경만으로 category 경고 해소를 확정하지 않음. 출고 시간은 상품 안내와 같은 입금 확인 기준이며 주문 후 입금 대기기간은 포함하지 않음.
+상태: 2026-10-23 사용자 “푸시 배포 반영해줘”로 커밋·푸시·운영 배포 승인. 배포 전 백업 확인 및 릴리스 진행. 상품 상세의 shop.js URL에 버전을 붙여 기존 브라우저 캐시에서도 배송 문구가 갱신되게 함. 배포·운영 검증과 Search Console의 Google 재검증을 구분함.
+배포 전 백업: `/Volumes/무제 2/Project_Server_Backups/cham/20261023T100711Z.tar.enc` 검증 완료. D1 17표·214행 격리 복원 및 R2 57개 원문 해시·외장 readback/복호화 검증 성공. 운영 복원·데이터 변경 없음.
+재개: 본 항목과 functions/_shared/product-seo.js 확인 → node --test scripts/product-seo.test.mjs → 승인 후 지정 파일 커밋·푸시 및 운영 HTML/브라우저·구글 재검증. 릴리스 전 서버 백업 확인은 공통 개발 지침에 따름.
+
 ### 사이드바 숫자 배지 크기·중앙 정렬 (2026-10-04)
 
 **요청**: 숫자에 비해 큰 박스를 줄이고 한 줄 내용은 가로·세로 중앙에 배치.

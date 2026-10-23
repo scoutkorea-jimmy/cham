@@ -351,7 +351,7 @@
           // 배송비 줄은 상품에 저장된 글이 아니라 설정에서 만든다 — 저장해 두면 설정을
           // 고쳐도 상품마다 옛 금액이 남아, 같은 화면에 서로 다른 두 금액이 보인다.
           '<details><summary>배송안내 <i data-lucide="chevron-down"></i></summary><div class="pd-acc-body">' +
-            esc(S.shipFeeLine() + '\n' + (p.ship || S.SHIP_TPL)) + '</div></details>' +
+            esc(S.shipFeeLine() + '\n' + (p.ship || S.SHIP_TPL)) + '\n· 택배사 인계 후 통상 1~2영업일 소요됩니다. 제주·도서산간 및 택배사 사정에 따라 지연될 수 있습니다.</div></details>' +
           '<details><summary>교환 · 반품 · 환불 안내 <i data-lucide="chevron-down"></i></summary><div class="pd-acc-body">' + esc(p.refund || S.REFUND_TPL) + '\n\n· 소비자 상담: ' + esc((p.gosi && p.gosi.phone) || '02-855-8806') + ' (평일 09:00–18:00)</div></details>' +
         '</div>' +
         '<div id="pdRelatedWrap" style="display:none;margin-top:var(--gap-sub)">' +
